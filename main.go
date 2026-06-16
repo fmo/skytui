@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+	"strconv"
 	"time"
 
 	"charm.land/bubbles/v2/progress"
@@ -9,6 +11,7 @@ import (
 
 type model struct {
 	progress progress.Model
+	limit    float64
 }
 
 func (m model) Init() tea.Cmd {
@@ -26,7 +29,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.progress.Percent() == 1.0 {
 			return m, tea.Quit
 		}
-		cmd := m.progress.IncrPercent(1.0 / 60.0)
+		cmd := m.progress.IncrPercent(1.0 / m.limit)
 		return m, tea.Batch(cmd, tickCmd())
 	case progress.FrameMsg:
 		var cmd tea.Cmd
@@ -42,8 +45,13 @@ func (m model) View() tea.View {
 }
 
 func main() {
+	mins := os.Args[1]
+
+	minsFloat, _ := strconv.ParseFloat(mins, 64)
+
 	m := model{
 		progress: progress.New(progress.WithDefaultBlend()),
+		limit:    minsFloat,
 	}
 
 	p := tea.NewProgram(m)
