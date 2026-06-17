@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"time"
@@ -47,7 +48,11 @@ func (m model) View() tea.View {
 func main() {
 	mins := os.Args[1]
 
-	minsFloat, _ := strconv.ParseFloat(mins, 64)
+	minsFloat, err := strconv.ParseFloat(mins, 64)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "provide seconds: %v\n", err)
+		os.Exit(1)
+	}
 
 	m := model{
 		progress: progress.New(progress.WithDefaultBlend()),
