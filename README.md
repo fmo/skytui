@@ -1,3 +1,7 @@
+## Install
+
+`go install github.com/fmo/pomodoro@latest`
+
 ## How to run
 
 `pomodoro --seconds <seconds>` 
