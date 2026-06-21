@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"time"
 
 	"charm.land/bubbles/v2/progress"
@@ -11,7 +12,7 @@ import (
 
 type model struct {
 	progress progress.Model
-	limit    float64
+	limit    int
 	count    int
 }
 
@@ -27,11 +28,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 	case tickMsg:
-		if m.progress.Percent() == 1.0 {
+		if m.progress.Percent() == 1.0 || m.limit == 0 {
 			return m, tea.Quit
 		}
 		m.count--
-		cmd := m.progress.IncrPercent(1.0 / m.limit)
+		cmd := m.progress.IncrPercent(1.0 / float64(m.limit))
 		return m, tea.Batch(cmd, tickCmd())
 	case progress.FrameMsg:
 		var cmd tea.Cmd
@@ -49,14 +50,19 @@ func (m model) View() tea.View {
 }
 
 func main() {
-	seconds := flag.Float64("seconds", 3.0, "timer duration in seconds")
+	duration := flag.String("duration", "3m", "timer duration")
 
 	flag.Parse()
 
+	d, err := time.ParseDuration(*duration)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	m := model{
 		progress: progress.New(progress.WithDefaultBlend()),
-		limit:    *seconds,
-		count:    int(*seconds),
+		limit:    int(d.Seconds()),
+		count:    int(d.Seconds()),
 	}
 
 	p := tea.NewProgram(m)
