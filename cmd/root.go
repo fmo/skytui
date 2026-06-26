@@ -49,8 +49,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() tea.View {
+	d := time.Duration(m.count) * time.Second
 	return tea.NewView(
-		fmt.Sprintf("%s\nLeft: %d sec.", m.progress.View(), m.count),
+		fmt.Sprintf("%s\nLeft: %s.", m.progress.View(), d.String()),
 	)
 }
 
