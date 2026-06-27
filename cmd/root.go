@@ -13,6 +13,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func init() {
+	rootCmd.PersistentFlags().String("period", "today", "period of stats")
+	rootCmd.AddCommand(statsCmd)
+}
+
 type model struct {
 	progress progress.Model
 	limit    int
