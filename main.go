@@ -21,5 +21,7 @@ func main() {
 	logger := slog.New(handler)
 	slog.SetDefault(logger)
 
-	cmd.Execute(viper.GetViper())
+	app := cmd.NewApp(logger, viper.GetViper())
+
+	cmd.Execute(app)
 }

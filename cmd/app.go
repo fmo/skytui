@@ -4,12 +4,24 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/spf13/viper"
 )
+
+type App struct {
+	logger *slog.Logger
+	viper  *viper.Viper
+}
+
+func NewApp(logger *slog.Logger, viper *viper.Viper) *App {
+	return &App{logger, viper}
+}
 
 func GetCsvFilename() string {
 	csvFile := "pomodoro.csv"
@@ -50,7 +62,7 @@ func CreateBackup(file *os.File) error {
 	return nil
 }
 
-func Save(limit, count int) error {
+func (app *App) Save(limit, count int) error {
 	fp := GetFilePath()
 
 	err := os.MkdirAll(fp, 0o700)
@@ -70,8 +82,8 @@ func Save(limit, count int) error {
 		}
 	}
 
-	if cfg != nil {
-		if bup, ok := cfg.Get("app.backup-active").(bool); ok {
+	if app.viper != nil {
+		if bup, ok := app.viper.Get("app.backup-active").(bool); ok {
 			if bup {
 				CreateBackup(f)
 			}

@@ -9,17 +9,10 @@ import (
 	"charm.land/bubbles/v2/progress"
 	tea "charm.land/bubbletea/v2"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
-var cfg *viper.Viper
-
-func init() {
-	rootCmd.PersistentFlags().String("period", "today", "period of stats")
-	rootCmd.AddCommand(statsCmd)
-}
-
 type model struct {
+	app      *App
 	progress progress.Model
 	// It's whole duration time in seconds
 	limit int
@@ -36,12 +29,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "q":
-			Save(m.limit, m.count)
+			m.app.Save(m.limit, m.count)
 			return m, tea.Quit
 		}
 	case tickMsg:
 		if m.progress.Percent() == 1.0 || m.limit == 0 {
-			Save(m.limit, m.count)
+			m.app.Save(m.limit, m.count)
 			return m, tea.Quit
 		}
 		m.count--
@@ -71,32 +64,36 @@ func tickCmd() tea.Cmd {
 	})
 }
 
-var rootCmd = &cobra.Command{
-	Use:   "pomodoro",
-	Short: "Start your pomodoro time",
-	Long:  "Give your full attention and avoid distructions",
-	Run: func(cmd *cobra.Command, args []string) {
-		duration, _ := cmd.Flags().GetString("duration")
+func Execute(app *App) {
+	rootCmd := &cobra.Command{
+		Use:   "pomodoro",
+		Short: "Start your pomodoro time",
+		Long:  "Give your full attention and avoid distructions",
+		Run: func(cmd *cobra.Command, args []string) {
+			duration, _ := cmd.Flags().GetString("duration")
 
-		d, err := time.ParseDuration(duration)
-		if err != nil {
-			log.Fatal(err)
-		}
+			d, err := time.ParseDuration(duration)
+			if err != nil {
+				log.Fatal(err)
+			}
 
-		m := model{
-			progress: progress.New(progress.WithDefaultBlend()),
-			limit:    int(d.Seconds()),
-			count:    int(d.Seconds()),
-		}
+			m := model{
+				app:      app,
+				progress: progress.New(progress.WithDefaultBlend()),
+				limit:    int(d.Seconds()),
+				count:    int(d.Seconds()),
+			}
 
-		p := tea.NewProgram(m)
-		p.Run()
-	},
-}
+			p := tea.NewProgram(m)
+			p.Run()
+		},
+	}
 
-func Execute(viper *viper.Viper) {
+	rootCmd.PersistentFlags().String("period", "today", "period of stats")
 	rootCmd.PersistentFlags().String("duration", "10s", "write duration like 1h20m10s")
-	cfg = viper
+
+	rootCmd.AddCommand(statsCmd)
+
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stdout, err)
 		os.Exit(1)
