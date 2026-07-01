@@ -16,24 +16,24 @@ func main() {
 	})
 	logger := slog.New(handler)
 
-	homeDir, err := os.UserHomeDir()
+	projectPath, err := cmd.GetProjectPath(true)
 	if err != nil {
-		logger.Error("cant get the user directory", "err", err)
+		logger.Error("project path fetching failed", "err", err)
 		os.Exit(1)
 	}
-	configPath := filepath.Join(homeDir, "Library", "Application Support", "pomodoro")
+
+	csvFile, err := cmd.GetCsvFile()
+	if err != nil {
+		logger.Error("cant get the csv file", "err", err)
+		os.Exit(1)
+	}
 
 	viper.WithLogger(logger)
 	viper.SetConfigName("config")
 	viper.SetConfigType("yml")
-	viper.AddConfigPath(configPath)
+	viper.AddConfigPath(projectPath)
 
-	if err := os.MkdirAll(configPath, 0o700); err != nil {
-		logger.Error("cant create directories", "err", err)
-		os.Exit(1)
-	}
-
-	configFile := filepath.Join(configPath, "config.yml")
+	configFile := filepath.Join(projectPath, "config.yml")
 
 	_, err = os.Open(configFile)
 	if err != nil {
@@ -57,7 +57,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	app := cmd.NewApp(logger, viper.GetViper())
+	app := cmd.NewApp(logger, viper.GetViper(), csvFile)
 
 	cmd.Execute(app)
 }

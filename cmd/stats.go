@@ -19,26 +19,33 @@ func NewStatsCmd(app *App) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			period, err := cmd.Flags().GetString("period")
 			if err != nil {
-				log.Fatal(err)
+				app.logger.Error("need period to show stats", "err", err)
+				os.Exit(1)
 			}
 
 			homeDir, err := os.UserHomeDir()
 			if err != nil {
-				log.Fatal(err)
+				app.logger.Error("cant get the home directory", "err", err)
+				os.Exit(1)
 			}
+
 			csvFile := "pomodoro.csv"
 			if os.Getenv("csvfile") != "" {
 				csvFile = os.Getenv("csvfile")
 			}
+
 			filename := filepath.Join(homeDir, "Library", "Application Support", "pomodoro", csvFile)
 			file, err := os.Open(filename)
 			if err != nil {
-				log.Fatal(err)
+				app.logger.Error("cant open csv file", "err", err)
+				os.Exit(1)
 			}
+
 			reader := csv.NewReader(file)
 			records, err := reader.ReadAll()
 			if err != nil {
-				log.Fatal(err)
+				app.logger.Error("cant read the records", "err", err)
+				os.Exit(1)
 			}
 
 			var total time.Duration
