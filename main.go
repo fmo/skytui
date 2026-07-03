@@ -3,7 +3,6 @@ package main
 import (
 	"log/slog"
 	"os"
-	"path/filepath"
 
 	"github.com/fmo/pomodoro/cmd"
 	"github.com/spf13/viper"
@@ -24,8 +23,13 @@ func main() {
 
 	openPomodoroFile, err := cmd.OpenPomodoroFile()
 	if err != nil {
-		logger.Error("cant get the csv file", "err", err)
+		logger.Error("cant get the pomodoro file", "err", err)
 		os.Exit(1)
+	}
+
+	err = cmd.OpenConfigFile()
+	if err != nil {
+		logger.Error("cant open config file", "err", err)
 	}
 
 	viper.WithLogger(logger)
@@ -33,19 +37,11 @@ func main() {
 	viper.SetConfigType("yml")
 	viper.AddConfigPath(projectPath)
 
-	configFile := filepath.Join(projectPath, "config.yml")
-
-	_, err = os.Open(configFile)
-	if err != nil {
-		_, err = os.Create(configFile)
-		if err != nil {
-			logger.Error("cant create config", "err", err)
-		}
-	}
 	if os.Getenv("env") != "" {
 		viper.Set("env", "dev")
 	}
 	viper.Set("csv", "pomodoro.csv")
+	viper.Set("backups", true)
 
 	err = viper.WriteConfig()
 	if err != nil {

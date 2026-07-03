@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -61,24 +60,21 @@ func OpenPomodoroFile() (*os.File, error) {
 	return f, nil
 }
 
-func CreateBackup(file *os.File) error {
-	src, err := os.Open(file.Name())
+func OpenConfigFile() error {
+	projectPath, err := GetProjectPath(false)
 	if err != nil {
 		return err
 	}
 
-	fp, err := GetProjectPath(false)
-	if err != nil {
-		return err
-	}
-	csvFile := GetCsvBackup(GetCsvFilename())
+	configFile := filepath.Join(projectPath, "config.yml")
 
-	dsc, err := os.Create(filepath.Join(fp, csvFile))
+	_, err = os.Open(configFile)
 	if err != nil {
-		return err
+		_, err = os.Create(configFile)
+		if err != nil {
+			return err
+		}
 	}
-
-	io.Copy(dsc, src)
 
 	return nil
 }

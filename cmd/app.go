@@ -3,8 +3,10 @@ package cmd
 import (
 	"encoding/csv"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -21,11 +23,12 @@ func NewApp(logger *slog.Logger, viper *viper.Viper, csvFile *os.File) *App {
 	return &App{logger, viper, csvFile}
 }
 
-func (app *App) Save(limit, count int) error {
+func (app *App) SavePomodoro(limit, count int) error {
 	if app.viper != nil {
-		if bup, ok := app.viper.Get("app.backup-active").(bool); ok {
+		if bup, ok := app.viper.Get("backups").(bool); ok {
 			if bup {
-				CreateBackup(app.pomodoroFile)
+				app.logger.Debug("creating backups")
+				app.CreatePomodoroBackup()
 			}
 		}
 	}
@@ -43,6 +46,28 @@ func (app *App) Save(limit, count int) error {
 		return err
 	}
 	w.Flush()
+
+	return nil
+}
+
+func (app *App) CreatePomodoroBackup() error {
+	src, err := os.Open(app.pomodoroFile.Name())
+	if err != nil {
+		return err
+	}
+
+	fp, err := GetProjectPath(false)
+	if err != nil {
+		return err
+	}
+	csvFile := GetCsvBackup(GetCsvFilename())
+
+	dsc, err := os.Create(filepath.Join(fp, csvFile))
+	if err != nil {
+		return err
+	}
+
+	io.Copy(dsc, src)
 
 	return nil
 }

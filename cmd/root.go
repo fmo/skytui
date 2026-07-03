@@ -29,12 +29,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "q":
-			m.app.Save(m.limit, m.count)
+			m.app.SavePomodoro(m.limit, m.count)
 			return m, tea.Quit
 		}
 	case tickMsg:
 		if m.progress.Percent() == 1.0 || m.limit == 0 {
-			m.app.Save(m.limit, m.count)
+			m.app.SavePomodoro(m.limit, m.count)
 			return m, tea.Quit
 		}
 		m.count--
