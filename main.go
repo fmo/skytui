@@ -1,33 +1,36 @@
 package main
 
 import (
+	"log"
 	"log/slog"
 	"os"
 
-	"github.com/fmo/pomodoro/cmd"
+	"github.com/fmo/pomodoro/cmds"
 	"github.com/spf13/viper"
 )
 
 func main() {
-	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+	// Project Path
+	projectPath, err := cmds.GetProjectPath(true)
+	if err != nil {
+		log.Fatal("project path fetching failed")
+	}
+
+	// Logger File
+	loggerFile, err := cmds.OpenFile("logger.log")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Logger
+	handler := slog.NewTextHandler(loggerFile, &slog.HandlerOptions{
 		Level:     slog.LevelDebug,
 		AddSource: true,
 	})
 	logger := slog.New(handler)
 
-	projectPath, err := cmd.GetProjectPath(true)
-	if err != nil {
-		logger.Error("project path fetching failed", "err", err)
-		os.Exit(1)
-	}
-
-	openPomodoroFile, err := cmd.OpenPomodoroFile()
-	if err != nil {
-		logger.Error("cant get the pomodoro file", "err", err)
-		os.Exit(1)
-	}
-
-	err = cmd.OpenConfigFile()
+	// Config
+	_, err = cmds.OpenFile("config.yml")
 	if err != nil {
 		logger.Error("cant open config file", "err", err)
 	}
@@ -37,7 +40,7 @@ func main() {
 	viper.SetConfigType("yml")
 	viper.AddConfigPath(projectPath)
 
-	viper.Set("csv", "pomodoro.csv")
+	viper.Set("pomodoro-file", "pomodoro.csv")
 	viper.Set("backups", true)
 	viper.Set("backup-file", "pomodoro_bup.csv")
 
@@ -51,7 +54,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	app := cmd.NewApp(logger, viper.GetViper(), openPomodoroFile)
+	// Pomodoro File
+	openPomodoroFile, err := cmds.OpenFile(viper.GetString("pomodoro-file"))
+	if err != nil {
+		logger.Error("cant get the pomodoro file", "err", err)
+		os.Exit(1)
+	}
 
-	cmd.Execute(app)
+	pomodoroManager := cmds.NewPomodoroManager(openPomodoroFile)
+
+	app := cmds.NewApp(logger, viper.GetViper(), pomodoroManager)
+
+	cmds.Execute(app)
 }

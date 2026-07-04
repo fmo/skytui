@@ -1,4 +1,4 @@
-package cmd
+package cmds
 
 import (
 	"encoding/csv"
@@ -22,13 +22,13 @@ func NewStatsCmd(app *App) *cobra.Command {
 				os.Exit(1)
 			}
 
-			file, err := os.Open(app.pomodoroFile.Name())
+			pomodoroFile, err := OpenFile(app.viper.GetString("pomodoro-file"))
 			if err != nil {
-				app.logger.Error("cant open csv file", "err", err)
+				app.logger.Error("cant open pomodoro csv file", "err", err)
 				os.Exit(1)
 			}
 
-			reader := csv.NewReader(file)
+			reader := csv.NewReader(pomodoroFile)
 			records, err := reader.ReadAll()
 			if err != nil {
 				app.logger.Error("cant read the records", "err", err)
