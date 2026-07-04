@@ -1,4 +1,0 @@
-app:
-  name: "Pomodoro"
-  csvfile: "pom.csv"
-  backup-active: true

@@ -37,11 +37,9 @@ func main() {
 	viper.SetConfigType("yml")
 	viper.AddConfigPath(projectPath)
 
-	if os.Getenv("env") != "" {
-		viper.Set("env", "dev")
-	}
 	viper.Set("csv", "pomodoro.csv")
 	viper.Set("backups", true)
+	viper.Set("backup-file", "pomodoro_bup.csv")
 
 	err = viper.WriteConfig()
 	if err != nil {

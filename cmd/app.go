@@ -33,6 +33,11 @@ func (app *App) SavePomodoro(limit, count int) error {
 		}
 	}
 
+	if app.pomodoroFile == nil {
+		app.logger.Error("pomodoro file is nil")
+		os.Exit(1)
+	}
+
 	w := csv.NewWriter(app.pomodoroFile)
 
 	// completed is total duration in seconds - count down time, ie total 30 seconds - 10 count down (left)
@@ -60,7 +65,7 @@ func (app *App) CreatePomodoroBackup() error {
 	if err != nil {
 		return err
 	}
-	csvFile := GetCsvBackup(GetCsvFilename())
+	csvFile := app.viper.GetString("backup-file")
 
 	dsc, err := os.Create(filepath.Join(fp, csvFile))
 	if err != nil {

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -23,19 +22,7 @@ func NewStatsCmd(app *App) *cobra.Command {
 				os.Exit(1)
 			}
 
-			homeDir, err := os.UserHomeDir()
-			if err != nil {
-				app.logger.Error("cant get the home directory", "err", err)
-				os.Exit(1)
-			}
-
-			csvFile := "pomodoro.csv"
-			if os.Getenv("csvfile") != "" {
-				csvFile = os.Getenv("csvfile")
-			}
-
-			filename := filepath.Join(homeDir, "Library", "Application Support", "pomodoro", csvFile)
-			file, err := os.Open(filename)
+			file, err := os.Open(app.pomodoroFile.Name())
 			if err != nil {
 				app.logger.Error("cant open csv file", "err", err)
 				os.Exit(1)
