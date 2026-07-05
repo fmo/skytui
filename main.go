@@ -40,19 +40,19 @@ func main() {
 	viper.SetConfigType("yml")
 	viper.AddConfigPath(projectPath)
 
-	viper.Set("pomodoro-file", "pomodoro.csv")
-	viper.Set("backup-file", "pomodoro_bup.csv")
-	viper.Set("backups", true)
-
-	err = viper.WriteConfig()
-	if err != nil {
-		logger.Error("cant write config", "err", err)
-	}
-
 	if err := viper.ReadInConfig(); err != nil {
 		logger.Error("cant read config file", "err", err)
-		os.Exit(1)
+		viper.Set("pomodoro-file", "pomodoro.csv")
+		viper.Set("backup-file", "pomodoro_bup.csv")
+		viper.Set("backups", true)
+
+		err = viper.WriteConfig()
+		if err != nil {
+			logger.Error("cant write config", "err", err)
+		}
 	}
+
+	logger.Debug("should be read all the config", "pomodoro-file", viper.GetString("pomodoro-file"))
 
 	// Pomodoro File
 	openPomodoroFile, err := cmds.OpenFile(viper.GetString("pomodoro-file"))

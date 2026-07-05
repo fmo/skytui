@@ -24,8 +24,9 @@ func Execute(app *App) {
 
 	rootCmd.AddCommand(startCmd)
 
-	configCmd := NewConfigCmd()
-
+	configCmd := NewConfigCmd(app)
+	app.logger.Debug("setting backups flag default value", "backups", app.viper.GetBool("backups"))
+	configCmd.Flags().Bool("backups", app.viper.GetBool("backups"), "disable/enable backups")
 	rootCmd.AddCommand(configCmd)
 
 	if err := rootCmd.Execute(); err != nil {
