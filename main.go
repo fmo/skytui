@@ -42,14 +42,23 @@ func main() {
 
 	if err := viper.ReadInConfig(); err != nil {
 		logger.Error("cant read config file", "err", err)
-		viper.Set("pomodoro-file", "pomodoro.csv")
-		viper.Set("backup-file", "pomodoro_bup.csv")
-		viper.Set("backups", true)
+		os.Exit(1)
+	}
 
-		err = viper.WriteConfig()
-		if err != nil {
-			logger.Error("cant write config", "err", err)
-		}
+	if !viper.InConfig("pomodoro-file") {
+		viper.Set("pomodoro-file", "pomodoro.csv")
+	}
+	if !viper.InConfig("backup-file") {
+		viper.Set("backup-file", "pomodoro_bup.csv")
+	}
+	if !viper.InConfig("backups") {
+		viper.Set("backups", true)
+	}
+
+	err = viper.WriteConfig()
+	if err != nil {
+		logger.Error("cant write config", "err", err)
+		os.Exit(1)
 	}
 
 	logger.Debug("should be read all the config", "pomodoro-file", viper.GetString("pomodoro-file"))
