@@ -10,7 +10,7 @@ import (
 func NewStatsCmd(app *App) *cobra.Command {
 	return &cobra.Command{
 		Use:   "stats",
-		Short: "Your full focus time",
+		Short: "Your focus time statistics",
 		Long:  "See how much foucsed time you had during the day",
 		Run: func(cmd *cobra.Command, args []string) {
 			period, err := cmd.Flags().GetString("period")
