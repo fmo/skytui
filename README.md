@@ -4,11 +4,11 @@
 
 ## Help
 
-`./pomodoro help`
+`pomodoro help`
 
 ## How to run
 
-`./pomodoro start --duration 15m`
+`pomodoro start --duration 15m`
 
 ## Get today's stats
 
