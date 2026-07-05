@@ -19,10 +19,14 @@ func Execute(app *App) {
 
 	rootCmd.AddCommand(statsCmd)
 
-	startsCmd := NewStartCmd(app)
-	startsCmd.Flags().String("duration", "10s", "write duration like 1h20m10s")
+	startCmd := NewStartCmd(app)
+	startCmd.Flags().String("duration", "10s", "write duration like 1h20m10s")
 
-	rootCmd.AddCommand(startsCmd)
+	rootCmd.AddCommand(startCmd)
+
+	configCmd := NewConfigCmd()
+
+	rootCmd.AddCommand(configCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stdout, err)

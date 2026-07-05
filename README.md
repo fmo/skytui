@@ -2,13 +2,13 @@
 
 `go install github.com/fmo/pomodoro@latest`
 
+## Help
+
+`./pomodoro help`
+
 ## How to run
 
-`./pomodoro`
-
-## Run with setting up duration 
-
-`./pomodoro --duration 3m10s`
+`./pomodoro`start --duration 15m
 
 ## Get today's stats
 

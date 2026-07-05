@@ -20,6 +20,7 @@ type model struct {
 }
 
 func (m model) Init() tea.Cmd {
+	m.app.logger.Info("starting a new pomodoro")
 	return tickCmd()
 }
 
@@ -33,6 +34,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case tickMsg:
 		if m.progress.Percent() == 1.0 || m.limit == 0 {
+			m.app.logger.Info("completed the whole pomodoro session")
 			m.app.SavePomodoro(m.limit, m.count)
 			return m, tea.Quit
 		}

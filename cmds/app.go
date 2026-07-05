@@ -21,7 +21,7 @@ func (app *App) SavePomodoro(limit, count int) error {
 		bup := app.viper.GetBool("backups")
 
 		if bup {
-			app.logger.Debug("creating backups")
+			app.logger.Info("creating backup from the previous pomodoro records")
 			app.pomodoroManager.CreatePomodoroBackup(app.viper.GetString("backup-file"))
 		}
 	}
