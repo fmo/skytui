@@ -20,7 +20,7 @@
 
 ## Disable backups
 
-`pomodoro config --backups true`  
+`pomodoro config --backups false`  
 
 ## Change file names
 
