@@ -25,8 +25,9 @@ func Execute(app *App) {
 	rootCmd.AddCommand(startCmd)
 
 	configCmd := NewConfigCmd(app)
-	app.logger.Debug("setting backups flag default value", "backups", app.viper.GetBool("backups"))
 	configCmd.Flags().Bool("backups", app.viper.GetBool("backups"), "disable/enable backups")
+	configCmd.Flags().String("pomodoro-file", app.viper.GetString("pomodoro-file"), "set the file to save pomodoro records")
+	configCmd.Flags().String("backup-file", app.viper.GetString("backup-file"), "set backup file")
 	rootCmd.AddCommand(configCmd)
 
 	if err := rootCmd.Execute(); err != nil {

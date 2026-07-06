@@ -42,6 +42,23 @@ func (m *PomodoroManager) Save(limit, count int) error {
 	return nil
 }
 
+func (m *PomodoroManager) RenameFile(oldFile, newFile string) error {
+	projectPath, err := GetProjectPath(false)
+	if err != nil {
+		return err
+	}
+
+	oldFileFull := filepath.Join(projectPath, oldFile)
+	newFileFull := filepath.Join(projectPath, newFile)
+
+	err = os.Rename(oldFileFull, newFileFull)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (m *PomodoroManager) CreatePomodoroBackup(backupFile string) error {
 	src, err := os.Open(m.pomodoroFile.Name())
 	if err != nil {

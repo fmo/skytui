@@ -20,7 +20,7 @@ type model struct {
 }
 
 func (m model) Init() tea.Cmd {
-	m.app.logger.Info("starting a new pomodoro")
+	m.app.logger.Info("starting pomodoro session")
 	return tickCmd()
 }
 
@@ -30,6 +30,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "q":
 			m.app.SavePomodoro(m.limit, m.count)
+			m.app.logger.Info("quitting pomodoro session without finishing")
 			return m, tea.Quit
 		}
 	case tickMsg:
