@@ -20,9 +20,9 @@
 
 ## Disable backups
 
-`pomodoro config --backups true`
+`pomodoro config --backups true`  
 
 ## Change file names
 
-`pomodoro config --pomodoro-file pomodoro.csv`
+`pomodoro config --pomodoro-file pomodoro.csv`  
 `pomodoro config --backup-file bup.csv`
