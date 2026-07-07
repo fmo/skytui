@@ -14,21 +14,30 @@ func Execute(app *App) {
 		Long:  "Give your full attention and avoid distructions",
 	}
 
+	// Stats Cmd
 	statsCmd := NewStatsCmd(app)
 	statsCmd.PersistentFlags().String("period", "today", "period of stats")
 
 	rootCmd.AddCommand(statsCmd)
 
+	// Start Cmd
 	startCmd := NewStartCmd(app)
 	startCmd.Flags().String("duration", "10s", "write duration like 1h20m10s")
 
 	rootCmd.AddCommand(startCmd)
 
+	// Config Cmd
 	configCmd := NewConfigCmd(app)
 	configCmd.Flags().Bool("backups", app.viper.GetBool("backups"), "disable/enable backups")
 	configCmd.Flags().String("pomodoro-file", app.viper.GetString("pomodoro-file"), "set the file to save pomodoro records")
 	configCmd.Flags().String("backup-file", app.viper.GetString("backup-file"), "set backup file")
+
 	rootCmd.AddCommand(configCmd)
+
+	// Restore Cmd
+	restoreCmd := NewRestoreCmd(app)
+
+	rootCmd.AddCommand(restoreCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stdout, err)

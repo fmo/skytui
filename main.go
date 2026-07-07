@@ -61,7 +61,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	logger.Debug("loaded all configuration")
+	logger.Info("loaded all configuration")
 
 	// Pomodoro File
 	openPomodoroFile, err := cmds.OpenFile(viper.GetString("pomodoro-file"))

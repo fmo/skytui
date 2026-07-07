@@ -122,3 +122,27 @@ func (m *PomodoroManager) TotalTime(period string) (string, error) {
 
 	return total.String(), nil
 }
+
+func (m *PomodoroManager) Restore(pomodoroFilename, backupFilename string) error {
+	projectPath, err := GetProjectPath(false)
+	if err != nil {
+		return err
+	}
+
+	backupFile, err := os.Open(filepath.Join(projectPath, backupFilename))
+	if err != nil {
+		return err
+	}
+
+	pomodoroFile, err := os.OpenFile(filepath.Join(projectPath, pomodoroFilename), os.O_RDWR, 0o700)
+	if err != nil {
+		return err
+	}
+
+	_, err = io.Copy(pomodoroFile, backupFile)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
