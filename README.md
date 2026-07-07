@@ -26,3 +26,7 @@
 
 `pomodoro config --pomodoro-file pomodoro.csv`  
 `pomodoro config --backup-file bup.csv`
+
+## Restore
+
+`pomodoro restore`
