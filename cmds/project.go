@@ -15,14 +15,16 @@ func NewProjectCmd(app *App) *cobra.Command {
 		Use:   "project",
 		Short: "Project management",
 		Run: func(cmd *cobra.Command, args []string) {
-			projectName := cmd.Flag("add").Value.String()
-			if projectName != "" {
-				projectPath, err := GetProjectPath(false)
-				if err != nil {
-					log.Fatal("cant get the project path")
-				}
-				projectCsv := filepath.Join(projectPath, "projects.csv")
+			projectPath, err := GetProjectPath(false)
+			if err != nil {
+				log.Fatal("cant get the project path")
+			}
 
+			projectCsv := filepath.Join(projectPath, "projects.csv")
+
+			projectName := cmd.Flag("add").Value.String()
+
+			if projectName != "" {
 				f, err := os.OpenFile(projectCsv, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0o600)
 				if err != nil {
 					log.Fatal("cant open project csv")
@@ -35,7 +37,16 @@ func NewProjectCmd(app *App) *cobra.Command {
 			}
 
 			if cmd.Flag("list") != nil {
-				ui.Render()
+				f, err := os.OpenFile(projectCsv, os.O_RDONLY, 0o600)
+				if err != nil {
+					log.Fatal("cant open project csv")
+				}
+				csvReader := csv.NewReader(f)
+				records, err := csvReader.ReadAll()
+				if err != nil {
+					log.Fatal("cant read records")
+				}
+				ui.Render(records)
 			}
 		},
 	}

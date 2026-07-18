@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"charm.land/bubbles/v2/table"
 	tea "charm.land/bubbletea/v2"
@@ -48,14 +49,19 @@ func (m model) View() tea.View {
 	return tea.NewView(baseStyle.Render(m.table.View()) + "\n " + m.table.HelpView() + "\n")
 }
 
-func Render() {
+func Render(records [][]string) {
 	columns := []table.Column{
-		{Title: "Rank", Width: 4},
+		{Title: "Rank", Width: 2},
 		{Title: "Project", Width: 10},
 	}
 
-	rows := []table.Row{
-		{"1", "Project 1"},
+	var rows []table.Row
+
+	i := 0
+	for _, record := range records {
+		i++
+		iInStr := strconv.Itoa(i)
+		rows = append(rows, table.Row{iInStr, record[0]})
 	}
 
 	t := table.New(
