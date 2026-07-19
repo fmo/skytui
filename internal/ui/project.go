@@ -51,8 +51,9 @@ func (m model) View() tea.View {
 
 func Render(records [][]string) {
 	columns := []table.Column{
-		{Title: "Rank", Width: 2},
+		{Title: "Rank", Width: 4},
 		{Title: "Project", Width: 10},
+		{Title: "IsDefault", Width: 10},
 	}
 
 	var rows []table.Row
@@ -61,7 +62,7 @@ func Render(records [][]string) {
 	for _, record := range records {
 		i++
 		iInStr := strconv.Itoa(i)
-		rows = append(rows, table.Row{iInStr, record[0]})
+		rows = append(rows, table.Row{iInStr, record[0], record[1]})
 	}
 
 	t := table.New(
@@ -69,7 +70,7 @@ func Render(records [][]string) {
 		table.WithRows(rows),
 		table.WithFocused(true),
 		table.WithHeight(7),
-		table.WithWidth(15),
+		table.WithWidth(30),
 	)
 
 	s := table.DefaultStyles()

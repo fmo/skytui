@@ -20,7 +20,7 @@ func NewProjectAdd(app *App) *cobra.Command {
 
 			projectCsv := filepath.Join(projectPath, "projects.csv")
 
-			projectName := args[1]
+			projectName := args[0]
 
 			f, err := os.OpenFile(projectCsv, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0o600)
 			if err != nil {
