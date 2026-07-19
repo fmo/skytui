@@ -3,6 +3,7 @@ package cmds
 import (
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"charm.land/bubbles/v2/progress"
@@ -66,15 +67,30 @@ func tickCmd() tea.Cmd {
 	})
 }
 
-func NewStartCmd(app *App) *cobra.Command {
+func NewPomodoroCmd(app *App) *cobra.Command {
 	return &cobra.Command{
-		Use:   "start",
+		Use:   "pomodoro",
 		Short: "Start your pomodoro time",
 		Long:  "No way back now you gotta focus",
 		Run: func(cmd *cobra.Command, args []string) {
-			duration, _ := cmd.Flags().GetString("duration")
+			stats, err := cmd.Flags().GetString("stats")
+			if err != nil {
+				app.logger.Error("need period to show stats", "err", err)
+				os.Exit(1)
+			}
 
-			d, err := time.ParseDuration(duration)
+			total, err := app.pomodoroManager.TotalTime(stats)
+			if err != nil {
+				app.logger.Error("cant get total time", "err", err)
+				os.Exit(1)
+			}
+
+			fmt.Printf("%s\n", total)
+			os.Exit(0)
+
+			start, _ := cmd.Flags().GetString("start")
+
+			d, err := time.ParseDuration(start)
 			if err != nil {
 				log.Fatal(err)
 			}
