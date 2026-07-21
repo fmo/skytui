@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/fmo/pomodoro/cmds"
+	"github.com/fmo/skytui/cmds"
 	"github.com/spf13/viper"
 )
 
