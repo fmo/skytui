@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/fmo/pomodoro/internal/ui"
+	"github.com/fmo/skytui/internal/ui"
 	"github.com/spf13/cobra"
 )
 
