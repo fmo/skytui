@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"time"
 
 	"charm.land/bubbles/v2/progress"
@@ -39,8 +40,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				log.Fatal("cant convert string to time duration")
 			}
 
-			csvWriter := csv.NewWriter(os.Stdout)
-			csvWriter.Write([]string{time.Now().Format(time.RFC3339), timePassedDuration.String(), "there"})
+			projectPath, err := GetProjectPath(false)
+			if err != nil {
+				log.Fatal("cant open project path")
+			}
+
+			fullPath := filepath.Join(projectPath, m.app.viper.GetString("pomodoro-file"))
+
+			f, _ := os.OpenFile(fullPath, os.O_RDWR|os.O_APPEND, 0o600)
+
+			csvWriter := csv.NewWriter(f)
+			csvWriter.Write([]string{time.Now().Format(time.RFC3339), timePassedDuration.String(), m.app.defaultProject})
 			csvWriter.Flush()
 
 			m.app.logger.Info("quitting pomodoro session without finishing")

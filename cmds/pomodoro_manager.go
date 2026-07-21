@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -80,49 +79,6 @@ func (m *PomodoroManager) CreatePomodoroBackup(backupFile string) error {
 	io.Copy(dsc, src)
 
 	return nil
-}
-
-func (m *PomodoroManager) TotalTime(period string) (string, error) {
-	reader := csv.NewReader(m.pomodoroFile)
-	records, err := reader.ReadAll()
-	if err != nil {
-		return "", fmt.Errorf("cant read the records %w", err)
-	}
-
-	var total time.Duration
-	switch period {
-	case "today":
-		for _, r := range records {
-			d, err := time.ParseDuration(r[1])
-			if err != nil {
-				log.Fatal(err)
-			}
-			recordDate, err := time.Parse(time.RFC3339, r[0])
-			if err != nil {
-				log.Fatal(err)
-			}
-			if time.Now().Day() == recordDate.Day() && time.Now().Month() == recordDate.Month() && time.Now().Year() == recordDate.Year() {
-				total += d
-			}
-		}
-	case "yesterday":
-		for _, r := range records {
-			d, err := time.ParseDuration(r[1])
-			if err != nil {
-				log.Fatal(err)
-			}
-			recordDate, err := time.Parse(time.RFC3339, r[0])
-			if err != nil {
-				log.Fatal(err)
-			}
-			if time.Now().Day()-1 == recordDate.Day() && time.Now().Month() == recordDate.Month() && time.Now().Year() == recordDate.Year() {
-				total += d
-			}
-		}
-
-	}
-
-	return total.String(), nil
 }
 
 func (m *PomodoroManager) Restore(pomodoroFilename, backupFilename string) error {

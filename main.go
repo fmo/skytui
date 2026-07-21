@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"log/slog"
 	"os"
+	"strings"
 
 	"github.com/fmo/pomodoro/cmds"
 	"github.com/spf13/viper"
@@ -26,6 +28,16 @@ func main() {
 	handler := slog.NewTextHandler(loggerFile, &slog.HandlerOptions{
 		Level:     slog.LevelDebug,
 		AddSource: true,
+		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+			if a.Key == "source" {
+				if source, ok := a.Value.Any().(*slog.Source); ok {
+					sourceParts := strings.Split(source.File, "/")
+					sourcePartsLen := len(sourceParts)
+					a.Value = slog.StringValue(fmt.Sprintf("%s:%d", sourceParts[sourcePartsLen-1], source.Line))
+				}
+			}
+			return a
+		},
 	})
 	logger := slog.New(handler)
 
