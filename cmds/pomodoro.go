@@ -3,7 +3,6 @@ package cmds
 import (
 	"encoding/csv"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -32,25 +31,50 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "q":
+			// Default project
+			projectPath, err := GetProjectPath(false)
+			if err != nil {
+				m.app.logger.Error("cant get the project path", "err", err)
+			}
+
+			fullPath := filepath.Join(projectPath, "projects.csv")
+
+			f, err := os.Open(fullPath)
+			if err != nil {
+				m.app.logger.Error("cant open project file", "err", err)
+			}
+
+			r := csv.NewReader(f)
+			projects, err := r.ReadAll()
+			if err != nil {
+				m.app.logger.Error("cant get the projects", "err", err)
+			}
+
+			defaultProject := ""
+			for _, project := range projects {
+				if len(project) == 2 && project[1] == "default" {
+					defaultProject = project[0]
+				}
+			}
+
+			if defaultProject == "" {
+				m.app.logger.Error("cant record the pomodoro session without default project")
+				os.Exit(1)
+			}
 
 			timePassed := m.limit - m.count
 
 			timePassedDuration, err := time.ParseDuration(fmt.Sprintf("%ds", timePassed))
 			if err != nil {
-				log.Fatal("cant convert string to time duration")
+				m.app.logger.Error("cant convert string to time duration", "err", err)
 			}
 
-			projectPath, err := GetProjectPath(false)
-			if err != nil {
-				log.Fatal("cant open project path")
-			}
+			pomodoroPath := filepath.Join(projectPath, m.app.viper.GetString("pomodoro-file"))
 
-			fullPath := filepath.Join(projectPath, m.app.viper.GetString("pomodoro-file"))
+			pomodoroFile, _ := os.OpenFile(pomodoroPath, os.O_RDWR|os.O_APPEND, 0o600)
 
-			f, _ := os.OpenFile(fullPath, os.O_RDWR|os.O_APPEND, 0o600)
-
-			csvWriter := csv.NewWriter(f)
-			csvWriter.Write([]string{time.Now().Format(time.RFC3339), timePassedDuration.String(), m.app.defaultProject})
+			csvWriter := csv.NewWriter(pomodoroFile)
+			csvWriter.Write([]string{time.Now().Format(time.RFC3339), timePassedDuration.String(), defaultProject})
 			csvWriter.Flush()
 
 			m.app.logger.Info("quitting pomodoro session without finishing")

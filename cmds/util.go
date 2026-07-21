@@ -11,7 +11,7 @@ func GetProjectPath(createDirs bool) (string, error) {
 		return "", err
 	}
 
-	projectPath := filepath.Join(home, "Library", "Application Support", "pomodoro")
+	projectPath := filepath.Join(home, "Library", "Application Support", "skytui")
 
 	if createDirs {
 		if err := os.MkdirAll(projectPath, 0o700); err != nil {

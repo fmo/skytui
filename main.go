@@ -5,6 +5,7 @@ import (
 	"log"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/fmo/skytui/cmds"
@@ -18,10 +19,12 @@ func main() {
 		log.Fatal("project path fetching failed")
 	}
 
+	loggerPath := filepath.Join(projectPath, "logger.log")
+
 	// Logger File
-	loggerFile, err := cmds.OpenFile("logger.log")
+	loggerFile, err := os.OpenFile(loggerPath, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0o600)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("cant open logger")
 	}
 
 	// Logger
