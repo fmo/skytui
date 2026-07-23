@@ -31,23 +31,25 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "q":
-			// Default project
-			projectPath, err := GetProjectPath(false)
+			// Get default project
+			projectPath, err := GetProjectPath()
 			if err != nil {
 				m.app.logger.Error("cant get the project path", "err", err)
+				os.Exit(1)
 			}
 
-			fullPath := filepath.Join(projectPath, "projects.csv")
-
-			f, err := os.Open(fullPath)
+			// project file should be created already.
+			projectFile, err := os.Open(filepath.Join(projectPath, "projects.csv"))
 			if err != nil {
 				m.app.logger.Error("cant open project file", "err", err)
+				os.Exit(1)
 			}
 
-			r := csv.NewReader(f)
-			projects, err := r.ReadAll()
+			projectFileReader := csv.NewReader(projectFile)
+			projects, err := projectFileReader.ReadAll()
 			if err != nil {
 				m.app.logger.Error("cant get the projects", "err", err)
+				os.Exit(1)
 			}
 
 			defaultProject := ""
@@ -62,16 +64,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				os.Exit(1)
 			}
 
+			// Write pomodoro record
 			timePassed := m.limit - m.count
 
 			timePassedDuration, err := time.ParseDuration(fmt.Sprintf("%ds", timePassed))
 			if err != nil {
 				m.app.logger.Error("cant convert string to time duration", "err", err)
+				os.Exit(1)
 			}
 
-			pomodoroPath := filepath.Join(projectPath, m.app.viper.GetString("pomodoro-file"))
-
-			pomodoroFile, _ := os.OpenFile(pomodoroPath, os.O_RDWR|os.O_APPEND, 0o600)
+			pomodoroFile, err := os.OpenFile(filepath.Join(projectPath, m.app.viper.GetString("pomodoro-file")), os.O_CREATE|os.O_RDWR|os.O_APPEND, 0o600)
+			if err != nil {
+				m.app.logger.Error("cant open pomodoro csv file", "err", err)
+				os.Exit(1)
+			}
 
 			csvWriter := csv.NewWriter(pomodoroFile)
 			csvWriter.Write([]string{time.Now().Format(time.RFC3339), timePassedDuration.String(), defaultProject})
@@ -83,7 +89,26 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tickMsg:
 		if m.progress.Percent() == 1.0 || m.limit == 0 {
 			m.app.logger.Info("completed the whole pomodoro session")
-			m.app.SavePomodoro(m.limit, m.count)
+
+			projectPath, err := GetProjectPath()
+			if err != nil {
+				m.app.logger.Error("cant get project path", "err", err)
+				os.Exit(1)
+			}
+
+			pomodoroFilePath := filepath.Join(projectPath, m.app.viper.GetString("pomodoro-file"))
+			f, err := os.OpenFile(pomodoroFilePath, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0o600)
+			if err != nil {
+				m.app.logger.Error("cant open pomodoro file", "err", err)
+				os.Exit(1)
+			}
+
+			m.limit - m.count
+
+			csvWriter := csv.NewWriter(f)
+			csvWriter.Write([]string{time.Now().String()})
+			csvWriter.Flush()
+
 			return m, tea.Quit
 		}
 		m.count--

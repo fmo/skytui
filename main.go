@@ -13,16 +13,19 @@ import (
 )
 
 func main() {
+	// Create Project Path
+	if err := cmds.CreateProjectPath(); err != nil {
+		log.Fatal("can't create project path")
+	}
+
 	// Project Path to add config path
-	projectPath, err := cmds.GetProjectPath(true)
+	projectPath, err := cmds.GetProjectPath()
 	if err != nil {
 		log.Fatal("project path fetching failed")
 	}
 
-	loggerPath := filepath.Join(projectPath, "logger.log")
-
 	// Logger File
-	loggerFile, err := os.OpenFile(loggerPath, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0o600)
+	loggerFile, err := os.OpenFile(filepath.Join(projectPath, "logger.log"), os.O_CREATE|os.O_RDWR|os.O_APPEND, 0o600)
 	if err != nil {
 		log.Fatalf("cant open logger")
 	}
@@ -45,11 +48,9 @@ func main() {
 	logger := slog.New(handler)
 
 	// Create Config if does not exist
-	_, err = cmds.OpenFile("config.yml")
-	if err != nil {
-		logger.Error("cant open config file", "err", err)
-	}
+	os.OpenFile(filepath.Join(projectPath, "config.yml"), os.O_CREATE|os.O_RDWR, 0o600)
 
+	// Viper setup
 	viper.WithLogger(logger)
 	viper.SetConfigName("config")
 	viper.SetConfigType("yml")
@@ -76,18 +77,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	logger.Info("loaded all configuration")
-
-	// Pomodoro File
-	openPomodoroFile, err := cmds.OpenFile(viper.GetString("pomodoro-file"))
-	if err != nil {
-		logger.Error("cant get the pomodoro file", "err", err)
-		os.Exit(1)
-	}
-
-	pomodoroManager := cmds.NewPomodoroManager(openPomodoroFile, logger)
-
-	app := cmds.NewApp(logger, viper.GetViper(), pomodoroManager)
-
+	// Run the app
+	app := cmds.NewApp(logger, viper.GetViper())
 	cmds.Execute(app)
 }
