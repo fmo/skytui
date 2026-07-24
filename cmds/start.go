@@ -80,7 +80,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 	case tickMsg:
-		if m.progress.Percent() == 1.0 || m.remaining == 0 {
+		if m.progress.Percent() == 1.0 || m.remaining.Seconds() == 0 {
 			m.app.logger.Info("completed the whole pomodoro session")
 
 			projectPath, err := GetProjectPath()
@@ -104,9 +104,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			return m, tea.Quit
 		}
-		m.remaining = m.remaining - (time.Second * 1)
-		m.app.logger.Debug("tick even occurrance", "remaining", m.remaining.Seconds())
-		cmd := m.progress.IncrPercent(1.0 / m.remaining.Seconds())
+		m.remaining = m.remaining - (time.Second)
+		cmd := m.progress.IncrPercent(0.1)
 		return m, tea.Batch(cmd, tickCmd())
 	case progress.FrameMsg:
 		var cmd tea.Cmd
@@ -118,7 +117,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() tea.View {
-	m.app.logger.Debug("view function is running", "remaining duration", m.remaining.String())
 	return tea.NewView(
 		fmt.Sprintf("%s\nLeft: %s.", m.progress.View(), m.remaining.String()),
 	)
