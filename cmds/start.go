@@ -37,7 +37,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			// project file should be created already.
-			projectFile, err := os.Open(filepath.Join(projectPath, "projects.csv"))
+			projectFile, err := os.Open(filepath.Join(projectPath, ProjectsFile))
 			if err != nil {
 				m.app.logger.Error("cant open project file", "err", err)
 				os.Exit(1)
@@ -63,6 +63,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			elapsed := m.total - m.remaining
+
+			m.app.logger.Debug("pomodoro session when quit happened", "total time", m.total, "elapsed time", elapsed)
 
 			pomodoroFile, err := os.OpenFile(filepath.Join(projectPath, m.app.viper.GetString("pomodoro-file")), os.O_CREATE|os.O_RDWR|os.O_APPEND, 0o600)
 			if err != nil {
@@ -102,8 +104,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			return m, tea.Quit
 		}
-		m.remaining--
-		cmd := m.progress.IncrPercent(1.0 / float64(m.total))
+		m.remaining = m.remaining - (time.Second * 1)
+		m.app.logger.Debug("tick even occurrance", "remaining", m.remaining.Seconds())
+		cmd := m.progress.IncrPercent(1.0 / m.remaining.Seconds())
 		return m, tea.Batch(cmd, tickCmd())
 	case progress.FrameMsg:
 		var cmd tea.Cmd
@@ -115,6 +118,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() tea.View {
+	m.app.logger.Debug("view function is running", "remaining duration", m.remaining.String())
 	return tea.NewView(
 		fmt.Sprintf("%s\nLeft: %s.", m.progress.View(), m.remaining.String()),
 	)

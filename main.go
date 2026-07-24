@@ -18,7 +18,7 @@ func main() {
 		log.Fatal("can't create project path")
 	}
 
-	// Project path to add config path
+	// Project path
 	projectPath, err := cmds.GetProjectPath()
 	if err != nil {
 		log.Fatal("project path fetching failed")
