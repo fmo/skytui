@@ -39,7 +39,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// project file should be created already.
 			projectFile, err := os.Open(filepath.Join(projectPath, ProjectsFile))
 			if err != nil {
-				m.app.logger.Error("cant open project file", "err", err)
+				m.app.logger.Error("project file is missing", "err", err)
 				os.Exit(1)
 			}
 
@@ -105,7 +105,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 		m.remaining = m.remaining - (time.Second)
-		cmd := m.progress.IncrPercent(0.1)
+		cmd := m.progress.IncrPercent(1.0 / m.total.Seconds())
 		return m, tea.Batch(cmd, tickCmd())
 	case progress.FrameMsg:
 		var cmd tea.Cmd

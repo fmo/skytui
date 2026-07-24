@@ -18,7 +18,7 @@ func NewProjectAdd(app *App) *cobra.Command {
 				log.Fatal("cant get the project path")
 			}
 
-			projectCsv := filepath.Join(projectPath, "projects.csv")
+			projectCsv := filepath.Join(projectPath, ProjectsFile)
 
 			projectName := args[0]
 
@@ -31,7 +31,6 @@ func NewProjectAdd(app *App) *cobra.Command {
 			csvWriter := csv.NewWriter(f)
 			csvWriter.Write([]string{projectName, ""})
 			csvWriter.Flush()
-			os.Exit(0)
 		},
 	}
 }
