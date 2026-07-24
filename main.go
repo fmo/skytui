@@ -47,34 +47,20 @@ func main() {
 	})
 	logger := slog.New(handler)
 
-	// Create config if does not exist
-	os.OpenFile(filepath.Join(projectPath, cmds.ConfigFile), os.O_CREATE|os.O_RDWR, 0o600)
-
 	// Viper setup
-	viper.WithLogger(logger)
-	viper.SetConfigName("config")
-	viper.SetConfigType("yml")
 	viper.AddConfigPath(projectPath)
-
 	if err := viper.ReadInConfig(); err != nil {
-		logger.Error("cant read config file", "err", err)
-		os.Exit(1)
-	}
-
-	if !viper.InConfig("pomodoro-file") {
-		viper.Set("pomodoro-file", "pomodoro.csv")
-	}
-	if !viper.InConfig("backup-file") {
-		viper.Set("backup-file", "pomodoro_bup.csv")
-	}
-	if !viper.InConfig("backups") {
-		viper.Set("backups", true)
-	}
-
-	err = viper.WriteConfig()
-	if err != nil {
-		logger.Error("cant write config", "err", err)
-		os.Exit(1)
+		_, ok := err.(viper.ConfigFileNotFoundError)
+		if ok {
+			viper.Set("pomodoro-file", cmds.PomodoroFile)
+			if err := viper.WriteConfigAs(filepath.Join(projectPath, cmds.ConfigFile)); err != nil {
+				logger.Error("cant write the config to config file", "err", err)
+				os.Exit(1)
+			}
+		} else {
+			logger.Error("cant read config", "err", err)
+			os.Exit(1)
+		}
 	}
 
 	// Run the app
