@@ -15,7 +15,7 @@ func NewStatsCmd(app *App) *cobra.Command {
 		Use:   "stats",
 		Short: "Pomodoro stats",
 		Run: func(cmd *cobra.Command, args []string) {
-			projectPath, err := GetProjectPath(false)
+			projectPath, err := GetProjectPath()
 			if err != nil {
 				app.logger.Error("cant get the project path", "err", err)
 				os.Exit(1)

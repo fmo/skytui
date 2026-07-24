@@ -14,7 +14,7 @@ func NewProjectList(app *App) *cobra.Command {
 	return &cobra.Command{
 		Use: "list",
 		Run: func(cmd *cobra.Command, args []string) {
-			projectPath, err := GetProjectPath(false)
+			projectPath, err := GetProjectPath()
 			if err != nil {
 				log.Fatal("cant get the project path")
 			}

@@ -13,7 +13,7 @@ func NewProjectDefault(app *App) *cobra.Command {
 		Use: "default",
 		Run: func(cmd *cobra.Command, args []string) {
 			defaultProject := args[0]
-			projectPath, err := GetProjectPath(false)
+			projectPath, err := GetProjectPath()
 			fullPath := filepath.Join(projectPath, "projects.csv")
 
 			fileToRead, err := os.Open(fullPath)

@@ -25,10 +25,6 @@ func Execute(app *App) {
 	configCmd.Flags().String("backup-file", app.viper.GetString("backup-file"), "set backup file")
 	rootCmd.AddCommand(configCmd)
 
-	// Restore Cmd
-	restoreCmd := NewRestoreCmd(app)
-	rootCmd.AddCommand(restoreCmd)
-
 	// Project Cmd
 	projectCmd := NewProjectCmd(app)
 	rootCmd.AddCommand(projectCmd)
