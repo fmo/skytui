@@ -13,19 +13,19 @@ import (
 )
 
 func main() {
-	// Create Project Path
+	// Create project folder if it does not exist
 	if err := cmds.CreateProjectPath(); err != nil {
 		log.Fatal("can't create project path")
 	}
 
-	// Project Path to add config path
+	// Project path to add config path
 	projectPath, err := cmds.GetProjectPath()
 	if err != nil {
 		log.Fatal("project path fetching failed")
 	}
 
-	// Logger File
-	loggerFile, err := os.OpenFile(filepath.Join(projectPath, "logger.log"), os.O_CREATE|os.O_RDWR|os.O_APPEND, 0o600)
+	// Logger file
+	loggerFile, err := os.OpenFile(filepath.Join(projectPath, cmds.LogFile), os.O_CREATE|os.O_RDWR|os.O_APPEND, 0o600)
 	if err != nil {
 		log.Fatalf("cant open logger")
 	}
@@ -47,8 +47,8 @@ func main() {
 	})
 	logger := slog.New(handler)
 
-	// Create Config if does not exist
-	os.OpenFile(filepath.Join(projectPath, "config.yml"), os.O_CREATE|os.O_RDWR, 0o600)
+	// Create config if does not exist
+	os.OpenFile(filepath.Join(projectPath, cmds.ConfigFile), os.O_CREATE|os.O_RDWR, 0o600)
 
 	// Viper setup
 	viper.WithLogger(logger)

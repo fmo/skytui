@@ -13,12 +13,10 @@ import (
 )
 
 type model struct {
-	app      *App
-	progress progress.Model
-	// It's whole duration time in seconds
-	limit int
-	// This starts from duration time in seconds and counts down till zero
-	count int
+	app       *App
+	progress  progress.Model
+	total     time.Duration
+	remaining time.Duration
 }
 
 func (m model) Init() tea.Cmd {
@@ -64,14 +62,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				os.Exit(1)
 			}
 
-			// Write pomodoro record
-			timePassed := m.limit - m.count
-
-			timePassedDuration, err := time.ParseDuration(fmt.Sprintf("%ds", timePassed))
-			if err != nil {
-				m.app.logger.Error("cant convert string to time duration", "err", err)
-				os.Exit(1)
-			}
+			elapsed := m.total - m.remaining
 
 			pomodoroFile, err := os.OpenFile(filepath.Join(projectPath, m.app.viper.GetString("pomodoro-file")), os.O_CREATE|os.O_RDWR|os.O_APPEND, 0o600)
 			if err != nil {
@@ -80,7 +71,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			csvWriter := csv.NewWriter(pomodoroFile)
-			csvWriter.Write([]string{time.Now().Format(time.RFC3339), timePassedDuration.String(), defaultProject})
+			csvWriter.Write([]string{time.Now().Format(time.RFC3339), elapsed.String(), defaultProject})
 			csvWriter.Flush()
 
 			m.app.logger.Info("quitting pomodoro session without finishing")
