@@ -8,6 +8,8 @@ Create the initial SkyTUI application:
 - Running `skytui` launches a Bubble Tea screen.
 - The screen shows the `SkyTUI Pomodoro` title, `Session: 0 / 25 min`, an empty
   Bubbles progress bar at `0%`, `Remaining: 25m00s`, and `[q] Quit`.
+- A Lip Gloss normal border with padding wraps the timer content; `[q] Quit`
+  appears below the border.
 - `q` closes the application.
 
 ### Commit
