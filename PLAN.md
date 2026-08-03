@@ -39,3 +39,19 @@ Add minimal file logging with the standard library's `log/slog` package:
 ```text
 chore: add file logging
 ```
+
+## 3. Add The Pomodoro Countdown
+
+Make the 25-minute timer run automatically when SkyTUI opens:
+
+- Update the session time, progress bar, percentage, and remaining time every
+  second.
+- Stop at `25 / 25 min`, `100%`, and `Remaining: 0s`.
+- Keep the completed screen visible until the user presses `q`.
+- Log countdown start and completion events at `INFO` level.
+
+### Commit
+
+```text
+feat: add pomodoro countdown
+```

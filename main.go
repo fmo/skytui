@@ -29,6 +29,7 @@ func main() {
 
 	logHandler := slog.NewTextHandler(logFile, &slog.HandlerOptions{
 		AddSource: true,
+		Level:     slog.LevelDebug,
 	})
 	logger := slog.New(logHandler)
 
