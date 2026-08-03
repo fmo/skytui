@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"log/slog"
-	"os"
 
 	"charm.land/bubbles/v2/progress"
 	tea "charm.land/bubbletea/v2"
@@ -23,6 +22,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "q":
+			slog.Info("closing the application")
 			return m, tea.Quit
 		}
 	}
@@ -75,9 +75,10 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-func Exec() {
+func Exec() error {
 	if err := rootCmd.Execute(); err != nil {
-		slog.Error("cant execute root command", "err", err)
-		os.Exit(1)
+		return err
 	}
+
+	return nil
 }

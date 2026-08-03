@@ -17,3 +17,25 @@ Create the initial SkyTUI application:
 ```text
 feat: display a static pomodoro screen
 ```
+
+## 2. Write Application Logs To A File
+
+Add minimal file logging with the standard library's `log/slog` package:
+
+- Use the existing macOS `~/Library/Logs` directory as the parent location.
+- Create `~/Library/Logs/skytui` with `0700` permissions so only the current
+  user can access SkyTUI's log directory.
+- Create `~/Library/Logs/skytui/skytui.log` when it does not exist, then open
+  it in append mode with `0600` permissions so only the current user can read
+  or write it.
+- Configure a `slog.TextHandler` as the default logger before the TUI starts.
+- Log when SkyTUI starts and when the user quits with `q`.
+- Close the log file after Cobra and Bubble Tea finish.
+- Do not add rotation, configurable levels, Viper, or another logging library
+  yet.
+
+### Commit
+
+```text
+chore: add file logging
+```
