@@ -55,3 +55,21 @@ Make the 25-minute timer run automatically when SkyTUI opens:
 ```text
 feat: add pomodoro countdown
 ```
+
+## 4. Pause And Resume The Countdown
+
+Let the user control an active Pomodoro with `space`:
+
+- While running, pressing `space` pauses the countdown and changes the footer
+  control to `[Space] Resume`.
+- While paused, session time, progress, and remaining time stay unchanged.
+- Pressing `space` again resumes from the same point and changes the footer
+  control back to `[Space] Pause`.
+- After completion, `space` has no effect.
+- Log pause and resume events at `INFO` level.
+
+### Commit
+
+```text
+feat: pause and resume pomodoro countdown
+```

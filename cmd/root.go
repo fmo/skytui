@@ -11,8 +11,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type timerStatus int
+
+const (
+	timerRunning timerStatus = iota
+	timerPaused
+	timerCompleted
+)
+
 type model struct {
 	progress  progress.Model
+	status    timerStatus
 	total     time.Duration
 	remaining time.Duration
 }
@@ -29,8 +38,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "q":
 			slog.Info("closing the application")
 			return m, tea.Quit
+		case "space":
+			if m.status == timerCompleted {
+				return m, nil
+			}
+
+			if m.status == timerPaused {
+				m.status = timerRunning
+				slog.Info("starting the session again", "remaining", m.remaining.String())
+			} else {
+				slog.Info("pausing the session", "remaining", m.remaining.String())
+				m.status = timerPaused
+			}
 		}
 	case tickType:
+		if m.status == timerPaused {
+			return m, tickTime()
+		}
 		if m.remaining < 1 {
 			return m, nil
 		}
@@ -38,6 +62,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmd := m.progress.IncrPercent(1.0 / (m.total.Minutes() * 60))
 		if m.remaining == 0 {
 			slog.Info("countdown ends")
+			m.status = timerCompleted
 			return m, cmd
 		}
 		return m, tea.Batch(cmd, tickTime())
@@ -66,10 +91,18 @@ func (m model) View() tea.View {
 		fmt.Sprintf("Remaining: %v", m.remaining),
 	)
 
+	bottomText := "[q] Quit   [Space] Pause"
+	if m.status == timerPaused {
+		bottomText = "[q] Quit   [Space] Resume"
+	}
+	if m.status == timerCompleted {
+		bottomText = "[q] Quit"
+	}
+
 	bottomContent := lipgloss.JoinVertical(
 		lipgloss.Left,
 		"",
-		"[q] Quit",
+		bottomText,
 	)
 
 	content := lipgloss.JoinVertical(
