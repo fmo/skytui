@@ -97,17 +97,27 @@ feat: pause and resume pomodoro countdown
 
 **Commit:** `feat: configure pomodoro duration`
 
-### [ ] 6. Test The Timer States
+### [ ] 6. Keep The Countdown Accurate
+
+- Derive running time from timestamps instead of the number of received tick
+  messages.
+- Keep remaining time correct when rendering is delayed.
+- Freeze elapsed time while paused and continue correctly after resume.
+
+**Commit:** `fix: prevent pomodoro timer drift`
+
+### [ ] 7. Test The Timer States
 
 - Cover running ticks, pause, resume, completion, and completed controls.
 - Test state transitions by sending messages without waiting on real time.
 
 **Commit:** `test: cover pomodoro timer states`
 
-### [ ] 7. Prepare v0.1.0
+### [ ] 8. Prepare v0.1.0
 
 - Document installation, usage, duration flag, controls, and log location.
 - Add `--version` output for `v0.1.0`.
+- State that `v0.1.0` supports macOS.
 - Verify a clean install and one complete short manual session.
 
 **Commit:** `chore: prepare v0.1.0`
@@ -118,7 +128,15 @@ feat: pause and resume pomodoro countdown
 
 Goal: make completed focus time useful after the timer exits.
 
-### [ ] 8. Store Completed Sessions
+### [ ] 9. Separate The Pomodoro Model From Cobra
+
+- Keep Cobra responsible for flags, help, and starting the application.
+- Move the Bubble Tea model, timer messages, state transitions, and view out of
+  `cmd/root.go` without changing behavior.
+
+**Commit:** `refactor: separate pomodoro model from command`
+
+### [ ] 10. Store Completed Sessions
 
 - Create `~/Library/Application Support/skytui` with `0700` permissions.
 - Append completed session time and duration to `sessions.csv` with `0600`
@@ -127,7 +145,7 @@ Goal: make completed focus time useful after the timer exits.
 
 **Commit:** `feat: persist completed pomodoro sessions`
 
-### [ ] 9. Show Recent Sessions
+### [ ] 11. Show Recent Sessions
 
 - Load saved sessions when SkyTUI starts.
 - Show the five most recent completed sessions below the timer.
@@ -135,14 +153,14 @@ Goal: make completed focus time useful after the timer exits.
 
 **Commit:** `feat: show recent pomodoro sessions`
 
-### [ ] 10. Show Focus Totals
+### [ ] 12. Show Focus Totals
 
 - Display today's, the current week's, and all-time completed focus durations.
 - Refresh the values after a session completes.
 
 **Commit:** `feat: show focus time totals`
 
-### [ ] 11. Test Session Data
+### [ ] 13. Test Session Data
 
 - Test CSV append and load behavior using temporary directories.
 - Test recent-session ordering and total calculations around day and ISO-week
@@ -150,7 +168,7 @@ Goal: make completed focus time useful after the timer exits.
 
 **Commit:** `test: cover session storage and summaries`
 
-### [ ] 12. Prepare v0.2.0
+### [ ] 14. Prepare v0.2.0
 
 - Document the session file and dashboard history.
 - Add an updated screenshot.
@@ -164,7 +182,7 @@ Goal: make completed focus time useful after the timer exits.
 
 Goal: make repeated daily use configurable and resilient.
 
-### [ ] 13. Load Persistent Defaults
+### [ ] 15. Load Persistent Defaults
 
 - Use Viper with `~/Library/Application Support/skytui/config.yaml`.
 - Persist a default Pomodoro duration.
@@ -172,7 +190,7 @@ Goal: make repeated daily use configurable and resilient.
 
 **Commit:** `feat: load pomodoro defaults from config`
 
-### [ ] 14. Reset The Timer
+### [ ] 16. Reset The Timer
 
 - Reset the active or paused timer with `r`.
 - Return session time, remaining time, and progress to their initial values.
@@ -180,7 +198,7 @@ Goal: make repeated daily use configurable and resilient.
 
 **Commit:** `feat: reset pomodoro countdown`
 
-### [ ] 15. Make The Dashboard Responsive
+### [ ] 17. Make The Dashboard Responsive
 
 - Respond to terminal resize messages.
 - Keep the timer, progress bar, history, totals, and controls readable at
@@ -188,7 +206,7 @@ Goal: make repeated daily use configurable and resilient.
 
 **Commit:** `feat: make pomodoro dashboard responsive`
 
-### [ ] 16. Prepare v0.3.0
+### [ ] 18. Prepare v0.3.0
 
 - Document configuration precedence and reset behavior.
 - Verify configuration, resize, timer, and history workflows together.
@@ -201,6 +219,7 @@ Goal: make repeated daily use configurable and resilient.
 
 - Break timers and completion notifications.
 - A full history screen with editing and filtering.
+- Cross-platform data, configuration, and log paths.
 - Import and sync.
 
 Plan these only after using the released dashboard enough to identify the next
