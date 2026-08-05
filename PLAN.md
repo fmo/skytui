@@ -3,6 +3,13 @@
 `[x]` is complete. `[ ]` is planned. Future tasks can be adjusted before work
 starts, but the current task should stay focused.
 
+## Design Reference
+
+This image is the direction for the completed dashboard, not the current
+released interface.
+
+![SkyTUI dashboard design reference](docs/images/dashboard-reference.png)
+
 ## v0.1.0 - Usable Timer
 
 Goal: ship a reliable local Pomodoro timer that can be installed and used from
