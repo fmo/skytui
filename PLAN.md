@@ -89,11 +89,12 @@ Let the user control an active Pomodoro with `space`:
 feat: pause and resume pomodoro countdown
 ```
 
-### [ ] 5. Configure The Pomodoro Duration
+### [x] 5. Configure The Pomodoro Duration
 
 - Add a Cobra `--duration` flag with a `25m` default.
 - Use the selected duration for timer state, progress, and display values.
-- Reject invalid or non-positive durations before opening the TUI.
+- Reject invalid durations, values below one second, and fractional seconds
+  before opening the TUI.
 
 **Commit:** `feat: configure pomodoro duration`
 

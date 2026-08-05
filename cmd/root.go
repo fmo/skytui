@@ -84,7 +84,7 @@ func (m model) View() tea.View {
 		lipgloss.Left,
 		titleStyle.Render("SkyTUI Pomodoro"),
 		"",
-		fmt.Sprintf("Session: %v / 25 min", int((m.total-m.remaining).Minutes())),
+		fmt.Sprintf("Session: %s / %s", (m.total-m.remaining).String(), m.total.String()),
 		"",
 		m.progress.View(),
 		"",
@@ -126,7 +126,16 @@ var rootCmd = &cobra.Command{
 	Use:   "skytui",
 	Short: "Execute SkyTUI Dashboard",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		m := model{progress: progress.New(progress.WithDefaultBlend()), remaining: time.Minute * 25, total: time.Minute * 25}
+		duration, err := cmd.Flags().GetDuration("duration")
+		if err != nil {
+			return err
+		}
+
+		if duration < time.Second || duration%time.Second != 0 {
+			return fmt.Errorf("duration should be at least 1 second and use whole seconds: %v", duration)
+		}
+
+		m := model{progress: progress.New(progress.WithDefaultBlend()), remaining: duration, total: duration}
 		p := tea.NewProgram(m)
 		if _, err := p.Run(); err != nil {
 			return err
@@ -134,6 +143,10 @@ var rootCmd = &cobra.Command{
 
 		return nil
 	},
+}
+
+func init() {
+	rootCmd.Flags().Duration("duration", time.Minute*25, "Pomodoro session duration")
 }
 
 func Exec() error {
