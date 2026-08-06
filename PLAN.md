@@ -98,7 +98,7 @@ feat: pause and resume pomodoro countdown
 
 **Commit:** `feat: configure pomodoro duration`
 
-### [ ] 6. Keep The Countdown Accurate
+### [x] 6. Keep The Countdown Accurate
 
 - Derive running time from timestamps instead of the number of received tick
   messages.

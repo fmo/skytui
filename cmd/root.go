@@ -21,13 +21,15 @@ const (
 
 type model struct {
 	progress  progress.Model
+	deadline  time.Time
+	pauseTime time.Time
 	status    timerStatus
-	total     time.Duration
+	duration  time.Duration
 	remaining time.Duration
 }
 
 func (m model) Init() tea.Cmd {
-	slog.Info("countdown starts", "total", m.total.String())
+	slog.Info("countdown starts", "session duration", m.duration.String())
 	return tickTime()
 }
 
@@ -46,25 +48,33 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.status == timerPaused {
 				m.status = timerRunning
 				slog.Info("starting the session again", "remaining", m.remaining.String())
+				m.deadline = m.deadline.Add(time.Since(m.pauseTime))
 			} else {
 				slog.Info("pausing the session", "remaining", m.remaining.String())
 				m.status = timerPaused
+				m.pauseTime = time.Now()
+
 			}
 		}
 	case tickType:
 		if m.status == timerPaused {
 			return m, tickTime()
 		}
-		if m.remaining < 1 {
-			return m, nil
-		}
-		m.remaining -= time.Second
-		cmd := m.progress.IncrPercent(1.0 / (m.total.Minutes() * 60))
-		if m.remaining == 0 {
+
+		remaining := time.Until(m.deadline)
+
+		if remaining <= 0 {
+			m.remaining = 0
 			slog.Info("countdown ends")
+			cmd := m.progress.SetPercent(1)
 			m.status = timerCompleted
 			return m, cmd
 		}
+
+		elapsed := m.duration - remaining
+		cmd := m.progress.SetPercent(float64(elapsed) / float64(m.duration))
+		m.remaining = remaining.Round(time.Second)
+
 		return m, tea.Batch(cmd, tickTime())
 	case progress.FrameMsg:
 		var cmd tea.Cmd
@@ -80,11 +90,13 @@ func (m model) View() tea.View {
 
 	titleStyle := lipgloss.NewStyle().Bold(true)
 
+	elapsed := m.duration - m.remaining
+
 	topContent := lipgloss.JoinVertical(
 		lipgloss.Left,
 		titleStyle.Render("SkyTUI Pomodoro"),
 		"",
-		fmt.Sprintf("Session: %s / %s", (m.total-m.remaining).String(), m.total.String()),
+		fmt.Sprintf("Session: %s / %s", elapsed.String(), m.duration.String()),
 		"",
 		m.progress.View(),
 		"",
@@ -135,7 +147,9 @@ var rootCmd = &cobra.Command{
 			return fmt.Errorf("duration should be at least 1 second and use whole seconds: %v", duration)
 		}
 
-		m := model{progress: progress.New(progress.WithDefaultBlend()), remaining: duration, total: duration}
+		deadline := time.Now().Add(duration)
+
+		m := model{progress: progress.New(progress.WithDefaultBlend()), remaining: duration, duration: duration, deadline: deadline}
 		p := tea.NewProgram(m)
 		if _, err := p.Run(); err != nil {
 			return err
