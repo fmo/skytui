@@ -135,8 +135,9 @@ func tickTime() tea.Cmd {
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "skytui",
-	Short: "Execute SkyTUI Dashboard",
+	Use:     "skytui",
+	Short:   "Execute SkyTUI Dashboard",
+	Version: "v0.1.0",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		duration, err := cmd.Flags().GetDuration("duration")
 		if err != nil {

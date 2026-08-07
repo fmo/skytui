@@ -114,11 +114,13 @@ feat: pause and resume pomodoro countdown
 
 **Commit:** `test: cover pomodoro timer states`
 
-### [ ] 8. Prepare v0.1.0
+### [x] 8. Prepare v0.1.0
 
 - Document installation, usage, duration flag, controls, and log location.
 - Add `--version` output for `v0.1.0`.
 - State that `v0.1.0` supports macOS.
+- Add the MIT license and an image of the released interface.
+- Document release binaries for Apple Silicon and Intel Macs.
 - Verify a clean install and one complete short manual session.
 
 **Commit:** `chore: prepare v0.1.0`
