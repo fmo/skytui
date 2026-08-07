@@ -107,9 +107,9 @@ feat: pause and resume pomodoro countdown
 
 **Commit:** `fix: prevent pomodoro timer drift`
 
-### [ ] 7. Test The Timer States
+### [x] 7. Test The Timer States
 
-- Cover running ticks, pause, resume, completion, and completed controls.
+- Cover running ticks, pause, resume, reaching the deadline, and controls after completion.
 - Test state transitions by sending messages without waiting on real time.
 
 **Commit:** `test: cover pomodoro timer states`
