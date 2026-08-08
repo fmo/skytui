@@ -127,19 +127,38 @@ feat: pause and resume pomodoro countdown
 
 **Tag:** `v0.1.0`
 
+## Release Maintenance
+
+### [ ] 9. Generate Release Checksums With Make
+
+- Add a `Makefile` with a `checksums` target.
+- Accept the release version so the target can be reused for later releases.
+- Generate `checksums.txt` for the Apple Silicon and Intel archives in the
+  matching `dist` release directory.
+
+**Commit:** `build: add release checksum target`
+
 ## v0.2.0 - Session History
 
 Goal: make completed focus time useful after the timer exits.
 
-### [ ] 9. Separate The Pomodoro Model From Cobra
+### [ ] 10. Separate The Pomodoro Model From Cobra
 
-- Keep Cobra responsible for flags, help, and starting the application.
-- Move the Bubble Tea model, timer messages, state transitions, and view out of
-  `cmd/root.go` without changing behavior.
+- Create `internal/pomodoro` for the Bubble Tea application.
+- Move the model fields, timer statuses, tick message, `Init`, `Update`, and
+  `View` from `cmd/root.go` into the new package.
+- Make the model own its duration, remaining time, deadline, pause state, and
+  Bubbles progress model.
+- Provide a constructor that receives the session duration and returns a fully
+  initialized Bubble Tea model.
+- Keep `cmd/root.go` responsible only for Cobra flags, duration validation,
+  help/version output, and starting `tea.NewProgram`.
+- Move the timer-state tests with the model and keep every current behavior
+  unchanged.
 
 **Commit:** `refactor: separate pomodoro model from command`
 
-### [ ] 10. Store Completed Sessions
+### [ ] 11. Store Completed Sessions
 
 - Create `~/Library/Application Support/skytui` with `0700` permissions.
 - Append completed session time and duration to `sessions.csv` with `0600`
@@ -148,7 +167,7 @@ Goal: make completed focus time useful after the timer exits.
 
 **Commit:** `feat: persist completed pomodoro sessions`
 
-### [ ] 11. Show Recent Sessions
+### [ ] 12. Show Recent Sessions
 
 - Load saved sessions when SkyTUI starts.
 - Show the five most recent completed sessions below the timer.
@@ -156,14 +175,14 @@ Goal: make completed focus time useful after the timer exits.
 
 **Commit:** `feat: show recent pomodoro sessions`
 
-### [ ] 12. Show Focus Totals
+### [ ] 13. Show Focus Totals
 
 - Display today's, the current week's, and all-time completed focus durations.
 - Refresh the values after a session completes.
 
 **Commit:** `feat: show focus time totals`
 
-### [ ] 13. Test Session Data
+### [ ] 14. Test Session Data
 
 - Test CSV append and load behavior using temporary directories.
 - Test recent-session ordering and total calculations around day and ISO-week
@@ -171,7 +190,7 @@ Goal: make completed focus time useful after the timer exits.
 
 **Commit:** `test: cover session storage and summaries`
 
-### [ ] 14. Prepare v0.2.0
+### [ ] 15. Prepare v0.2.0
 
 - Document the session file and dashboard history.
 - Add an updated screenshot.
@@ -185,7 +204,7 @@ Goal: make completed focus time useful after the timer exits.
 
 Goal: make repeated daily use configurable and resilient.
 
-### [ ] 15. Load Persistent Defaults
+### [ ] 16. Load Persistent Defaults
 
 - Use Viper with `~/Library/Application Support/skytui/config.yaml`.
 - Persist a default Pomodoro duration.
@@ -193,7 +212,7 @@ Goal: make repeated daily use configurable and resilient.
 
 **Commit:** `feat: load pomodoro defaults from config`
 
-### [ ] 16. Reset The Timer
+### [ ] 17. Reset The Timer
 
 - Reset the active or paused timer with `r`.
 - Return session time, remaining time, and progress to their initial values.
@@ -201,7 +220,7 @@ Goal: make repeated daily use configurable and resilient.
 
 **Commit:** `feat: reset pomodoro countdown`
 
-### [ ] 17. Make The Dashboard Responsive
+### [ ] 18. Make The Dashboard Responsive
 
 - Respond to terminal resize messages.
 - Keep the timer, progress bar, history, totals, and controls readable at
@@ -209,7 +228,7 @@ Goal: make repeated daily use configurable and resilient.
 
 **Commit:** `feat: make pomodoro dashboard responsive`
 
-### [ ] 18. Prepare v0.3.0
+### [ ] 19. Prepare v0.3.0
 
 - Document configuration precedence and reset behavior.
 - Verify configuration, resize, timer, and history workflows together.
