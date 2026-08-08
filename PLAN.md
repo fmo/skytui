@@ -129,7 +129,7 @@ feat: pause and resume pomodoro countdown
 
 ## Release Maintenance
 
-### [ ] 9. Generate Release Checksums With Make
+### [x] 9. Generate Release Checksums With Make
 
 - Add a `Makefile` with a `checksums` target.
 - Accept the release version so the target can be reused for later releases.
