@@ -8,6 +8,7 @@ import (
 	"charm.land/bubbles/v2/progress"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/fmo/skytui/internal/session"
 )
 
 type timerStatus int
@@ -18,12 +19,13 @@ const (
 	timerCompleted
 )
 
-func New(duration time.Duration) model {
+func New(store session.Store, duration time.Duration) model {
 	deadline := time.Now().Add(duration)
-	return model{progress: progress.New(progress.WithDefaultBlend()), remaining: duration, duration: duration, deadline: deadline}
+	return model{progress: progress.New(progress.WithDefaultBlend()), remaining: duration, duration: duration, deadline: deadline, store: store}
 }
 
 type model struct {
+	store     session.Store
 	progress  progress.Model
 	deadline  time.Time
 	pauseTime time.Time
@@ -45,7 +47,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			slog.Info("closing the application")
 			return m, tea.Quit
 		case "space":
-
 			if m.status == timerCompleted {
 				return m, nil
 			}
@@ -62,6 +63,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 	case tickType:
+		if m.status == timerCompleted {
+			return m, nil
+		}
 		if m.status == timerPaused {
 			return m, tickTime()
 		}
@@ -72,6 +76,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.remaining = 0
 			slog.Info("countdown ends")
 			cmd := m.progress.SetPercent(1)
+			if err := m.store.Append(time.Now(), m.duration); err != nil {
+				slog.Error("cant append the session", "err", err)
+			}
 			m.status = timerCompleted
 			return m, cmd
 		}

@@ -1,11 +1,15 @@
 package pomodoro
 
 import (
+	"encoding/csv"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"charm.land/bubbles/v2/progress"
 	tea "charm.land/bubbletea/v2"
+	"github.com/fmo/skytui/internal/session"
 )
 
 func TestRunningTickUsesDeadline(t *testing.T) {
@@ -109,8 +113,10 @@ func TestPausedTickDoesNotAdvance(t *testing.T) {
 }
 
 func TestTickReachesDeadline(t *testing.T) {
+	storePath := filepath.Join(t.TempDir(), "sessions.csv")
+
 	p := progress.New(progress.WithDefaultBlend())
-	m := model{duration: time.Second * 60, progress: p}
+	m := model{duration: time.Second * 60, progress: p, store: session.New(storePath)}
 	m.remaining = time.Second
 	m.deadline = time.Now().Add(-3 * time.Second)
 	m.status = timerRunning
@@ -175,5 +181,28 @@ func TestCompletedControls(t *testing.T) {
 
 	if _, ok := msg.(tea.QuitMsg); !ok {
 		t.Error("quit msg expected")
+	}
+}
+
+func TestCompletedStoresOnce(t *testing.T) {
+	tmpFile := filepath.Join(t.TempDir(), "sessions.csv")
+	f, err := os.OpenFile(tmpFile, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0o600)
+	if err != nil {
+		t.Fatal("cant open file")
+	}
+	defer f.Close()
+	m := model{store: session.New(tmpFile), status: timerRunning, duration: 20 * time.Second, deadline: time.Now().Add(-22 * time.Second)}
+	updated, _ := m.Update(tickType{})
+	got := updated.(model)
+
+	got.Update(tickType{})
+	reader := csv.NewReader(f)
+	records, err := reader.ReadAll()
+	if err != nil {
+		t.Fatal("cant read csv file")
+	}
+
+	if len(records) != 1 {
+		t.Errorf("got: %d, want: 1", len(records))
 	}
 }

@@ -158,7 +158,7 @@ Goal: make completed focus time useful after the timer exits.
 
 **Commit:** `refactor: separate pomodoro model from command`
 
-### [ ] 11. Store Completed Sessions
+### [x] 11. Store Completed Sessions
 
 - Create `~/Library/Application Support/skytui` with `0700` permissions.
 - Append completed session time and duration to `sessions.csv` with `0600`

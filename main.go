@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/fmo/skytui/cmd"
+	"github.com/fmo/skytui/internal/session"
 )
 
 func main() {
@@ -15,6 +16,7 @@ func main() {
 		log.Fatal("cant open user home dir")
 	}
 
+	// logger setup
 	logPath := filepath.Join(homeDir, "Library", "Logs", "skytui")
 
 	if err := os.Mkdir(logPath, 0o700); err != nil && !os.IsExist(err) {
@@ -37,7 +39,16 @@ func main() {
 
 	slog.SetDefault(logger)
 
-	if err := cmd.Exec(); err != nil {
+	// app directory setup
+	if err := os.Mkdir(filepath.Join(homeDir, "Library", "Application Support", "skytui"), 0o700); err != nil && !os.IsExist(err) {
+		logger.Error("cant create application folder", "err", err)
+		os.Exit(1)
+	}
+
+	// storage
+	store := session.New(filepath.Join(homeDir, "Library", "Application Support", "skytui", "sessions.csv"))
+
+	if err := cmd.Exec(store); err != nil {
 		logFile.Close()
 		log.Fatalf("cant run the command: %v", err)
 	}

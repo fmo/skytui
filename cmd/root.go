@@ -6,39 +6,42 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/fmo/skytui/internal/pomodoro"
+	"github.com/fmo/skytui/internal/session"
 	"github.com/spf13/cobra"
 )
 
-var rootCmd = &cobra.Command{
-	Use:     "skytui",
-	Short:   "Execute SkyTUI Dashboard",
-	Version: "v0.1.0",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		duration, err := cmd.Flags().GetDuration("duration")
-		if err != nil {
-			return err
-		}
+func newRootCmd(store session.Store) *cobra.Command {
+	rootCmd := &cobra.Command{
+		Use:     "skytui",
+		Short:   "Execute SkyTUI Dashboard",
+		Version: "v0.1.0",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			duration, err := cmd.Flags().GetDuration("duration")
+			if err != nil {
+				return err
+			}
 
-		if duration < time.Second || duration%time.Second != 0 {
-			return fmt.Errorf("duration should be at least 1 second and use whole seconds: %v", duration)
-		}
+			if duration < time.Second || duration%time.Second != 0 {
+				return fmt.Errorf("duration should be at least 1 second and use whole seconds: %v", duration)
+			}
 
-		m := pomodoro.New(duration)
-		p := tea.NewProgram(m)
-		if _, err := p.Run(); err != nil {
-			return err
-		}
+			m := pomodoro.New(store, duration)
+			p := tea.NewProgram(m)
+			if _, err := p.Run(); err != nil {
+				return err
+			}
 
-		return nil
-	},
-}
+			return nil
+		},
+	}
 
-func init() {
 	rootCmd.Flags().Duration("duration", time.Minute*25, "Pomodoro session duration")
+
+	return rootCmd
 }
 
-func Exec() error {
-	if err := rootCmd.Execute(); err != nil {
+func Exec(store session.Store) error {
+	if err := newRootCmd(store).Execute(); err != nil {
 		return err
 	}
 
