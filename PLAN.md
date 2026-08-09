@@ -142,7 +142,7 @@ feat: pause and resume pomodoro countdown
 
 Goal: make completed focus time useful after the timer exits.
 
-### [ ] 10. Separate The Pomodoro Model From Cobra
+### [x] 10. Separate The Pomodoro Model From Cobra
 
 - Create `internal/pomodoro` for the Bubble Tea application.
 - Move the model fields, timer statuses, tick message, `Init`, `Update`, and
