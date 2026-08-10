@@ -167,10 +167,11 @@ Goal: make completed focus time useful after the timer exits.
 
 **Commit:** `feat: persist completed pomodoro sessions`
 
-### [ ] 12. Show Recent Sessions
+### [x] 12. Show Recent Sessions
 
 - Load saved sessions when SkyTUI starts.
 - Show the five most recent completed sessions below the timer.
+- Refresh the recent sessions after a session completes.
 - Treat a missing or empty session file as an empty history.
 
 **Commit:** `feat: show recent pomodoro sessions`

@@ -33,3 +33,35 @@ func (s Store) Append(completedAt time.Time, duration time.Duration) error {
 
 	return nil
 }
+
+func (s Store) Load() ([]Record, error) {
+	file, err := os.Open(s.path)
+	if err != nil {
+		if os.IsExist(err) {
+			return []Record{}, nil
+		}
+		return []Record{}, err
+	}
+
+	csvReader := csv.NewReader(file)
+	rows, err := csvReader.ReadAll()
+	if err != nil {
+		return []Record{}, err
+	}
+
+	var records []Record
+	for _, row := range rows {
+		complatedAt, err := time.Parse(time.RFC3339Nano, row[0])
+		if err != nil {
+			return []Record{}, err
+		}
+		duration, err := time.ParseDuration(row[1])
+		if err != nil {
+			return []Record{}, err
+		}
+
+		records = append(records, Record{complatedAt, duration})
+	}
+
+	return records, nil
+}

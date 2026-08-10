@@ -45,9 +45,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// storage
+	// store
 	store := session.New(filepath.Join(homeDir, "Library", "Application Support", "skytui", "sessions.csv"))
-
 	if err := cmd.Exec(store); err != nil {
 		logFile.Close()
 		log.Fatalf("cant run the command: %v", err)

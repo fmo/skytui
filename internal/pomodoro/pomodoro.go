@@ -3,6 +3,7 @@ package pomodoro
 import (
 	"fmt"
 	"log/slog"
+	"slices"
 	"time"
 
 	"charm.land/bubbles/v2/progress"
@@ -19,6 +20,8 @@ const (
 	timerCompleted
 )
 
+const sessionsLimit = 5
+
 func New(store session.Store, duration time.Duration) model {
 	deadline := time.Now().Add(duration)
 	return model{progress: progress.New(progress.WithDefaultBlend()), remaining: duration, duration: duration, deadline: deadline, store: store}
@@ -32,11 +35,12 @@ type model struct {
 	status    timerStatus
 	duration  time.Duration
 	remaining time.Duration
+	sessions  []session.Record
 }
 
 func (m model) Init() tea.Cmd {
 	slog.Info("countdown starts", "session duration", m.duration.String())
-	return tickTime()
+	return tea.Batch(tickTime(), loadSessions())
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -62,6 +66,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			}
 		}
+	case loadType:
+		records, err := m.store.Load()
+		if err != nil {
+			slog.Error("cant load sessions", "err", err)
+		}
+		m.sessions = records
 	case tickType:
 		if m.status == timerCompleted {
 			return m, nil
@@ -80,7 +90,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				slog.Error("cant append the session", "err", err)
 			}
 			m.status = timerCompleted
-			return m, cmd
+			return m, tea.Batch(cmd, loadSessions())
 		}
 
 		elapsed := m.duration - remaining
@@ -97,29 +107,50 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m model) View() tea.View {
-	panelStyle := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Padding(1, 2)
+func sessionList(sessions []session.Record) string {
+	recentSessionsTitle := lipgloss.NewStyle().Padding(1, 1)
 
+	sessionList := make([]string, 0, 100)
+	for _, session := range sessions {
+		sessionList = append(sessionList, fmt.Sprintf("\n%s %s", session.CompletedAt.Format("Mon Jan 02"), session.Duration.String()))
+	}
+
+	slices.Reverse(sessionList)
+
+	limit := min(len(sessionList), sessionsLimit)
+
+	last5 := sessionList[:limit]
+
+	sessionStyle := lipgloss.NewStyle().Margin(1, 1)
+
+	return lipgloss.JoinVertical(lipgloss.Left, recentSessionsTitle.Render("Recent Sessions"), sessionStyle.Render(last5...))
+}
+
+func topContent(duration time.Duration, remaining time.Duration, progress progress.Model) string {
 	titleStyle := lipgloss.NewStyle().Bold(true)
 
-	elapsed := m.duration - m.remaining
+	elapsed := duration - remaining
 
 	topContent := lipgloss.JoinVertical(
 		lipgloss.Left,
 		titleStyle.Render("SkyTUI Pomodoro"),
 		"",
-		fmt.Sprintf("Session: %s / %s", elapsed.String(), m.duration.String()),
+		fmt.Sprintf("Session: %s / %s", elapsed.String(), duration.String()),
 		"",
-		m.progress.View(),
+		progress.View(),
 		"",
-		fmt.Sprintf("Remaining: %v", m.remaining),
+		fmt.Sprintf("Remaining: %v", remaining),
 	)
 
+	return topContent
+}
+
+func bottomContent(status timerStatus) string {
 	bottomText := "[q] Quit   [Space] Pause"
-	if m.status == timerPaused {
+	if status == timerPaused {
 		bottomText = "[q] Quit   [Space] Resume"
 	}
-	if m.status == timerCompleted {
+	if status == timerCompleted {
 		bottomText = "[q] Quit"
 	}
 
@@ -129,19 +160,38 @@ func (m model) View() tea.View {
 		bottomText,
 	)
 
-	content := lipgloss.JoinVertical(
+	return bottomContent
+}
+
+func (m model) View() tea.View {
+	panelStyle := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Padding(1, 2)
+
+	topContent := topContent(m.duration, m.remaining, m.progress)
+
+	sessions := sessionList(m.sessions)
+
+	bottomContent := bottomContent(m.status)
+
+	return tea.NewView(lipgloss.JoinVertical(
 		lipgloss.Left,
 		panelStyle.Render(topContent),
+		sessions,
 		bottomContent,
-	)
-
-	return tea.NewView(content)
+	))
 }
 
 type tickType struct{}
+
+type loadType struct{}
 
 func tickTime() tea.Cmd {
 	return tea.Tick(time.Second, func(t time.Time) tea.Msg {
 		return tickType(struct{}{})
 	})
+}
+
+func loadSessions() tea.Cmd {
+	return func() tea.Msg {
+		return loadType(struct{}{})
+	}
 }
