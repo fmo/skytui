@@ -28,14 +28,18 @@ func New(store session.Store, duration time.Duration) model {
 }
 
 type model struct {
-	store     session.Store
-	progress  progress.Model
-	deadline  time.Time
-	pauseTime time.Time
-	status    timerStatus
-	duration  time.Duration
-	remaining time.Duration
-	sessions  []session.Record
+	todaysTotal time.Duration
+	thisWeek    time.Duration
+	thisMonth   time.Duration
+	allTime     time.Duration
+	store       session.Store
+	progress    progress.Model
+	deadline    time.Time
+	pauseTime   time.Time
+	status      timerStatus
+	duration    time.Duration
+	remaining   time.Duration
+	sessions    []session.Record
 }
 
 func (m model) Init() tea.Cmd {
@@ -72,6 +76,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			slog.Error("cant load sessions", "err", err)
 		}
 		m.sessions = records
+
+		m.todaysTotal = m.store.TodaysTotal(records)
+
+		m.thisWeek = m.store.ThisWeek(records)
+
+		m.thisMonth = m.store.ThisMonth(records)
+
+		m.allTime = m.store.AllTime(records)
+
 	case tickType:
 		if m.status == timerCompleted {
 			return m, nil
@@ -108,7 +121,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func sessionList(sessions []session.Record) string {
-	recentSessionsTitle := lipgloss.NewStyle().Padding(1, 1)
+	recentSessionsTitle := lipgloss.NewStyle().Padding(0, 1)
 
 	sessionList := make([]string, 0, 100)
 	for _, session := range sessions {
@@ -121,12 +134,12 @@ func sessionList(sessions []session.Record) string {
 
 	last5 := sessionList[:limit]
 
-	sessionStyle := lipgloss.NewStyle().Margin(1, 1)
+	sessionStyle := lipgloss.NewStyle().Padding(0, 1)
 
 	return lipgloss.JoinVertical(lipgloss.Left, recentSessionsTitle.Render("Recent Sessions"), sessionStyle.Render(last5...))
 }
 
-func topContent(duration time.Duration, remaining time.Duration, progress progress.Model) string {
+func topContent(duration time.Duration, remaining time.Duration, progress progress.Model, todaysTotal time.Duration, thisWeek time.Duration, thisMonth time.Duration, allTime time.Duration) string {
 	titleStyle := lipgloss.NewStyle().Bold(true)
 
 	elapsed := duration - remaining
@@ -140,6 +153,10 @@ func topContent(duration time.Duration, remaining time.Duration, progress progre
 		progress.View(),
 		"",
 		fmt.Sprintf("Remaining: %v", remaining),
+		fmt.Sprintf("Today's: %s", todaysTotal.String()),
+		fmt.Sprintf("This week: %s", thisWeek.String()),
+		fmt.Sprintf("This month: %s", thisMonth.String()),
+		fmt.Sprintf("Total: %s", allTime.String()),
 	)
 
 	return topContent
@@ -166,7 +183,7 @@ func bottomContent(status timerStatus) string {
 func (m model) View() tea.View {
 	panelStyle := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Padding(1, 2)
 
-	topContent := topContent(m.duration, m.remaining, m.progress)
+	topContent := topContent(m.duration, m.remaining, m.progress, m.todaysTotal, m.thisWeek, m.thisMonth, m.allTime)
 
 	sessions := sessionList(m.sessions)
 

@@ -2,6 +2,7 @@ package session
 
 import (
 	"encoding/csv"
+	"fmt"
 	"os"
 	"time"
 )
@@ -37,11 +38,12 @@ func (s Store) Append(completedAt time.Time, duration time.Duration) error {
 func (s Store) Load() ([]Record, error) {
 	file, err := os.Open(s.path)
 	if err != nil {
-		if os.IsExist(err) {
+		if os.IsNotExist(err) {
 			return []Record{}, nil
 		}
 		return []Record{}, err
 	}
+	defer file.Close()
 
 	csvReader := csv.NewReader(file)
 	rows, err := csvReader.ReadAll()
@@ -51,6 +53,9 @@ func (s Store) Load() ([]Record, error) {
 
 	var records []Record
 	for _, row := range rows {
+		if len(row) != 2 {
+			return []Record{}, fmt.Errorf("there has to be two fields")
+		}
 		complatedAt, err := time.Parse(time.RFC3339Nano, row[0])
 		if err != nil {
 			return []Record{}, err
@@ -64,4 +69,48 @@ func (s Store) Load() ([]Record, error) {
 	}
 
 	return records, nil
+}
+
+func (s Store) TodaysTotal(records []Record) time.Duration {
+	total := time.Duration(0)
+	for _, record := range records {
+		if record.CompletedAt.Format("2006-01-02") == time.Now().Format("2006-01-02") {
+			total += record.Duration
+		}
+	}
+
+	return total
+}
+
+func (s Store) ThisWeek(records []Record) time.Duration {
+	thisWeek := time.Duration(0)
+	for _, record := range records {
+		currentYear, currentWeek := time.Now().ISOWeek()
+		completeAtYear, completeAtWeek := record.CompletedAt.ISOWeek()
+		if currentWeek == completeAtWeek && currentYear == completeAtYear {
+			thisWeek += record.Duration
+		}
+	}
+
+	return thisWeek
+}
+
+func (s Store) ThisMonth(records []Record) time.Duration {
+	total := time.Duration(0)
+	for _, record := range records {
+		if time.Now().Month() == record.CompletedAt.Month() && time.Now().Year() == record.CompletedAt.Year() {
+			total += record.Duration
+		}
+	}
+
+	return total
+}
+
+func (s Store) AllTime(records []Record) time.Duration {
+	total := time.Duration(0)
+	for _, record := range records {
+		total += record.Duration
+	}
+
+	return total
 }

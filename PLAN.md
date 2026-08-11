@@ -176,9 +176,9 @@ Goal: make completed focus time useful after the timer exits.
 
 **Commit:** `feat: show recent pomodoro sessions`
 
-### [ ] 13. Show Focus Totals
+### [x] 13. Show Focus Totals
 
-- Display today's, the current week's, and all-time completed focus durations.
+- Display today's, the current week's, the current month's, and all-time completed focus durations.
 - Refresh the values after a session completes.
 
 **Commit:** `feat: show focus time totals`
