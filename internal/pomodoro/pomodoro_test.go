@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -15,10 +16,9 @@ import (
 func TestRunningTickUsesDeadline(t *testing.T) {
 	m := model{}
 	m.status = timerRunning
-	m.remaining = time.Second * 60
 	m.duration = time.Second * 60
 
-	// 15 seconds already passed
+	// A 60 second sessions has been started 15 seconds ago
 	m.deadline = time.Now().Add(time.Second * 45)
 
 	updated, cmd := m.Update(tickType{})
@@ -64,11 +64,11 @@ func TestPauseAndResume(t *testing.T) {
 		t.Errorf("got = %v, want = %d", got.status, timerPaused)
 	}
 
-	if deadline.Compare(got.deadline) != 0 {
+	if !deadline.Equal(got.deadline) {
 		t.Errorf("got = %v, want = %v", got.deadline, deadline)
 	}
 
-	got.pauseTime = time.Now().Add(time.Second * -5)
+	got.pauseTime = time.Now().Add(-5 * time.Second)
 
 	updated, _ = got.Update(space)
 	got = updated.(model)
@@ -103,7 +103,7 @@ func TestPausedTickDoesNotAdvance(t *testing.T) {
 		t.Fatalf("got: %v, want: %v", got.remaining, time.Second*30)
 	}
 
-	if m.deadline.Compare(got.deadline) != 0 {
+	if !m.deadline.Equal(got.deadline) {
 		t.Fatalf("got: %v, want: %v", got.deadline, m.deadline)
 	}
 
@@ -204,5 +204,65 @@ func TestCompletedStoresOnce(t *testing.T) {
 
 	if len(records) != 1 {
 		t.Errorf("got: %d, want: 1", len(records))
+	}
+}
+
+func TestSessionList(t *testing.T) {
+	store := session.New(filepath.Join(t.TempDir(), "sessions.csv"))
+
+	record1 := session.Record{CompletedAt: time.Now().Add(-60 * time.Minute), Duration: time.Minute}
+	record2 := session.Record{CompletedAt: time.Now().Add(-50 * time.Minute), Duration: time.Minute * 2}
+	record3 := session.Record{CompletedAt: time.Now().Add(-40 * time.Minute), Duration: time.Minute * 3}
+	record4 := session.Record{CompletedAt: time.Now().Add(-30 * time.Minute), Duration: time.Minute * 4}
+	record5 := session.Record{CompletedAt: time.Now().Add(-20 * time.Minute), Duration: time.Minute * 5}
+	record6 := session.Record{CompletedAt: time.Now().Add(-10 * time.Minute), Duration: time.Minute * 6}
+
+	if err := store.Append(record1.CompletedAt, record1.Duration); err != nil {
+		t.Fatalf("cant append first record: %v", err)
+	}
+
+	if err := store.Append(record2.CompletedAt, record2.Duration); err != nil {
+		t.Fatalf("cant append second record: %v", err)
+	}
+
+	if err := store.Append(record3.CompletedAt, record3.Duration); err != nil {
+		t.Fatalf("cant append third record: %v", err)
+	}
+
+	if err := store.Append(record4.CompletedAt, record4.Duration); err != nil {
+		t.Fatalf("cant append fourth record: %v", err)
+	}
+
+	if err := store.Append(record5.CompletedAt, record5.Duration); err != nil {
+		t.Fatalf("cant append fifth record: %v", err)
+	}
+
+	if err := store.Append(record6.CompletedAt, record6.Duration); err != nil {
+		t.Fatalf("cant append sixth record: %v", err)
+	}
+
+	records, err := store.Load()
+	if err != nil {
+		t.Fatalf("cant load records: %v", err)
+	}
+
+	view := sessionList(records)
+
+	if strings.Contains(view, "1m0s") {
+		t.Errorf("view should not have the first record")
+	}
+
+	fifthIndex := strings.Index(view, "6m0s")
+	fourthIndex := strings.Index(view, "5m0s")
+	thirdIndex := strings.Index(view, "4m0s")
+	secondIndex := strings.Index(view, "3m0s")
+	firstIndex := strings.Index(view, "2m0s")
+
+	if fifthIndex == -1 || fourthIndex == -1 || thirdIndex == -1 || secondIndex == -1 || firstIndex == -1 {
+		t.Fatalf("view is missing expected session: %v", view)
+	}
+
+	if fifthIndex >= fourthIndex || fourthIndex >= thirdIndex || thirdIndex >= secondIndex || secondIndex >= firstIndex {
+		t.Errorf("sessions are in wrong order: %q", view)
 	}
 }

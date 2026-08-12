@@ -183,7 +183,7 @@ Goal: make completed focus time useful after the timer exits.
 
 **Commit:** `feat: show focus time totals`
 
-### [ ] 14. Test Session Data
+### [x] 14. Test Session Data
 
 - Test CSV append and load behavior using temporary directories.
 - Test recent-session ordering and total calculations around day and ISO-week
