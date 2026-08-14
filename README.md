@@ -2,20 +2,20 @@
 
 I've been a developer since before Google existed. After recently struggling with focus, I built SkyTUI around the Pomodoro Technique. It helped me regain my focus and work consistently again.
 
-![SkyTUI v0.1.0 Pomodoro timer](docs/images/skytui-v0.1.0.png)
+![SkyTUI v0.2.0 Pomodoro timer](docs/images/skytui-v0.2.0.png)
 
 ## Installation
 
-SkyTUI v0.1.0 supports macOS.
+SkyTUI v0.2.0 supports macOS.
 
 ### Download a binary
 
 Download the appropriate archive from the
-[GitHub release](https://github.com/fmo/skytui/releases/tag/v0.1.0):
+[GitHub release](https://github.com/fmo/skytui/releases/tag/v0.2.0):
 
-- [Apple Silicon (`arm64`)](https://github.com/fmo/skytui/releases/download/v0.1.0/skytui_0.1.0_darwin_arm64.tar.gz)
-- [Intel Mac (`amd64`)](https://github.com/fmo/skytui/releases/download/v0.1.0/skytui_0.1.0_darwin_amd64.tar.gz)
-- [SHA-256 checksums](https://github.com/fmo/skytui/releases/download/v0.1.0/checksums.txt)
+- [Apple Silicon (`arm64`)](https://github.com/fmo/skytui/releases/download/v0.2.0/skytui_0.2.0_darwin_arm64.tar.gz)
+- [Intel Mac (`amd64`)](https://github.com/fmo/skytui/releases/download/v0.2.0/skytui_0.2.0_darwin_amd64.tar.gz)
+- [SHA-256 checksums](https://github.com/fmo/skytui/releases/download/v0.2.0/checksums.txt)
 
 Extract the archive and move the `skytui` executable to a directory in your `PATH`, such as `/usr/local/bin`.
 
@@ -42,7 +42,7 @@ A valid download reports OK.
 Requires Go 1.25.3 or later.
 
 ```sh
-go install github.com/fmo/skytui@v0.1.0
+go install github.com/fmo/skytui@v0.2.0
 ```
 
 ## Usage
@@ -78,6 +78,18 @@ skytui --help
 
 - `Space` pauses or resumes the session.
 - `q` quits SkyTUI.
+
+## Session History
+
+SkyTUI saves completed sessions to:
+
+```text
+~/Library/Application Support/skytui/sessions.csv
+```
+
+The dashboard shows the five most recently completed sessions, with the newest
+session first. Each entry includes its completion date and duration. Partial
+sessions are not saved.
 
 ## Logs
 

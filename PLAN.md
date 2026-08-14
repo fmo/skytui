@@ -191,7 +191,7 @@ Goal: make completed focus time useful after the timer exits.
 
 **Commit:** `test: cover session storage and summaries`
 
-### [ ] 15. Prepare v0.2.0
+### [x] 15. Prepare v0.2.0
 
 - Document the session file and dashboard history.
 - Add an updated screenshot.
