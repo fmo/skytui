@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newRootCmd(store session.Store) *cobra.Command {
+func newRootCmd(store session.Store, defaultDuration time.Duration) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:     "skytui",
 		Short:   "Execute SkyTUI Dashboard",
@@ -35,13 +35,13 @@ func newRootCmd(store session.Store) *cobra.Command {
 		},
 	}
 
-	rootCmd.Flags().Duration("duration", time.Minute*25, "Pomodoro session duration")
+	rootCmd.Flags().Duration("duration", defaultDuration, "pomodoro session duration")
 
 	return rootCmd
 }
 
-func Exec(store session.Store) error {
-	if err := newRootCmd(store).Execute(); err != nil {
+func Exec(store session.Store, defaultDuration time.Duration) error {
+	if err := newRootCmd(store, defaultDuration).Execute(); err != nil {
 		return err
 	}
 

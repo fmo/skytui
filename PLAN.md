@@ -205,7 +205,7 @@ Goal: make completed focus time useful after the timer exits.
 
 Goal: make repeated daily use configurable and resilient.
 
-### [ ] 16. Load Persistent Defaults
+### [x] 16. Load Persistent Defaults
 
 - Use Viper with `~/Library/Application Support/skytui/config.yaml`.
 - Persist a default Pomodoro duration.
