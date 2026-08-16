@@ -229,7 +229,7 @@ Goal: make repeated daily use configurable and resilient.
 
 **Commit:** `feat: make pomodoro dashboard responsive`
 
-### [ ] 19. Prepare v0.3.0
+### [x] 19. Prepare v0.3.0
 
 - Document configuration precedence and reset behavior.
 - Verify configuration, resize, timer, and history workflows together.
