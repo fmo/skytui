@@ -15,6 +15,11 @@ import (
 type timerStatus int
 
 const (
+	panelHorizontalSpace = 6
+	maxProgressWidth     = 60
+)
+
+const (
 	timerRunning timerStatus = iota
 	timerPaused
 	timerCompleted
@@ -28,18 +33,19 @@ func New(store session.Store, duration time.Duration) model {
 }
 
 type model struct {
-	todaysTotal time.Duration
-	thisWeek    time.Duration
-	thisMonth   time.Duration
-	allTime     time.Duration
-	store       session.Store
-	progress    progress.Model
-	deadline    time.Time
-	pauseTime   time.Time
-	status      timerStatus
-	duration    time.Duration
-	remaining   time.Duration
-	sessions    []session.Record
+	width, height int
+	todaysTotal   time.Duration
+	thisWeek      time.Duration
+	thisMonth     time.Duration
+	allTime       time.Duration
+	store         session.Store
+	progress      progress.Model
+	deadline      time.Time
+	pauseTime     time.Time
+	status        timerStatus
+	duration      time.Duration
+	remaining     time.Duration
+	sessions      []session.Record
 }
 
 func (m model) Init() tea.Cmd {
@@ -49,6 +55,11 @@ func (m model) Init() tea.Cmd {
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.height = msg.Height
+		m.width = msg.Width
+		availableWidth := max(1, m.width-panelHorizontalSpace)
+		m.progress.SetWidth(min(availableWidth, maxProgressWidth))
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "q":
@@ -204,12 +215,18 @@ func (m model) View() tea.View {
 
 	bottomContent := bottomContent(m.status)
 
-	return tea.NewView(lipgloss.JoinVertical(
+	dashboard := lipgloss.JoinVertical(
 		lipgloss.Left,
 		panelStyle.Render(topContent),
 		sessions,
 		bottomContent,
-	))
+	)
+
+	if m.width > 0 {
+		dashboard = lipgloss.PlaceHorizontal(m.width, lipgloss.Center, dashboard)
+	}
+
+	return tea.NewView(dashboard)
 }
 
 type tickType struct{}

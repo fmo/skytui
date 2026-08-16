@@ -221,7 +221,7 @@ Goal: make repeated daily use configurable and resilient.
 
 **Commit:** `feat: reset pomodoro countdown`
 
-### [ ] 18. Make The Dashboard Responsive
+### [x] 18. Make The Dashboard Responsive
 
 - Respond to terminal resize messages.
 - Keep the timer, progress bar, history, totals, and controls readable at
