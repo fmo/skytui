@@ -54,6 +54,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "q":
 			slog.Info("closing the application")
 			return m, tea.Quit
+		case "r":
+			if m.status == timerRunning {
+				m.deadline = time.Now().Add(m.duration)
+				m.remaining = m.duration
+				cmd := m.progress.SetPercent(0.0)
+				return m, cmd
+			}
+			if m.status == timerPaused {
+				now := time.Now()
+				m.deadline = now.Add(m.duration)
+				m.remaining = m.duration
+				m.pauseTime = now
+				cmd := m.progress.SetPercent(0.0)
+				return m, cmd
+			}
 		case "space":
 			if m.status == timerCompleted {
 				return m, nil
@@ -163,9 +178,9 @@ func topContent(duration time.Duration, remaining time.Duration, progress progre
 }
 
 func bottomContent(status timerStatus) string {
-	bottomText := "[q] Quit   [Space] Pause"
+	bottomText := "[q] Quit   [Space] Pause   [r] Reset"
 	if status == timerPaused {
-		bottomText = "[q] Quit   [Space] Resume"
+		bottomText = "[q] Quit   [Space] Resume  [r] Reset"
 	}
 	if status == timerCompleted {
 		bottomText = "[q] Quit"

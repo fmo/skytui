@@ -266,3 +266,37 @@ func TestSessionList(t *testing.T) {
 		t.Errorf("sessions are in wrong order: %q", view)
 	}
 }
+
+func TestResetInRunning(t *testing.T) {
+	duration := time.Second * 30
+	deadline := time.Now().Add(duration - 10*time.Second)
+
+	m := model{deadline: deadline, duration: duration}
+
+	updated, _ := m.Update(tickType{})
+	got := updated.(model)
+
+	if got.remaining != 20*time.Second {
+		t.Errorf("want: %v, got: %v", 20*time.Second, got.remaining)
+	}
+
+	r := tea.KeyPressMsg{}
+	r.Code = 'r'
+
+	var cmd tea.Cmd
+	earliestDeadline := time.Now().Add(duration)
+	updated, cmd = got.Update(r)
+	latestDeadline := time.Now().Add(duration)
+
+	got = updated.(model)
+	if got.remaining != 30*time.Second {
+		t.Errorf("want: %v, got: %v", 30*time.Second, got.remaining)
+	}
+	if got.deadline.Before(earliestDeadline) || got.deadline.After(latestDeadline) {
+		t.Errorf("deadline was not reset: got %v, want between %v and %v", got.deadline, earliestDeadline, latestDeadline)
+	}
+
+	if cmd == nil {
+		t.Fatal("reset should return a progress command")
+	}
+}

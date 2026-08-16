@@ -213,7 +213,7 @@ Goal: make repeated daily use configurable and resilient.
 
 **Commit:** `feat: load pomodoro defaults from config`
 
-### [ ] 17. Reset The Timer
+### [x] 17. Reset The Timer
 
 - Reset the active or paused timer with `r`.
 - Return session time, remaining time, and progress to their initial values.
