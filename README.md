@@ -2,7 +2,7 @@
 
 I've been a developer since before Google existed. After recently struggling with focus, I built SkyTUI around the Pomodoro Technique. It helped me regain my focus and work consistently again.
 
-![SkyTUI v0.2.0 Pomodoro timer](docs/images/skytui-v0.2.0.png)
+![SkyTUI v0.3.0 Pomodoro timer](docs/images/skytui-v0.3.0.png)
 
 ## Installation
 
