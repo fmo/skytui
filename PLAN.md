@@ -238,9 +238,59 @@ Goal: make repeated daily use configurable and resilient.
 
 **Tag:** `v0.3.0`
 
+## v0.4.0 - Work And Break Cycle
+
+Goal: alternate between focused work and short breaks without automatically
+starting the next session.
+
+### [ ] 20. Configure Short Break Duration
+
+- Add `short-break-duration: 5m0s` to `config.yaml`.
+- Load and validate the break duration with the existing Pomodoro default.
+- Keep `--duration` scoped to focus sessions.
+
+**Commit:** `feat: configure short break duration`
+
+### [ ] 21. Add Focus And Break Session Types
+
+- Represent the active session as either focus or short break.
+- Start SkyTUI with a focus session.
+- Show the active session type on the dashboard.
+- Persist and total completed focus sessions only.
+
+**Commit:** `feat: add focus and break session types`
+
+### [ ] 22. Cycle Between Focus And Break Sessions
+
+- After a focus session completes, show `[n] Next` to start a short break.
+- After a short break completes, show `[n] Next` to start a focus session.
+- Do not start the next session automatically.
+- Keep pause and reset behavior available during both session types.
+
+**Commit:** `feat: cycle between focus and break sessions`
+
+### [ ] 23. Test The Session Cycle
+
+- Test focus-to-break and break-to-focus transitions.
+- Test that completed breaks are not persisted or included in focus totals.
+- Test pause and reset behavior during short breaks.
+
+**Commit:** `test: cover focus and break cycles`
+
+### [ ] 24. Prepare v0.4.0
+
+- Document short-break configuration, session types, and next-session controls.
+- Verify focus, break, reset, persistence, history, and configuration workflows
+  together.
+
+**Commit:** `chore: prepare v0.4.0`
+
+**Tag:** `v0.4.0`
+
 ## Later - Not Planned Yet
 
-- Break timers and completion notifications.
+- Long breaks and automatic session starts.
+- Completion notifications.
 - A full history screen with editing and filtering.
 - Cross-platform data, configuration, and log paths.
 - Import and sync.
