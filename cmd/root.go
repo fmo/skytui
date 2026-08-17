@@ -14,7 +14,7 @@ func newRootCmd(store session.Store, defaultDuration time.Duration) *cobra.Comma
 	rootCmd := &cobra.Command{
 		Use:     "skytui",
 		Short:   "Execute SkyTUI Dashboard",
-		Version: "v0.2.0",
+		Version: "v0.3.0",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			duration, err := cmd.Flags().GetDuration("duration")
 			if err != nil {

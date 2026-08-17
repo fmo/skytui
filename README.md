@@ -6,16 +6,16 @@ I've been a developer since before Google existed. After recently struggling wit
 
 ## Installation
 
-SkyTUI v0.2.0 supports macOS.
+SkyTUI v0.3.0 supports macOS.
 
 ### Download a binary
 
 Download the appropriate archive from the
-[GitHub release](https://github.com/fmo/skytui/releases/tag/v0.2.0):
+[GitHub release](https://github.com/fmo/skytui/releases/tag/v0.3.0):
 
-- [Apple Silicon (`arm64`)](https://github.com/fmo/skytui/releases/download/v0.2.0/skytui_0.2.0_darwin_arm64.tar.gz)
-- [Intel Mac (`amd64`)](https://github.com/fmo/skytui/releases/download/v0.2.0/skytui_0.2.0_darwin_amd64.tar.gz)
-- [SHA-256 checksums](https://github.com/fmo/skytui/releases/download/v0.2.0/checksums.txt)
+- [Apple Silicon (`arm64`)](https://github.com/fmo/skytui/releases/download/v0.3.0/skytui_0.3.0_darwin_arm64.tar.gz)
+- [Intel Mac (`amd64`)](https://github.com/fmo/skytui/releases/download/v0.3.0/skytui_0.3.0_darwin_amd64.tar.gz)
+- [SHA-256 checksums](https://github.com/fmo/skytui/releases/download/v0.3.0/checksums.txt)
 
 Extract the archive and move the `skytui` executable to a directory in your `PATH`, such as `/usr/local/bin`.
 
@@ -42,7 +42,7 @@ A valid download reports OK.
 Requires Go 1.25.3 or later.
 
 ```sh
-go install github.com/fmo/skytui@v0.2.0
+go install github.com/fmo/skytui@v0.3.0
 ```
 
 ## Usage
@@ -77,7 +77,29 @@ skytui --help
 ## Controls
 
 - `Space` pauses or resumes the session.
+- `r` resets a running or paused session to its full duration. Running sessions
+  continue immediately; paused sessions remain paused.
 - `q` quits SkyTUI.
+
+## Configuration
+
+SkyTUI creates its configuration file on first run:
+
+```text
+~/Library/Application Support/skytui/config.yaml
+```
+
+The default configuration is:
+
+```yaml
+default-duration: 25m0s
+```
+
+SkyTUI uses `default-duration` from `config.yaml`, falling back to 25 minutes
+when the setting is absent. The `--duration` flag overrides both.
+
+Configured durations follow the same rules as `--duration`: they must be at
+least one second and use whole-second precision.
 
 ## Session History
 
