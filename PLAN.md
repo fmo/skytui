@@ -243,7 +243,7 @@ Goal: make repeated daily use configurable and resilient.
 Goal: alternate between focused work and short breaks without automatically
 starting the next session.
 
-### [ ] 20. Configure Short Break Duration
+### [x] 20. Configure Short Break Duration
 
 - Add `short-break-duration: 5m0s` to `config.yaml`.
 - Load and validate the break duration with the existing Pomodoro default.
