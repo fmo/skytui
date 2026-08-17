@@ -94,10 +94,12 @@ The default configuration is:
 
 ```yaml
 default-duration: 25m0s
+short-break-duration: 5m0s
 ```
 
 SkyTUI uses `default-duration` from `config.yaml`, falling back to 25 minutes
-when the setting is absent. The `--duration` flag overrides both.
+when the setting is absent. The `--duration` flag overrides the configured
+focus duration for the current run. Short breaks default to five minutes.
 
 Configured durations follow the same rules as `--duration`: they must be at
 least one second and use whole-second precision.
