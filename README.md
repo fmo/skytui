@@ -1,6 +1,7 @@
 # SkyTUI
 
-I've been a developer since before Google existed. After recently struggling with focus, I built SkyTUI around the Pomodoro Technique. It helped me regain my focus and work consistently again.
+SkyTUI is a terminal Pomodoro timer for running focused work sessions and tracking completed focus time.
+The Pomodoro Technique organizes work into timed focus intervals, commonly 25 minutes, separated by short breaks.
 
 ![SkyTUI v0.3.0 Pomodoro timer](docs/images/skytui-v0.3.0.png)
 
