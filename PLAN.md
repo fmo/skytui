@@ -260,7 +260,7 @@ starting the next session.
 
 **Commit:** `feat: add focus and break session types`
 
-### [ ] 22. Cycle Between Focus And Break Sessions
+### [x] 22. Cycle Between Focus And Break Sessions
 
 - After a focus session completes, show `[n] Next` to start a short break.
 - After a short break completes, show `[n] Next` to start a focus session.
@@ -269,7 +269,7 @@ starting the next session.
 
 **Commit:** `feat: cycle between focus and break sessions`
 
-### [ ] 23. Test The Session Cycle
+### [x] 23. Test The Session Cycle
 
 - Test focus-to-break and break-to-focus transitions.
 - Test that completed breaks are not persisted or included in focus totals.

@@ -300,3 +300,135 @@ func TestResetInRunning(t *testing.T) {
 		t.Fatal("reset should return a progress command")
 	}
 }
+
+func TestNextSessionCyclesFocusAndBreak(t *testing.T) {
+	focusDuration := 25 * time.Minute
+	shortBreakDuration := 5 * time.Minute
+	m := New(session.New(filepath.Join(t.TempDir(), "sessions.csv")), focusDuration, shortBreakDuration)
+	m.status = timerCompleted
+
+	next := tea.KeyPressMsg{Text: "n", Code: 'n'}
+	beforeBreakDeadline := time.Now().Add(shortBreakDuration)
+	updated, cmd := m.Update(next)
+	afterBreakDeadline := time.Now().Add(shortBreakDuration)
+	got := updated.(model)
+
+	if got.activeSessionType != breakSession {
+		t.Fatalf("got session type %v, want break", got.activeSessionType)
+	}
+	if got.status != timerRunning {
+		t.Fatalf("got status %v, want running", got.status)
+	}
+	if got.duration != shortBreakDuration || got.remaining != shortBreakDuration {
+		t.Fatalf("got duration %v and remaining %v, want %v", got.duration, got.remaining, shortBreakDuration)
+	}
+	if got.deadline.Before(beforeBreakDeadline) || got.deadline.After(afterBreakDeadline) {
+		t.Fatalf("break deadline %v is outside expected range", got.deadline)
+	}
+	if cmd == nil {
+		t.Fatal("starting a break should return a command")
+	}
+
+	got.status = timerCompleted
+	beforeFocusDeadline := time.Now().Add(focusDuration)
+	updated, cmd = got.Update(next)
+	afterFocusDeadline := time.Now().Add(focusDuration)
+	got = updated.(model)
+
+	if got.activeSessionType != focusSession {
+		t.Fatalf("got session type %v, want focus", got.activeSessionType)
+	}
+	if got.status != timerRunning {
+		t.Fatalf("got status %v, want running", got.status)
+	}
+	if got.duration != focusDuration || got.remaining != focusDuration {
+		t.Fatalf("got duration %v and remaining %v, want %v", got.duration, got.remaining, focusDuration)
+	}
+	if got.deadline.Before(beforeFocusDeadline) || got.deadline.After(afterFocusDeadline) {
+		t.Fatalf("focus deadline %v is outside expected range", got.deadline)
+	}
+	if cmd == nil {
+		t.Fatal("starting a focus session should return a command")
+	}
+}
+
+func TestCompletedBreakIsNotStoredOrTotaled(t *testing.T) {
+	store := session.New(filepath.Join(t.TempDir(), "sessions.csv"))
+	shortBreakDuration := 5 * time.Minute
+	m := model{
+		store:             store,
+		progress:          progress.New(progress.WithDefaultBlend()),
+		status:            timerRunning,
+		activeSessionType: breakSession,
+		duration:          shortBreakDuration,
+		remaining:         time.Second,
+		deadline:          time.Now().Add(-time.Second),
+	}
+
+	updated, _ := m.Update(tickType{})
+	got := updated.(model)
+	updated, _ = got.Update(loadType{})
+	got = updated.(model)
+
+	if got.status != timerCompleted {
+		t.Fatalf("got status %v, want completed", got.status)
+	}
+	if len(got.sessions) != 0 {
+		t.Fatalf("got %d stored sessions, want 0", len(got.sessions))
+	}
+	if got.todaysTotal != 0 || got.thisWeek != 0 || got.thisMonth != 0 || got.allTime != 0 {
+		t.Fatalf("break changed focus totals: today=%v week=%v month=%v all=%v", got.todaysTotal, got.thisWeek, got.thisMonth, got.allTime)
+	}
+}
+
+func TestPauseAndResetDuringShortBreak(t *testing.T) {
+	shortBreakDuration := 5 * time.Minute
+	m := model{
+		progress:           progress.New(progress.WithDefaultBlend()),
+		status:             timerRunning,
+		activeSessionType:  breakSession,
+		duration:           shortBreakDuration,
+		remaining:          2 * time.Minute,
+		deadline:           time.Now().Add(2 * time.Minute),
+		shortBreakDuration: shortBreakDuration,
+	}
+
+	space := tea.KeyPressMsg{Code: tea.KeySpace}
+	updated, _ := m.Update(space)
+	got := updated.(model)
+
+	if got.status != timerPaused {
+		t.Fatalf("got status %v, want paused", got.status)
+	}
+	if got.activeSessionType != breakSession {
+		t.Fatalf("got session type %v, want break", got.activeSessionType)
+	}
+
+	reset := tea.KeyPressMsg{Text: "r", Code: 'r'}
+	beforeDeadline := time.Now().Add(shortBreakDuration)
+	updated, cmd := got.Update(reset)
+	afterDeadline := time.Now().Add(shortBreakDuration)
+	got = updated.(model)
+
+	if got.status != timerPaused {
+		t.Fatalf("got status %v after reset, want paused", got.status)
+	}
+	if got.duration != shortBreakDuration || got.remaining != shortBreakDuration {
+		t.Fatalf("got duration %v and remaining %v, want %v", got.duration, got.remaining, shortBreakDuration)
+	}
+	if got.deadline.Before(beforeDeadline) || got.deadline.After(afterDeadline) {
+		t.Fatalf("reset deadline %v is outside expected range", got.deadline)
+	}
+	if cmd == nil {
+		t.Fatal("resetting a break should return a command")
+	}
+
+	updated, _ = got.Update(space)
+	got = updated.(model)
+	if got.status != timerRunning {
+		t.Fatalf("got status %v after resume, want running", got.status)
+	}
+	if got.activeSessionType != breakSession {
+		t.Fatalf("got session type %v after resume, want break", got.activeSessionType)
+	}
+}
