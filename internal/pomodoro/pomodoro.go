@@ -36,33 +36,54 @@ const (
 const sessionsLimit = 5
 
 type model struct {
-	todaysTotal       time.Duration
-	thisWeek          time.Duration
-	thisMonth         time.Duration
-	allTime           time.Duration
-	store             session.Store
-	progress          progress.Model
-	deadline          time.Time
-	pauseTime         time.Time
-	status            timerStatus
-	duration          time.Duration
-	remaining         time.Duration
-	sessions          []session.Record
-	activeSessionType activeSessionType
-	width, height     int
+	todaysTotal        time.Duration
+	thisWeek           time.Duration
+	thisMonth          time.Duration
+	allTime            time.Duration
+	store              session.Store
+	progress           progress.Model
+	deadline           time.Time
+	pauseTime          time.Time
+	status             timerStatus
+	focusDuration      time.Duration
+	duration           time.Duration
+	shortBreakDuration time.Duration
+	remaining          time.Duration
+	sessions           []session.Record
+	activeSessionType  activeSessionType
+	width, height      int
 }
 
-func New(store session.Store, duration time.Duration) model {
-	deadline := time.Now().Add(duration)
+func New(store session.Store, focusDuration, shortBreakDuration time.Duration) model {
+	deadline := time.Now().Add(focusDuration)
 
 	return model{
-		store:             store,
-		progress:          progress.New(progress.WithDefaultBlend()),
-		remaining:         duration,
-		duration:          duration,
-		deadline:          deadline,
-		activeSessionType: focusSession,
+		store:              store,
+		progress:           progress.New(progress.WithDefaultBlend()),
+		remaining:          focusDuration,
+		focusDuration:      focusDuration,
+		duration:           focusDuration,
+		deadline:           deadline,
+		activeSessionType:  focusSession,
+		shortBreakDuration: shortBreakDuration,
 	}
+}
+
+func (m *model) startNextSession(now time.Time) tea.Cmd {
+	if m.activeSessionType == focusSession {
+		m.activeSessionType = breakSession
+		m.duration = m.shortBreakDuration
+	} else {
+		m.activeSessionType = focusSession
+		m.duration = m.focusDuration
+	}
+
+	m.status = timerRunning
+	m.remaining = m.duration
+	m.deadline = now.Add(m.duration)
+	m.pauseTime = time.Time{}
+
+	return tea.Batch(m.progress.SetPercent(0), tickTime())
 }
 
 func (m model) Init() tea.Cmd {
@@ -80,6 +101,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.progress.SetWidth(min(availableWidth, maxProgressWidth))
 	case tea.KeyPressMsg:
 		switch msg.String() {
+		case "n":
+			if m.status != timerCompleted {
+				return m, nil
+			}
+
+			cmd := m.startNextSession(time.Now())
+			return m, cmd
 		case "q":
 			slog.Info("closing the application")
 			return m, tea.Quit
@@ -225,7 +253,7 @@ func bottomContent(status timerStatus) string {
 		bottomText = "[q] Quit   [Space] Resume  [r] Reset"
 	}
 	if status == timerCompleted {
-		bottomText = "[q] Quit"
+		bottomText = "[q] Quit   [n] Next"
 	}
 
 	bottomContent := lipgloss.JoinVertical(

@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newRootCmd(store session.Store, defaultFocusDuration time.Duration) *cobra.Command {
+func newRootCmd(store session.Store, defaultFocusDuration, shortBreakDuration time.Duration) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:     "skytui",
 		Short:   "Execute SkyTUI Dashboard",
@@ -25,7 +25,7 @@ func newRootCmd(store session.Store, defaultFocusDuration time.Duration) *cobra.
 				return fmt.Errorf("duration should be at least 1 second and use whole seconds: %v", focusDuration)
 			}
 
-			m := pomodoro.New(store, focusDuration)
+			m := pomodoro.New(store, focusDuration, shortBreakDuration)
 			p := tea.NewProgram(m)
 			if _, err := p.Run(); err != nil {
 				return err
@@ -40,8 +40,8 @@ func newRootCmd(store session.Store, defaultFocusDuration time.Duration) *cobra.
 	return rootCmd
 }
 
-func Exec(store session.Store, defaultFocusDuration time.Duration) error {
-	if err := newRootCmd(store, defaultFocusDuration).Execute(); err != nil {
+func Exec(store session.Store, defaultFocusDuration, shortBreakDuration time.Duration) error {
+	if err := newRootCmd(store, defaultFocusDuration, shortBreakDuration).Execute(); err != nil {
 		return err
 	}
 

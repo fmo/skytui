@@ -60,7 +60,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	_, err = cfg.LoadShortBreakDuration()
+	shortBreakDuration, err := cfg.LoadShortBreakDuration()
 	if err != nil {
 		logger.Error("cant load configuration", "err", err)
 		os.Exit(1)
@@ -68,7 +68,7 @@ func main() {
 
 	// store
 	store := session.New(filepath.Join(appDir, "sessions.csv"))
-	if err := cmd.Exec(store, defaultFocusDuration); err != nil {
+	if err := cmd.Exec(store, defaultFocusDuration, shortBreakDuration); err != nil {
 		logFile.Close()
 		log.Fatalf("cant run the command: %v", err)
 	}
