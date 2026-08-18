@@ -12,7 +12,10 @@ import (
 	"github.com/fmo/skytui/internal/session"
 )
 
-type timerStatus int
+type (
+	activeSessionType int
+	timerStatus       int
+)
 
 const (
 	panelHorizontalSpace = 6
@@ -25,31 +28,46 @@ const (
 	timerCompleted
 )
 
+const (
+	focusSession activeSessionType = iota
+	breakSession
+)
+
 const sessionsLimit = 5
+
+type model struct {
+	todaysTotal       time.Duration
+	thisWeek          time.Duration
+	thisMonth         time.Duration
+	allTime           time.Duration
+	store             session.Store
+	progress          progress.Model
+	deadline          time.Time
+	pauseTime         time.Time
+	status            timerStatus
+	duration          time.Duration
+	remaining         time.Duration
+	sessions          []session.Record
+	activeSessionType activeSessionType
+	width, height     int
+}
 
 func New(store session.Store, duration time.Duration) model {
 	deadline := time.Now().Add(duration)
-	return model{progress: progress.New(progress.WithDefaultBlend()), remaining: duration, duration: duration, deadline: deadline, store: store}
-}
 
-type model struct {
-	width, height int
-	todaysTotal   time.Duration
-	thisWeek      time.Duration
-	thisMonth     time.Duration
-	allTime       time.Duration
-	store         session.Store
-	progress      progress.Model
-	deadline      time.Time
-	pauseTime     time.Time
-	status        timerStatus
-	duration      time.Duration
-	remaining     time.Duration
-	sessions      []session.Record
+	return model{
+		store:             store,
+		progress:          progress.New(progress.WithDefaultBlend()),
+		remaining:         duration,
+		duration:          duration,
+		deadline:          deadline,
+		activeSessionType: focusSession,
+	}
 }
 
 func (m model) Init() tea.Cmd {
 	slog.Info("countdown starts", "session duration", m.duration.String())
+
 	return tea.Batch(tickTime(), loadSessions())
 }
 
@@ -104,13 +122,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.sessions = records
 
 		m.todaysTotal = m.store.TodaysTotal(records)
-
 		m.thisWeek = m.store.ThisWeek(records)
-
 		m.thisMonth = m.store.ThisMonth(records)
-
 		m.allTime = m.store.AllTime(records)
-
 	case tickType:
 		if m.status == timerCompleted {
 			return m, nil
@@ -125,8 +139,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.remaining = 0
 			slog.Info("countdown ends")
 			cmd := m.progress.SetPercent(1)
-			if err := m.store.Append(time.Now(), m.duration); err != nil {
-				slog.Error("cant append the session", "err", err)
+			if m.activeSessionType == focusSession {
+				if err := m.store.Append(time.Now(), m.duration); err != nil {
+					slog.Error("cant append the session", "err", err)
+				}
 			}
 			m.status = timerCompleted
 			return m, tea.Batch(cmd, loadSessions())
@@ -165,16 +181,31 @@ func sessionList(sessions []session.Record) string {
 	return lipgloss.JoinVertical(lipgloss.Left, recentSessionsTitle.Render("Recent Sessions"), sessionStyle.Render(last5...))
 }
 
-func topContent(duration time.Duration, remaining time.Duration, progress progress.Model, todaysTotal time.Duration, thisWeek time.Duration, thisMonth time.Duration, allTime time.Duration) string {
+func topContent(
+	duration time.Duration,
+	remaining time.Duration,
+	progress progress.Model,
+	todaysTotal time.Duration,
+	thisWeek time.Duration,
+	thisMonth time.Duration,
+	allTime time.Duration,
+	sessionType activeSessionType,
+) string {
 	titleStyle := lipgloss.NewStyle().Bold(true)
 
 	elapsed := duration - remaining
+
+	sessionLabel := "Focus Session"
+
+	if sessionType == breakSession {
+		sessionLabel = "Break Session"
+	}
 
 	topContent := lipgloss.JoinVertical(
 		lipgloss.Left,
 		titleStyle.Render("SkyTUI Pomodoro"),
 		"",
-		fmt.Sprintf("Session: %s / %s", elapsed.String(), duration.String()),
+		fmt.Sprintf("%s: %s / %s", sessionLabel, elapsed.String(), duration.String()),
 		"",
 		progress.View(),
 		"",
@@ -209,7 +240,7 @@ func bottomContent(status timerStatus) string {
 func (m model) View() tea.View {
 	panelStyle := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Padding(1, 2)
 
-	topContent := topContent(m.duration, m.remaining, m.progress, m.todaysTotal, m.thisWeek, m.thisMonth, m.allTime)
+	topContent := topContent(m.duration, m.remaining, m.progress, m.todaysTotal, m.thisWeek, m.thisMonth, m.allTime, m.activeSessionType)
 
 	sessions := sessionList(m.sessions)
 

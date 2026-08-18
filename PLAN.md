@@ -251,12 +251,12 @@ starting the next session.
 
 **Commit:** `feat: configure short break duration`
 
-### [ ] 21. Add Focus And Break Session Types
+### [x] 21. Add Focus And Break Session Types
 
 - Represent the active session as either focus or short break.
 - Start SkyTUI with a focus session.
 - Show the active session type on the dashboard.
-- Persist and total completed focus sessions only.
+- Persist completed focus sessions; do not persist short breaks.
 
 **Commit:** `feat: add focus and break session types`
 
