@@ -277,7 +277,7 @@ starting the next session.
 
 **Commit:** `test: cover focus and break cycles`
 
-### [ ] 24. Prepare v0.4.0
+### [x] 24. Prepare v0.4.0
 
 - Document short-break configuration, session types, and next-session controls.
 - Verify focus, break, reset, persistence, history, and configuration workflows

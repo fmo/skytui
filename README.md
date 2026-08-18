@@ -7,16 +7,16 @@ The Pomodoro Technique organizes work into timed focus intervals, commonly 25 mi
 
 ## Installation
 
-SkyTUI v0.3.0 supports macOS.
+SkyTUI v0.4.0 supports macOS.
 
 ### Download a binary
 
 Download the appropriate archive from the
-[GitHub release](https://github.com/fmo/skytui/releases/tag/v0.3.0):
+[GitHub release](https://github.com/fmo/skytui/releases/tag/v0.4.0):
 
-- [Apple Silicon (`arm64`)](https://github.com/fmo/skytui/releases/download/v0.3.0/skytui_0.3.0_darwin_arm64.tar.gz)
-- [Intel Mac (`amd64`)](https://github.com/fmo/skytui/releases/download/v0.3.0/skytui_0.3.0_darwin_amd64.tar.gz)
-- [SHA-256 checksums](https://github.com/fmo/skytui/releases/download/v0.3.0/checksums.txt)
+- [Apple Silicon (`arm64`)](https://github.com/fmo/skytui/releases/download/v0.4.0/skytui_0.4.0_darwin_arm64.tar.gz)
+- [Intel Mac (`amd64`)](https://github.com/fmo/skytui/releases/download/v0.4.0/skytui_0.4.0_darwin_amd64.tar.gz)
+- [SHA-256 checksums](https://github.com/fmo/skytui/releases/download/v0.4.0/checksums.txt)
 
 Extract the archive and move the `skytui` executable to a directory in your `PATH`, such as `/usr/local/bin`.
 
@@ -43,7 +43,7 @@ A valid download reports OK.
 Requires Go 1.25.3 or later.
 
 ```sh
-go install github.com/fmo/skytui@v0.3.0
+go install github.com/fmo/skytui@v0.4.0
 ```
 
 ## Usage
@@ -63,6 +63,10 @@ skytui --duration 10m
 The duration must be at least one second and use whole-second precision.
 Examples include `30s`, `10m`, and `1h`.
 
+SkyTUI starts with a focus session. After it completes, press `n` to start a
+short break. Press `n` again after the break completes to start the next focus
+session. The next session never starts automatically.
+
 Show installed version:
 
 ```sh
@@ -80,6 +84,7 @@ skytui --help
 - `Space` pauses or resumes the session.
 - `r` resets a running or paused session to its full duration. Running sessions
   continue immediately; paused sessions remain paused.
+- `n` starts the next focus or short-break session after completion.
 - `q` quits SkyTUI.
 
 ## Configuration
@@ -112,9 +117,9 @@ SkyTUI saves completed sessions to:
 ~/Library/Application Support/skytui/sessions.csv
 ```
 
-The dashboard shows the five most recently completed sessions, with the newest
-session first. Each entry includes its completion date and duration. Partial
-sessions are not saved.
+The dashboard shows the five most recently completed focus sessions, with the
+newest session first. Each entry includes its completion date and duration.
+Partial focus sessions and short breaks are not saved or included in totals.
 
 ## Logs
 
