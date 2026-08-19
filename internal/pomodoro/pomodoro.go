@@ -10,11 +10,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/fmo/skytui/internal/session"
-)
-
-type (
-	activeSessionType int
-	timerStatus       int
+	"github.com/fmo/skytui/internal/timer"
 )
 
 const (
@@ -22,72 +18,47 @@ const (
 	maxProgressWidth     = 60
 )
 
-const (
-	timerRunning timerStatus = iota
-	timerPaused
-	timerCompleted
-)
-
-const (
-	focusSession activeSessionType = iota
-	breakSession
-)
-
 const sessionsLimit = 5
 
 type model struct {
+	session            *timer.Session
 	todaysTotal        time.Duration
 	thisWeek           time.Duration
 	thisMonth          time.Duration
 	allTime            time.Duration
 	store              session.Store
 	progress           progress.Model
-	deadline           time.Time
-	pauseTime          time.Time
-	status             timerStatus
 	focusDuration      time.Duration
-	duration           time.Duration
 	shortBreakDuration time.Duration
-	remaining          time.Duration
 	sessions           []session.Record
-	activeSessionType  activeSessionType
 	width, height      int
 }
 
 func New(store session.Store, focusDuration, shortBreakDuration time.Duration) model {
-	deadline := time.Now().Add(focusDuration)
-
 	return model{
+		session:            timer.New(timer.Focus, focusDuration, time.Now()),
 		store:              store,
 		progress:           progress.New(progress.WithDefaultBlend()),
-		remaining:          focusDuration,
 		focusDuration:      focusDuration,
-		duration:           focusDuration,
-		deadline:           deadline,
-		activeSessionType:  focusSession,
 		shortBreakDuration: shortBreakDuration,
 	}
 }
 
 func (m *model) startNextSession(now time.Time) tea.Cmd {
-	if m.activeSessionType == focusSession {
-		m.activeSessionType = breakSession
-		m.duration = m.shortBreakDuration
-	} else {
-		m.activeSessionType = focusSession
-		m.duration = m.focusDuration
+	kind := timer.ShortBreak
+	duration := m.shortBreakDuration
+
+	if m.session.Kind() == timer.ShortBreak {
+		kind = timer.Focus
+		duration = m.focusDuration
 	}
 
-	m.status = timerRunning
-	m.remaining = m.duration
-	m.deadline = now.Add(m.duration)
-	m.pauseTime = time.Time{}
-
+	m.session = timer.New(kind, duration, now)
 	return tea.Batch(m.progress.SetPercent(0), tickTime())
 }
 
 func (m model) Init() tea.Cmd {
-	slog.Info("countdown starts", "session duration", m.duration.String())
+	slog.Info("countdown starts", "session duration", m.session.Duration().String())
 
 	return tea.Batch(tickTime(), loadSessions())
 }
@@ -102,7 +73,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "n":
-			if m.status != timerCompleted {
+			if m.session.Status() != timer.Completed {
 				return m, nil
 			}
 
@@ -112,34 +83,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			slog.Info("closing the application")
 			return m, tea.Quit
 		case "r":
-			if m.status == timerRunning {
-				m.deadline = time.Now().Add(m.duration)
-				m.remaining = m.duration
-				cmd := m.progress.SetPercent(0.0)
-				return m, cmd
-			}
-			if m.status == timerPaused {
-				now := time.Now()
-				m.deadline = now.Add(m.duration)
-				m.remaining = m.duration
-				m.pauseTime = now
-				cmd := m.progress.SetPercent(0.0)
-				return m, cmd
-			}
+			m.session.Reset(time.Now())
+			cmd := m.progress.SetPercent(0.0)
+
+			return m, cmd
 		case "space":
-			if m.status == timerCompleted {
+			if m.session.Status() == timer.Completed {
 				return m, nil
 			}
 
-			if m.status == timerPaused {
-				m.status = timerRunning
-				slog.Info("starting the session again", "remaining", m.remaining.String())
-				m.deadline = m.deadline.Add(time.Since(m.pauseTime))
-			} else {
-				slog.Info("pausing the session", "remaining", m.remaining.String())
-				m.status = timerPaused
-				m.pauseTime = time.Now()
+			now := time.Now()
 
+			if m.session.Status() == timer.Paused {
+				slog.Info("starting the session again", "remaining", m.session.Remaining().String())
+				m.session.Resume(now)
+			} else {
+				slog.Info("pausing the session", "remaining", m.session.Remaining().String())
+				m.session.Pause(now)
 			}
 		}
 	case loadType:
@@ -154,31 +114,28 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.thisMonth = m.store.ThisMonth(records)
 		m.allTime = m.store.AllTime(records)
 	case tickType:
-		if m.status == timerCompleted {
+		if m.session.Status() == timer.Completed {
 			return m, nil
 		}
-		if m.status == timerPaused {
+
+		if m.session.Status() == timer.Paused {
 			return m, tickTime()
 		}
 
-		remaining := time.Until(m.deadline)
+		m.session.Tick(time.Now())
 
-		if remaining <= 0 {
-			m.remaining = 0
+		if m.session.Status() == timer.Completed {
 			slog.Info("countdown ends")
 			cmd := m.progress.SetPercent(1)
-			if m.activeSessionType == focusSession {
-				if err := m.store.Append(time.Now(), m.duration); err != nil {
+			if m.session.Kind() == timer.Focus {
+				if err := m.store.Append(time.Now(), m.session.Duration()); err != nil {
 					slog.Error("cant append the session", "err", err)
 				}
 			}
-			m.status = timerCompleted
 			return m, tea.Batch(cmd, loadSessions())
 		}
 
-		elapsed := m.duration - remaining
-		cmd := m.progress.SetPercent(float64(elapsed) / float64(m.duration))
-		m.remaining = remaining.Round(time.Second)
+		cmd := m.progress.SetPercent(m.session.Progress())
 
 		return m, tea.Batch(cmd, tickTime())
 	case progress.FrameMsg:
@@ -217,7 +174,7 @@ func topContent(
 	thisWeek time.Duration,
 	thisMonth time.Duration,
 	allTime time.Duration,
-	sessionType activeSessionType,
+	sessionType timer.Kind,
 ) string {
 	titleStyle := lipgloss.NewStyle().Bold(true)
 
@@ -225,7 +182,7 @@ func topContent(
 
 	sessionLabel := "Focus Session"
 
-	if sessionType == breakSession {
+	if sessionType == timer.ShortBreak {
 		sessionLabel = "Break Session"
 	}
 
@@ -247,12 +204,12 @@ func topContent(
 	return topContent
 }
 
-func bottomContent(status timerStatus) string {
+func bottomContent(status timer.Status) string {
 	bottomText := "[q] Quit   [Space] Pause   [r] Reset"
-	if status == timerPaused {
+	if status == timer.Paused {
 		bottomText = "[q] Quit   [Space] Resume  [r] Reset"
 	}
-	if status == timerCompleted {
+	if status == timer.Completed {
 		bottomText = "[q] Quit   [n] Next"
 	}
 
@@ -268,11 +225,19 @@ func bottomContent(status timerStatus) string {
 func (m model) View() tea.View {
 	panelStyle := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Padding(1, 2)
 
-	topContent := topContent(m.duration, m.remaining, m.progress, m.todaysTotal, m.thisWeek, m.thisMonth, m.allTime, m.activeSessionType)
+	topContent := topContent(
+		m.session.Duration(),
+		m.session.Remaining(),
+		m.progress,
+		m.todaysTotal,
+		m.thisWeek,
+		m.thisMonth,
+		m.allTime,
+		m.session.Kind())
 
 	sessions := sessionList(m.sessions)
 
-	bottomContent := bottomContent(m.status)
+	bottomContent := bottomContent(m.session.Status())
 
 	dashboard := lipgloss.JoinVertical(
 		lipgloss.Left,

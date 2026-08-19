@@ -1,8 +1,6 @@
 package pomodoro
 
 import (
-	"encoding/csv"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -11,291 +9,217 @@ import (
 	"charm.land/bubbles/v2/progress"
 	tea "charm.land/bubbletea/v2"
 	"github.com/fmo/skytui/internal/session"
+	"github.com/fmo/skytui/internal/timer"
 )
 
-func TestRunningTickUsesDeadline(t *testing.T) {
-	m := model{}
-	m.status = timerRunning
-	m.duration = time.Second * 60
+func completedSession(kind timer.Kind, duration time.Duration) *timer.Session {
+	now := time.Now()
+	s := timer.New(kind, duration, now.Add(-duration))
+	s.Tick(now)
+	return s
+}
 
-	// A 60 second sessions has been started 15 seconds ago
-	m.deadline = time.Now().Add(time.Second * 45)
+func TestRunningTickUpdatesSession(t *testing.T) {
+	now := time.Now()
+	m := model{
+		session:  timer.New(timer.Focus, time.Minute, now.Add(-15*time.Second)),
+		progress: progress.New(progress.WithDefaultBlend()),
+		store:    session.New(filepath.Join(t.TempDir(), "sessions.csv")),
+	}
 
 	updated, cmd := m.Update(tickType{})
-
 	got := updated.(model)
 
-	if got.remaining != time.Second*45 {
-		t.Fatalf("got = %v, want = 45s", got.remaining)
+	if got.session.Remaining() != 45*time.Second {
+		t.Fatalf("got remaining %v, want 45s", got.session.Remaining())
 	}
-
-	if got.status != timerRunning {
-		t.Fatalf("got = %v, want = %v", got.status, timerRunning)
+	if got.session.Status() != timer.Running {
+		t.Fatalf("got status %v, want running", got.session.Status())
 	}
-
 	if cmd == nil {
-		t.Fatalf("cmd should not be nil")
+		t.Fatal("running tick should return a command")
 	}
 }
 
-func TestPauseAndResume(t *testing.T) {
-	deadline := time.Now().Add(time.Second * 45)
-	m := model{}
-	m.remaining = time.Second * 45
-	m.duration = time.Second * 45
-	m.deadline = deadline
-	m.status = timerRunning
+func TestPauseAndResumeControls(t *testing.T) {
+	m := model{session: timer.New(timer.Focus, 45*time.Second, time.Now())}
+	space := tea.KeyPressMsg{Code: tea.KeySpace}
 
-	space := tea.KeyPressMsg{}
-	space.Code = tea.KeySpace
-
-	beforePause := time.Now()
 	updated, _ := m.Update(space)
-	afterPause := time.Now()
 	got := updated.(model)
+	pausedRemaining := got.session.Remaining()
 
-	remainingTime := got.remaining
-
-	if got.pauseTime.Before(beforePause) || got.pauseTime.After(afterPause) {
-		t.Errorf("pause should be between before and after update")
+	if got.session.Status() != timer.Paused {
+		t.Fatalf("got status %v, want paused", got.session.Status())
 	}
-
-	if got.status != timerPaused {
-		t.Errorf("got = %v, want = %d", got.status, timerPaused)
-	}
-
-	if !deadline.Equal(got.deadline) {
-		t.Errorf("got = %v, want = %v", got.deadline, deadline)
-	}
-
-	got.pauseTime = time.Now().Add(-5 * time.Second)
 
 	updated, _ = got.Update(space)
 	got = updated.(model)
 
-	if remainingTime != got.remaining {
-		t.Errorf("got = %v, want = %v", got.remaining, remainingTime)
+	if got.session.Status() != timer.Running {
+		t.Fatalf("got status %v, want running", got.session.Status())
 	}
-
-	if got.status != timerRunning {
-		t.Errorf("got = %v, want = %d", got.status, timerRunning)
-	}
-
-	if got.deadline.Sub(deadline).Round(time.Second) != 5*time.Second {
-		t.Errorf("deadline should move 5 seconds further: %v", got.deadline.Sub(deadline).Round(time.Second))
+	if got.session.Remaining() != pausedRemaining {
+		t.Fatalf("got remaining %v, want %v", got.session.Remaining(), pausedRemaining)
 	}
 }
 
 func TestPausedTickDoesNotAdvance(t *testing.T) {
-	m := model{}
-	m.status = timerPaused
-	m.remaining = 30 * time.Second
-	m.deadline = time.Now().Add(-10 * time.Second)
+	now := time.Now()
+	s := timer.New(timer.Focus, 30*time.Second, now)
+	s.Pause(now)
+	m := model{session: s}
 
 	updated, cmd := m.Update(tickType{})
 	got := updated.(model)
 
-	if got.status != timerPaused {
-		t.Fatalf("got: %v, want: %v", got.status, timerPaused)
+	if got.session.Status() != timer.Paused {
+		t.Fatalf("got status %v, want paused", got.session.Status())
 	}
-
-	if got.remaining != time.Second*30 {
-		t.Fatalf("got: %v, want: %v", got.remaining, time.Second*30)
+	if got.session.Remaining() != 30*time.Second {
+		t.Fatalf("got remaining %v, want 30s", got.session.Remaining())
 	}
-
-	if !m.deadline.Equal(got.deadline) {
-		t.Fatalf("got: %v, want: %v", got.deadline, m.deadline)
-	}
-
 	if cmd == nil {
-		t.Fatal("command should be triggered")
+		t.Fatal("paused tick should schedule another tick")
 	}
 }
 
 func TestTickReachesDeadline(t *testing.T) {
 	storePath := filepath.Join(t.TempDir(), "sessions.csv")
-
-	p := progress.New(progress.WithDefaultBlend())
-	m := model{duration: time.Second * 60, progress: p, store: session.New(storePath)}
-	m.remaining = time.Second
-	m.deadline = time.Now().Add(-3 * time.Second)
-	m.status = timerRunning
+	m := model{
+		session:  timer.New(timer.Focus, time.Minute, time.Now().Add(-time.Minute-time.Second)),
+		progress: progress.New(progress.WithDefaultBlend()),
+		store:    session.New(storePath),
+	}
 
 	updated, cmd := m.Update(tickType{})
 	got := updated.(model)
 
-	if got.status != timerCompleted {
-		t.Errorf("got: %v, want: %v", got.status, timerCompleted)
+	if got.session.Status() != timer.Completed {
+		t.Fatalf("got status %v, want completed", got.session.Status())
 	}
-
-	if got.remaining != time.Second*0 {
-		t.Errorf("remaining should be zero")
+	if got.session.Remaining() != 0 {
+		t.Fatalf("got remaining %v, want 0", got.session.Remaining())
 	}
-
 	if cmd == nil {
-		t.Errorf("there has to be command returning to complete progress bar")
+		t.Fatal("completion should return a command")
 	}
 }
 
 func TestCompletedControls(t *testing.T) {
-	duration := time.Second * 30
-	deadline := time.Now().Add(-20 * time.Second)
-	m := model{status: timerCompleted, remaining: 0 * time.Second, duration: duration, deadline: deadline}
-
-	space := tea.KeyPressMsg{}
-	space.Code = tea.KeySpace
+	m := model{session: completedSession(timer.Focus, 30*time.Second)}
+	space := tea.KeyPressMsg{Code: tea.KeySpace}
 
 	updated, cmd := m.Update(space)
 	got := updated.(model)
 
-	if got.status != timerCompleted {
-		t.Errorf("want: %v, got: %v", timerCompleted, got.status)
+	if got.session.Status() != timer.Completed {
+		t.Fatalf("got status %v, want completed", got.session.Status())
 	}
-
-	if got.remaining != time.Second*0 {
-		t.Errorf("want: %v, got: %v", 0, got.remaining)
-	}
-
-	if got.deadline.Compare(m.deadline) != 0 {
-		t.Errorf("deadlines should be equal")
-	}
-
 	if cmd != nil {
-		t.Errorf("there should be no cmd returning")
+		t.Fatal("space should not return a command after completion")
 	}
 
 	q := tea.KeyPressMsg{Text: "q", Code: 'q'}
-
 	updated, cmd = got.Update(q)
 	got = updated.(model)
 
-	if got.status != timerCompleted {
-		t.Errorf("want: %v, got: %v", timerCompleted, got.status)
+	if got.session.Status() != timer.Completed {
+		t.Fatalf("got status %v, want completed", got.session.Status())
 	}
-
 	if cmd == nil {
-		t.Fatal("cmd should not be nil")
+		t.Fatal("quit should return a command")
 	}
-
-	msg := cmd()
-
-	if _, ok := msg.(tea.QuitMsg); !ok {
-		t.Error("quit msg expected")
+	if _, ok := cmd().(tea.QuitMsg); !ok {
+		t.Fatal("quit command should return tea.QuitMsg")
 	}
 }
 
 func TestCompletedStoresOnce(t *testing.T) {
-	tmpFile := filepath.Join(t.TempDir(), "sessions.csv")
-	f, err := os.OpenFile(tmpFile, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0o600)
-	if err != nil {
-		t.Fatal("cant open file")
+	storePath := filepath.Join(t.TempDir(), "sessions.csv")
+	store := session.New(storePath)
+	m := model{
+		session:  timer.New(timer.Focus, 20*time.Second, time.Now().Add(-21*time.Second)),
+		progress: progress.New(progress.WithDefaultBlend()),
+		store:    store,
 	}
-	defer f.Close()
-	m := model{store: session.New(tmpFile), status: timerRunning, duration: 20 * time.Second, deadline: time.Now().Add(-22 * time.Second)}
+
 	updated, _ := m.Update(tickType{})
 	got := updated.(model)
-
 	got.Update(tickType{})
-	reader := csv.NewReader(f)
-	records, err := reader.ReadAll()
-	if err != nil {
-		t.Fatal("cant read csv file")
-	}
 
+	records, err := store.Load()
+	if err != nil {
+		t.Fatalf("load sessions: %v", err)
+	}
 	if len(records) != 1 {
-		t.Errorf("got: %d, want: 1", len(records))
+		t.Fatalf("got %d records, want 1", len(records))
 	}
 }
 
 func TestSessionList(t *testing.T) {
 	store := session.New(filepath.Join(t.TempDir(), "sessions.csv"))
 
-	record1 := session.Record{CompletedAt: time.Now().Add(-60 * time.Minute), Duration: time.Minute}
-	record2 := session.Record{CompletedAt: time.Now().Add(-50 * time.Minute), Duration: time.Minute * 2}
-	record3 := session.Record{CompletedAt: time.Now().Add(-40 * time.Minute), Duration: time.Minute * 3}
-	record4 := session.Record{CompletedAt: time.Now().Add(-30 * time.Minute), Duration: time.Minute * 4}
-	record5 := session.Record{CompletedAt: time.Now().Add(-20 * time.Minute), Duration: time.Minute * 5}
-	record6 := session.Record{CompletedAt: time.Now().Add(-10 * time.Minute), Duration: time.Minute * 6}
-
-	if err := store.Append(record1.CompletedAt, record1.Duration); err != nil {
-		t.Fatalf("cant append first record: %v", err)
+	records := []session.Record{
+		{CompletedAt: time.Now().Add(-60 * time.Minute), Duration: time.Minute},
+		{CompletedAt: time.Now().Add(-50 * time.Minute), Duration: 2 * time.Minute},
+		{CompletedAt: time.Now().Add(-40 * time.Minute), Duration: 3 * time.Minute},
+		{CompletedAt: time.Now().Add(-30 * time.Minute), Duration: 4 * time.Minute},
+		{CompletedAt: time.Now().Add(-20 * time.Minute), Duration: 5 * time.Minute},
+		{CompletedAt: time.Now().Add(-10 * time.Minute), Duration: 6 * time.Minute},
 	}
 
-	if err := store.Append(record2.CompletedAt, record2.Duration); err != nil {
-		t.Fatalf("cant append second record: %v", err)
+	for _, record := range records {
+		if err := store.Append(record.CompletedAt, record.Duration); err != nil {
+			t.Fatalf("append record: %v", err)
+		}
 	}
 
-	if err := store.Append(record3.CompletedAt, record3.Duration); err != nil {
-		t.Fatalf("cant append third record: %v", err)
-	}
-
-	if err := store.Append(record4.CompletedAt, record4.Duration); err != nil {
-		t.Fatalf("cant append fourth record: %v", err)
-	}
-
-	if err := store.Append(record5.CompletedAt, record5.Duration); err != nil {
-		t.Fatalf("cant append fifth record: %v", err)
-	}
-
-	if err := store.Append(record6.CompletedAt, record6.Duration); err != nil {
-		t.Fatalf("cant append sixth record: %v", err)
-	}
-
-	records, err := store.Load()
+	loaded, err := store.Load()
 	if err != nil {
-		t.Fatalf("cant load records: %v", err)
+		t.Fatalf("load records: %v", err)
 	}
-
-	view := sessionList(records)
+	view := sessionList(loaded)
 
 	if strings.Contains(view, "1m0s") {
-		t.Errorf("view should not have the first record")
+		t.Error("view should not contain the oldest record")
 	}
 
-	fifthIndex := strings.Index(view, "6m0s")
-	fourthIndex := strings.Index(view, "5m0s")
-	thirdIndex := strings.Index(view, "4m0s")
-	secondIndex := strings.Index(view, "3m0s")
-	firstIndex := strings.Index(view, "2m0s")
-
-	if fifthIndex == -1 || fourthIndex == -1 || thirdIndex == -1 || secondIndex == -1 || firstIndex == -1 {
-		t.Fatalf("view is missing expected session: %v", view)
+	indices := []int{
+		strings.Index(view, "6m0s"),
+		strings.Index(view, "5m0s"),
+		strings.Index(view, "4m0s"),
+		strings.Index(view, "3m0s"),
+		strings.Index(view, "2m0s"),
 	}
-
-	if fifthIndex >= fourthIndex || fourthIndex >= thirdIndex || thirdIndex >= secondIndex || secondIndex >= firstIndex {
-		t.Errorf("sessions are in wrong order: %q", view)
+	for _, index := range indices {
+		if index == -1 {
+			t.Fatalf("view is missing an expected session: %q", view)
+		}
+	}
+	for i := 1; i < len(indices); i++ {
+		if indices[i-1] >= indices[i] {
+			t.Fatalf("sessions are in the wrong order: %q", view)
+		}
 	}
 }
 
-func TestResetInRunning(t *testing.T) {
-	duration := time.Second * 30
-	deadline := time.Now().Add(duration - 10*time.Second)
+func TestResetRunningSession(t *testing.T) {
+	now := time.Now()
+	s := timer.New(timer.Focus, 30*time.Second, now.Add(-10*time.Second))
+	s.Tick(now)
+	m := model{session: s, progress: progress.New(progress.WithDefaultBlend())}
 
-	m := model{deadline: deadline, duration: duration}
-
-	updated, _ := m.Update(tickType{})
+	reset := tea.KeyPressMsg{Text: "r", Code: 'r'}
+	updated, cmd := m.Update(reset)
 	got := updated.(model)
 
-	if got.remaining != 20*time.Second {
-		t.Errorf("want: %v, got: %v", 20*time.Second, got.remaining)
+	if got.session.Remaining() != 30*time.Second {
+		t.Fatalf("got remaining %v, want 30s", got.session.Remaining())
 	}
-
-	r := tea.KeyPressMsg{}
-	r.Code = 'r'
-
-	var cmd tea.Cmd
-	earliestDeadline := time.Now().Add(duration)
-	updated, cmd = got.Update(r)
-	latestDeadline := time.Now().Add(duration)
-
-	got = updated.(model)
-	if got.remaining != 30*time.Second {
-		t.Errorf("want: %v, got: %v", 30*time.Second, got.remaining)
+	if got.session.Status() != timer.Running {
+		t.Fatalf("got status %v, want running", got.session.Status())
 	}
-	if got.deadline.Before(earliestDeadline) || got.deadline.After(latestDeadline) {
-		t.Errorf("deadline was not reset: got %v, want between %v and %v", got.deadline, earliestDeadline, latestDeadline)
-	}
-
 	if cmd == nil {
 		t.Fatal("reset should return a progress command")
 	}
@@ -305,64 +229,49 @@ func TestNextSessionCyclesFocusAndBreak(t *testing.T) {
 	focusDuration := 25 * time.Minute
 	shortBreakDuration := 5 * time.Minute
 	m := New(session.New(filepath.Join(t.TempDir(), "sessions.csv")), focusDuration, shortBreakDuration)
-	m.status = timerCompleted
-
+	m.session = completedSession(timer.Focus, focusDuration)
 	next := tea.KeyPressMsg{Text: "n", Code: 'n'}
-	beforeBreakDeadline := time.Now().Add(shortBreakDuration)
+
 	updated, cmd := m.Update(next)
-	afterBreakDeadline := time.Now().Add(shortBreakDuration)
 	got := updated.(model)
 
-	if got.activeSessionType != breakSession {
-		t.Fatalf("got session type %v, want break", got.activeSessionType)
+	if got.session.Kind() != timer.ShortBreak {
+		t.Fatalf("got kind %v, want short break", got.session.Kind())
 	}
-	if got.status != timerRunning {
-		t.Fatalf("got status %v, want running", got.status)
+	if got.session.Status() != timer.Running {
+		t.Fatalf("got status %v, want running", got.session.Status())
 	}
-	if got.duration != shortBreakDuration || got.remaining != shortBreakDuration {
-		t.Fatalf("got duration %v and remaining %v, want %v", got.duration, got.remaining, shortBreakDuration)
-	}
-	if got.deadline.Before(beforeBreakDeadline) || got.deadline.After(afterBreakDeadline) {
-		t.Fatalf("break deadline %v is outside expected range", got.deadline)
+	if got.session.Duration() != shortBreakDuration || got.session.Remaining() != shortBreakDuration {
+		t.Fatalf("got duration %v and remaining %v, want %v", got.session.Duration(), got.session.Remaining(), shortBreakDuration)
 	}
 	if cmd == nil {
 		t.Fatal("starting a break should return a command")
 	}
 
-	got.status = timerCompleted
-	beforeFocusDeadline := time.Now().Add(focusDuration)
+	got.session.Tick(time.Now().Add(shortBreakDuration + time.Second))
 	updated, cmd = got.Update(next)
-	afterFocusDeadline := time.Now().Add(focusDuration)
 	got = updated.(model)
 
-	if got.activeSessionType != focusSession {
-		t.Fatalf("got session type %v, want focus", got.activeSessionType)
+	if got.session.Kind() != timer.Focus {
+		t.Fatalf("got kind %v, want focus", got.session.Kind())
 	}
-	if got.status != timerRunning {
-		t.Fatalf("got status %v, want running", got.status)
+	if got.session.Status() != timer.Running {
+		t.Fatalf("got status %v, want running", got.session.Status())
 	}
-	if got.duration != focusDuration || got.remaining != focusDuration {
-		t.Fatalf("got duration %v and remaining %v, want %v", got.duration, got.remaining, focusDuration)
-	}
-	if got.deadline.Before(beforeFocusDeadline) || got.deadline.After(afterFocusDeadline) {
-		t.Fatalf("focus deadline %v is outside expected range", got.deadline)
+	if got.session.Duration() != focusDuration || got.session.Remaining() != focusDuration {
+		t.Fatalf("got duration %v and remaining %v, want %v", got.session.Duration(), got.session.Remaining(), focusDuration)
 	}
 	if cmd == nil {
-		t.Fatal("starting a focus session should return a command")
+		t.Fatal("starting focus should return a command")
 	}
 }
 
 func TestCompletedBreakIsNotStoredOrTotaled(t *testing.T) {
 	store := session.New(filepath.Join(t.TempDir(), "sessions.csv"))
-	shortBreakDuration := 5 * time.Minute
 	m := model{
-		store:             store,
-		progress:          progress.New(progress.WithDefaultBlend()),
-		status:            timerRunning,
-		activeSessionType: breakSession,
-		duration:          shortBreakDuration,
-		remaining:         time.Second,
-		deadline:          time.Now().Add(-time.Second),
+		session:  timer.New(timer.ShortBreak, 5*time.Minute, time.Now().Add(-5*time.Minute-time.Second)),
+		progress: progress.New(progress.WithDefaultBlend()),
+		store:    store,
 	}
 
 	updated, _ := m.Update(tickType{})
@@ -370,8 +279,8 @@ func TestCompletedBreakIsNotStoredOrTotaled(t *testing.T) {
 	updated, _ = got.Update(loadType{})
 	got = updated.(model)
 
-	if got.status != timerCompleted {
-		t.Fatalf("got status %v, want completed", got.status)
+	if got.session.Status() != timer.Completed {
+		t.Fatalf("got status %v, want completed", got.session.Status())
 	}
 	if len(got.sessions) != 0 {
 		t.Fatalf("got %d stored sessions, want 0", len(got.sessions))
@@ -382,42 +291,30 @@ func TestCompletedBreakIsNotStoredOrTotaled(t *testing.T) {
 }
 
 func TestPauseAndResetDuringShortBreak(t *testing.T) {
+	now := time.Now()
 	shortBreakDuration := 5 * time.Minute
-	m := model{
-		progress:           progress.New(progress.WithDefaultBlend()),
-		status:             timerRunning,
-		activeSessionType:  breakSession,
-		duration:           shortBreakDuration,
-		remaining:          2 * time.Minute,
-		deadline:           time.Now().Add(2 * time.Minute),
-		shortBreakDuration: shortBreakDuration,
-	}
-
+	s := timer.New(timer.ShortBreak, shortBreakDuration, now.Add(-3*time.Minute))
+	s.Tick(now)
+	m := model{session: s, progress: progress.New(progress.WithDefaultBlend())}
 	space := tea.KeyPressMsg{Code: tea.KeySpace}
+
 	updated, _ := m.Update(space)
 	got := updated.(model)
-
-	if got.status != timerPaused {
-		t.Fatalf("got status %v, want paused", got.status)
+	if got.session.Status() != timer.Paused {
+		t.Fatalf("got status %v, want paused", got.session.Status())
 	}
-	if got.activeSessionType != breakSession {
-		t.Fatalf("got session type %v, want break", got.activeSessionType)
+	if got.session.Kind() != timer.ShortBreak {
+		t.Fatalf("got kind %v, want short break", got.session.Kind())
 	}
 
 	reset := tea.KeyPressMsg{Text: "r", Code: 'r'}
-	beforeDeadline := time.Now().Add(shortBreakDuration)
 	updated, cmd := got.Update(reset)
-	afterDeadline := time.Now().Add(shortBreakDuration)
 	got = updated.(model)
-
-	if got.status != timerPaused {
-		t.Fatalf("got status %v after reset, want paused", got.status)
+	if got.session.Status() != timer.Paused {
+		t.Fatalf("got status %v after reset, want paused", got.session.Status())
 	}
-	if got.duration != shortBreakDuration || got.remaining != shortBreakDuration {
-		t.Fatalf("got duration %v and remaining %v, want %v", got.duration, got.remaining, shortBreakDuration)
-	}
-	if got.deadline.Before(beforeDeadline) || got.deadline.After(afterDeadline) {
-		t.Fatalf("reset deadline %v is outside expected range", got.deadline)
+	if got.session.Remaining() != shortBreakDuration {
+		t.Fatalf("got remaining %v, want %v", got.session.Remaining(), shortBreakDuration)
 	}
 	if cmd == nil {
 		t.Fatal("resetting a break should return a command")
@@ -425,10 +322,10 @@ func TestPauseAndResetDuringShortBreak(t *testing.T) {
 
 	updated, _ = got.Update(space)
 	got = updated.(model)
-	if got.status != timerRunning {
-		t.Fatalf("got status %v after resume, want running", got.status)
+	if got.session.Status() != timer.Running {
+		t.Fatalf("got status %v after resume, want running", got.session.Status())
 	}
-	if got.activeSessionType != breakSession {
-		t.Fatalf("got session type %v after resume, want break", got.activeSessionType)
+	if got.session.Kind() != timer.ShortBreak {
+		t.Fatalf("got kind %v after resume, want short break", got.session.Kind())
 	}
 }
