@@ -48,12 +48,13 @@ func TestTopContentFormatsDurations(t *testing.T) {
 	)
 
 	want := []string{
-		"Focus Session: 23m 55s / 25m",
-		"Remaining: 1m 05s",
-		"Today's: 4h 10m",
-		"This week: 1m 05s",
-		"This month: 0s",
-		"Total: 1h 02m 03s",
+		"Focus Session",
+		"23m 55s / 25m",
+		"Remaining  : 1m 05s",
+		"Today's    : 4h 10m",
+		"This week  : 1m 05s",
+		"This month : 0s",
+		"Total      : 1h 02m 03s",
 	}
 	for _, value := range want {
 		if !strings.Contains(content, value) {
