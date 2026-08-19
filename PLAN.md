@@ -295,7 +295,23 @@ in screenshots without changing the timer workflow.
 The terminal controls the font. This release improves hierarchy, spacing,
 alignment, borders, and color without adding an ASCII-art font.
 
-### [ ] 25. Format Dashboard Durations
+### [ ] 25. Extract Timer Session State
+
+- Add `internal/timer/session.go` for the active timer domain.
+- Represent one active session with its type, status, duration, remaining time,
+  deadline, and pause state.
+- Move pause, resume, reset, tick, elapsed-time, remaining-time, and progress
+  calculations out of the Bubble Tea model.
+- Pass explicit timestamps into timer methods so tests do not use sleeps or
+  depend directly on `time.Now()`.
+- Keep focus/break cycling, persistence, Bubble Tea commands, and rendering in
+  the Pomodoro model.
+- Do not add timelines, interrupted-session recovery, interfaces, or an event
+  system.
+
+**Commit:** `refactor: extract timer session state`
+
+### [ ] 26. Format Dashboard Durations
 
 - Replace raw `time.Duration.String()` values in the dashboard with one
   consistent formatter.
@@ -306,7 +322,7 @@ alignment, borders, and color without adding an ASCII-art font.
 
 **Commit:** `feat: format dashboard durations`
 
-### [ ] 26. Redesign The Dashboard Layout
+### [ ] 27. Redesign The Dashboard Layout
 
 - Render `SkyTUI Pomodoro` inside the top border, following the shape in
   `docs/images/dashboard-reference.png`.
@@ -320,7 +336,7 @@ alignment, borders, and color without adding an ASCII-art font.
 
 **Commit:** `feat: refine the pomodoro dashboard`
 
-### [ ] 27. Test Dashboard Rendering
+### [ ] 28. Test Dashboard Rendering
 
 - Cover focus and short-break labels and their colors.
 - Cover running, paused, and completed footer controls.
@@ -329,7 +345,7 @@ alignment, borders, and color without adding an ASCII-art font.
 
 **Commit:** `test: cover dashboard rendering`
 
-### [ ] 28. Prepare v0.5.0
+### [ ] 29. Prepare v0.5.0
 
 - Update the CLI version and README for `v0.5.0`.
 - Replace the README image with a current dashboard screenshot captured using
