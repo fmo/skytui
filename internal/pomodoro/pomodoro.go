@@ -152,7 +152,7 @@ func sessionList(sessions []session.Record) string {
 
 	sessionList := make([]string, 0, 100)
 	for _, session := range sessions {
-		sessionList = append(sessionList, fmt.Sprintf("\n%s %s", session.CompletedAt.Format("Mon Jan 02"), session.Duration.String()))
+		sessionList = append(sessionList, fmt.Sprintf("\n%s %s", session.CompletedAt.Format("Mon Jan 02"), formatDuration(session.Duration)))
 	}
 
 	slices.Reverse(sessionList)
@@ -190,15 +190,15 @@ func topContent(
 		lipgloss.Left,
 		titleStyle.Render("SkyTUI Pomodoro"),
 		"",
-		fmt.Sprintf("%s: %s / %s", sessionLabel, elapsed.String(), duration.String()),
+		fmt.Sprintf("%s: %s / %s", sessionLabel, formatDuration(elapsed), formatDuration(duration)),
 		"",
 		progress.View(),
 		"",
-		fmt.Sprintf("Remaining: %v", remaining),
-		fmt.Sprintf("Today's: %s", todaysTotal.String()),
-		fmt.Sprintf("This week: %s", thisWeek.String()),
-		fmt.Sprintf("This month: %s", thisMonth.String()),
-		fmt.Sprintf("Total: %s", allTime.String()),
+		fmt.Sprintf("Remaining: %s", formatDuration(remaining)),
+		fmt.Sprintf("Today's: %s", formatDuration(todaysTotal)),
+		fmt.Sprintf("This week: %s", formatDuration(thisWeek)),
+		fmt.Sprintf("This month: %s", formatDuration(thisMonth)),
+		fmt.Sprintf("Total: %s", formatDuration(allTime)),
 	)
 
 	return topContent
