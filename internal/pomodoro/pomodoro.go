@@ -1,24 +1,14 @@
 package pomodoro
 
 import (
-	"fmt"
 	"log/slog"
-	"slices"
 	"time"
 
 	"charm.land/bubbles/v2/progress"
 	tea "charm.land/bubbletea/v2"
-	"charm.land/lipgloss/v2"
 	"github.com/fmo/skytui/internal/session"
 	"github.com/fmo/skytui/internal/timer"
 )
-
-const (
-	panelHorizontalSpace = 6
-	maxProgressWidth     = 60
-)
-
-const sessionsLimit = 5
 
 type model struct {
 	session            *timer.Session
@@ -38,7 +28,7 @@ func New(store session.Store, focusDuration, shortBreakDuration time.Duration) m
 	return model{
 		session:            timer.New(timer.Focus, focusDuration, time.Now()),
 		store:              store,
-		progress:           progress.New(progress.WithDefaultBlend()),
+		progress:           progress.New(progress.WithColors(sessionColor(timer.Focus))),
 		focusDuration:      focusDuration,
 		shortBreakDuration: shortBreakDuration,
 	}
@@ -54,6 +44,7 @@ func (m *model) startNextSession(now time.Time) tea.Cmd {
 	}
 
 	m.session = timer.New(kind, duration, now)
+	m.progress.FullColor = sessionColor(kind)
 	return tea.Batch(m.progress.SetPercent(0), tickTime())
 }
 
@@ -68,8 +59,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
-		availableWidth := max(1, m.width-panelHorizontalSpace)
-		m.progress.SetWidth(min(availableWidth, maxProgressWidth))
+		contentWidth := dashboardContentWidth(dashboardWidth(m.width))
+		m.progress.SetWidth(min(max(1, contentWidth-progressLabelWidth), maxProgressWidth))
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "n":
@@ -145,112 +136,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, nil
-}
-
-func sessionList(sessions []session.Record) string {
-	recentSessionsTitle := lipgloss.NewStyle().Padding(0, 1)
-
-	sessionList := make([]string, 0, 100)
-	for _, session := range sessions {
-		sessionList = append(sessionList, fmt.Sprintf("\n%s %s", session.CompletedAt.Format("Mon Jan 02"), formatDuration(session.Duration)))
-	}
-
-	slices.Reverse(sessionList)
-
-	limit := min(len(sessionList), sessionsLimit)
-
-	last5 := sessionList[:limit]
-
-	sessionStyle := lipgloss.NewStyle().Padding(0, 1)
-
-	return lipgloss.JoinVertical(lipgloss.Left, recentSessionsTitle.Render("Recent Sessions"), sessionStyle.Render(last5...))
-}
-
-func topContent(
-	duration time.Duration,
-	remaining time.Duration,
-	progress progress.Model,
-	todaysTotal time.Duration,
-	thisWeek time.Duration,
-	thisMonth time.Duration,
-	allTime time.Duration,
-	sessionType timer.Kind,
-) string {
-	titleStyle := lipgloss.NewStyle().Bold(true)
-
-	elapsed := duration - remaining
-
-	sessionLabel := "Focus Session"
-
-	if sessionType == timer.ShortBreak {
-		sessionLabel = "Break Session"
-	}
-
-	topContent := lipgloss.JoinVertical(
-		lipgloss.Left,
-		titleStyle.Render("SkyTUI Pomodoro"),
-		"",
-		fmt.Sprintf("%s: %s / %s", sessionLabel, formatDuration(elapsed), formatDuration(duration)),
-		"",
-		progress.View(),
-		"",
-		fmt.Sprintf("Remaining: %s", formatDuration(remaining)),
-		fmt.Sprintf("Today's: %s", formatDuration(todaysTotal)),
-		fmt.Sprintf("This week: %s", formatDuration(thisWeek)),
-		fmt.Sprintf("This month: %s", formatDuration(thisMonth)),
-		fmt.Sprintf("Total: %s", formatDuration(allTime)),
-	)
-
-	return topContent
-}
-
-func bottomContent(status timer.Status) string {
-	bottomText := "[q] Quit   [Space] Pause   [r] Reset"
-	if status == timer.Paused {
-		bottomText = "[q] Quit   [Space] Resume  [r] Reset"
-	}
-	if status == timer.Completed {
-		bottomText = "[q] Quit   [n] Next"
-	}
-
-	bottomContent := lipgloss.JoinVertical(
-		lipgloss.Left,
-		"",
-		bottomText,
-	)
-
-	return bottomContent
-}
-
-func (m model) View() tea.View {
-	panelStyle := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Padding(1, 2)
-
-	topContent := topContent(
-		m.session.Duration(),
-		m.session.Remaining(),
-		m.progress,
-		m.todaysTotal,
-		m.thisWeek,
-		m.thisMonth,
-		m.allTime,
-		m.session.Kind())
-
-	sessions := sessionList(m.sessions)
-
-	bottomContent := bottomContent(m.session.Status())
-
-	dashboard := lipgloss.JoinVertical(
-		lipgloss.Left,
-		panelStyle.Render(topContent),
-		sessions,
-		bottomContent,
-	)
-
-	if m.width > 0 {
-		dashboard = lipgloss.PlaceHorizontal(m.width, lipgloss.Center, dashboard)
-	}
-
-	return tea.NewView(dashboard)
 }
 
 type tickType struct{}

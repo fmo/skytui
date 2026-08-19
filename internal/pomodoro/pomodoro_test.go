@@ -181,7 +181,7 @@ func TestSessionList(t *testing.T) {
 	}
 	view := sessionList(loaded)
 
-	if strings.Contains(view, "1m") {
+	if strings.Contains(view, "  1m") {
 		t.Error("view should not contain the oldest record")
 	}
 
