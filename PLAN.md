@@ -322,7 +322,7 @@ alignment, borders, and color without adding an ASCII-art font.
 
 **Commit:** `feat: format dashboard durations`
 
-### [x] 27. Redesign The Dashboard Layout
+### [x] 27-28. Redesign And Test The Dashboard Layout
 
 - Render `SkyTUI Pomodoro` inside the top border, following the shape in
   `docs/images/dashboard-reference.png`.
@@ -333,19 +333,14 @@ alignment, borders, and color without adding an ASCII-art font.
   keeping the dashboard readable without color.
 - Keep controls visually separate at the bottom.
 - Do not add projects or copy the reference image as a strict pixel layout.
-
-**Commit:** `feat: refine the pomodoro dashboard`
-
-### [x] 28. Test Dashboard Rendering
-
 - Cover focus and short-break labels and their colors.
 - Cover running, paused, and completed footer controls.
 - Verify the titled border, summary columns, recent sessions, and controls fit
   at 80x24 and remain usable in a narrower terminal.
 
-**Commit:** `test: cover dashboard rendering`
+**Commit:** `feat: refine the pomodoro dashboard`
 
-### [ ] 29. Prepare v0.5.0
+### [x] 29. Prepare v0.5.0
 
 - Update the CLI version and README for `v0.5.0`.
 - Replace the README image with a current dashboard screenshot captured using

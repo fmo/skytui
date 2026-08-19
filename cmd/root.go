@@ -14,7 +14,7 @@ func newRootCmd(store session.Store, defaultFocusDuration, shortBreakDuration ti
 	rootCmd := &cobra.Command{
 		Use:     "skytui",
 		Short:   "Execute SkyTUI Dashboard",
-		Version: "v0.4.0",
+		Version: "v0.5.0",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			focusDuration, err := cmd.Flags().GetDuration("duration")
 			if err != nil {
