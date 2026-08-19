@@ -3,20 +3,20 @@
 SkyTUI is a terminal Pomodoro timer for running focused work sessions and tracking completed focus time.
 The Pomodoro Technique organizes work into timed focus intervals, commonly 25 minutes, separated by short breaks.
 
-![SkyTUI v0.3.0 Pomodoro timer](docs/images/skytui-v0.3.0.png)
+![SkyTUI v0.5.0 Pomodoro dashboard](docs/images/skytui-v0.5.0.png)
 
 ## Installation
 
-SkyTUI v0.4.0 supports macOS.
+SkyTUI v0.5.0 supports macOS.
 
 ### Download a binary
 
 Download the appropriate archive from the
-[GitHub release](https://github.com/fmo/skytui/releases/tag/v0.4.0):
+[GitHub release](https://github.com/fmo/skytui/releases/tag/v0.5.0):
 
-- [Apple Silicon (`arm64`)](https://github.com/fmo/skytui/releases/download/v0.4.0/skytui_0.4.0_darwin_arm64.tar.gz)
-- [Intel Mac (`amd64`)](https://github.com/fmo/skytui/releases/download/v0.4.0/skytui_0.4.0_darwin_amd64.tar.gz)
-- [SHA-256 checksums](https://github.com/fmo/skytui/releases/download/v0.4.0/checksums.txt)
+- [Apple Silicon (`arm64`)](https://github.com/fmo/skytui/releases/download/v0.5.0/skytui_0.5.0_darwin_arm64.tar.gz)
+- [Intel Mac (`amd64`)](https://github.com/fmo/skytui/releases/download/v0.5.0/skytui_0.5.0_darwin_amd64.tar.gz)
+- [SHA-256 checksums](https://github.com/fmo/skytui/releases/download/v0.5.0/checksums.txt)
 
 Extract the archive and move the `skytui` executable to a directory in your `PATH`, such as `/usr/local/bin`.
 
@@ -43,7 +43,7 @@ A valid download reports OK.
 Requires Go 1.25.3 or later.
 
 ```sh
-go install github.com/fmo/skytui@v0.4.0
+go install github.com/fmo/skytui@v0.5.0
 ```
 
 ## Usage
