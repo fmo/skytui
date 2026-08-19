@@ -295,7 +295,7 @@ in screenshots without changing the timer workflow.
 The terminal controls the font. This release improves hierarchy, spacing,
 alignment, borders, and color without adding an ASCII-art font.
 
-### [ ] 25. Extract Timer Session State
+### [x] 25. Extract Timer Session State
 
 - Add `internal/timer/session.go` for the active timer domain.
 - Represent one active session with its type, status, duration, remaining time,
@@ -311,7 +311,7 @@ alignment, borders, and color without adding an ASCII-art font.
 
 **Commit:** `refactor: extract timer session state`
 
-### [ ] 26. Format Dashboard Durations
+### [x] 26. Format Dashboard Durations
 
 - Replace raw `time.Duration.String()` values in the dashboard with one
   consistent formatter.

@@ -181,16 +181,16 @@ func TestSessionList(t *testing.T) {
 	}
 	view := sessionList(loaded)
 
-	if strings.Contains(view, "1m0s") {
+	if strings.Contains(view, "1m") {
 		t.Error("view should not contain the oldest record")
 	}
 
 	indices := []int{
-		strings.Index(view, "6m0s"),
-		strings.Index(view, "5m0s"),
-		strings.Index(view, "4m0s"),
-		strings.Index(view, "3m0s"),
-		strings.Index(view, "2m0s"),
+		strings.Index(view, "6m"),
+		strings.Index(view, "5m"),
+		strings.Index(view, "4m"),
+		strings.Index(view, "3m"),
+		strings.Index(view, "2m"),
 	}
 	for _, index := range indices {
 		if index == -1 {
