@@ -287,6 +287,59 @@ starting the next session.
 
 **Tag:** `v0.4.0`
 
+## v0.5.0 - Dashboard Clarity
+
+Goal: make the dashboard easier to scan and strong enough to represent SkyTUI
+in screenshots without changing the timer workflow.
+
+The terminal controls the font. This release improves hierarchy, spacing,
+alignment, borders, and color without adding an ASCII-art font.
+
+### [ ] 25. Format Dashboard Durations
+
+- Replace raw `time.Duration.String()` values in the dashboard with one
+  consistent formatter.
+- Render examples such as `25m`, `1m 05s`, and `4h 10m` without unnecessary
+  zero-value suffixes.
+- Use the formatter for the active session, remaining time, totals, and recent
+  sessions.
+
+**Commit:** `feat: format dashboard durations`
+
+### [ ] 26. Redesign The Dashboard Layout
+
+- Render `SkyTUI Pomodoro` inside the top border, following the shape in
+  `docs/images/dashboard-reference.png`.
+- Align summary labels and values into readable columns.
+- Add a horizontal divider before recent sessions and align recent-session
+  rows.
+- Use distinct, restrained colors for focus and short-break sessions while
+  keeping the dashboard readable without color.
+- Keep controls visually separate at the bottom.
+- Do not add projects or copy the reference image as a strict pixel layout.
+
+**Commit:** `feat: refine the pomodoro dashboard`
+
+### [ ] 27. Test Dashboard Rendering
+
+- Cover focus and short-break labels and their colors.
+- Cover running, paused, and completed footer controls.
+- Verify the titled border, summary columns, recent sessions, and controls fit
+  at 80x24 and remain usable in a narrower terminal.
+
+**Commit:** `test: cover dashboard rendering`
+
+### [ ] 28. Prepare v0.5.0
+
+- Update the CLI version and README for `v0.5.0`.
+- Replace the README image with a current dashboard screenshot captured using
+  a readable terminal font.
+- Verify focus, break, resize, history, and configuration workflows together.
+
+**Commit:** `chore: prepare v0.5.0`
+
+**Tag:** `v0.5.0`
+
 ## Later - Not Planned Yet
 
 - Long breaks and automatic session starts.
