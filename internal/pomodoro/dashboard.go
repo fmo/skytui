@@ -10,7 +10,7 @@ import (
 	"charm.land/bubbles/v2/progress"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
-	"github.com/fmo/skytui/internal/session"
+	"github.com/fmo/skytui/internal/history"
 	"github.com/fmo/skytui/internal/timer"
 )
 
@@ -64,7 +64,7 @@ func sessionLabel(kind timer.Kind) string {
 	return "Focus Session"
 }
 
-func sessionList(sessions []session.Record) string {
+func sessionList(sessions []history.Record) string {
 	rows := make([]string, 0, sessionsLimit+2)
 	rows = append(rows, lipgloss.NewStyle().Bold(true).Render("Recent Sessions"), "")
 

@@ -8,7 +8,7 @@ import (
 
 	"github.com/fmo/skytui/cmd"
 	"github.com/fmo/skytui/internal/config"
-	"github.com/fmo/skytui/internal/session"
+	"github.com/fmo/skytui/internal/history"
 )
 
 func main() {
@@ -66,9 +66,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	// store
-	store := session.New(filepath.Join(appDir, "sessions.csv"))
-	if err := cmd.Exec(store, defaultFocusDuration, shortBreakDuration); err != nil {
+	// history store
+	historyStore := history.NewStore(filepath.Join(appDir, "sessions.csv"))
+	if err := cmd.Exec(historyStore, defaultFocusDuration, shortBreakDuration); err != nil {
 		logFile.Close()
 		log.Fatalf("cant run the command: %v", err)
 	}
