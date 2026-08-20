@@ -403,7 +403,7 @@ turning SkyTUI into a project-management application.
 
 **Commit:** `test: cover project workflows`
 
-### [ ] 35. Prepare v0.6.0
+### [x] 35. Prepare v0.6.0
 
 - Document project creation, selection, persistence, and legacy sessions.
 - Verify first-run setup and repeated launches with a remembered project.

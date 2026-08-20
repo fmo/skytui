@@ -1,22 +1,25 @@
 # SkyTUI
 
-SkyTUI is a terminal Pomodoro timer for running focused work sessions and tracking completed focus time.
+SkyTUI is a terminal Pomodoro timer for running focused work sessions, organizing
+them by project, and tracking completed focus time.
 The Pomodoro Technique organizes work into timed focus intervals, commonly 25 minutes, separated by short breaks.
 
-![SkyTUI v0.5.0 Pomodoro dashboard](docs/images/skytui-v0.5.0.png)
+![SkyTUI v0.6.0 Pomodoro dashboard](docs/images/skytui-v0.6.0a.png)
+
+![SkyTUI v0.6.0 project picker](docs/images/skytui-v0.6.0b.png)
 
 ## Installation
 
-SkyTUI v0.5.0 supports macOS.
+SkyTUI v0.6.0 supports macOS.
 
 ### Download a binary
 
 Download the appropriate archive from the
-[GitHub release](https://github.com/fmo/skytui/releases/tag/v0.5.0):
+[GitHub release](https://github.com/fmo/skytui/releases/tag/v0.6.0):
 
-- [Apple Silicon (`arm64`)](https://github.com/fmo/skytui/releases/download/v0.5.0/skytui_0.5.0_darwin_arm64.tar.gz)
-- [Intel Mac (`amd64`)](https://github.com/fmo/skytui/releases/download/v0.5.0/skytui_0.5.0_darwin_amd64.tar.gz)
-- [SHA-256 checksums](https://github.com/fmo/skytui/releases/download/v0.5.0/checksums.txt)
+- [Apple Silicon (`arm64`)](https://github.com/fmo/skytui/releases/download/v0.6.0/skytui_0.6.0_darwin_arm64.tar.gz)
+- [Intel Mac (`amd64`)](https://github.com/fmo/skytui/releases/download/v0.6.0/skytui_0.6.0_darwin_amd64.tar.gz)
+- [SHA-256 checksums](https://github.com/fmo/skytui/releases/download/v0.6.0/checksums.txt)
 
 Extract the archive and move the `skytui` executable to a directory in your `PATH`, such as `/usr/local/bin`.
 
@@ -43,7 +46,7 @@ A valid download reports OK.
 Requires Go 1.25.3 or later.
 
 ```sh
-go install github.com/fmo/skytui@v0.5.0
+go install github.com/fmo/skytui@v0.6.0
 ```
 
 ## Usage
@@ -63,9 +66,14 @@ skytui --duration 10m
 The duration must be at least one second and use whole-second precision.
 Examples include `30s`, `10m`, and `1h`.
 
-SkyTUI starts with a focus session. After it completes, press `n` to start a
-short break. Press `n` again after the break completes to start the next focus
-session. The next session never starts automatically.
+SkyTUI opens the project picker before starting a focus session. Select a
+project with the arrow keys or `j`/`k`, then press `Enter`. Press `n` to create
+a project when the list is empty or when you need another one. SkyTUI remembers
+the last selection and preselects it on the next launch.
+
+After a focus session completes, press `n` to start a short break. Press `n`
+again after the break completes to start the next focus session. The next
+session never starts automatically.
 
 Show installed version:
 
@@ -81,6 +89,10 @@ skytui --help
 
 ## Controls
 
+- `Up`/`Down` or `k`/`j` moves through the project picker.
+- `Enter` selects a project or creates the project currently being entered.
+- `n` opens project creation from the picker.
+- `Esc` cancels project creation.
 - `Space` pauses or resumes the session.
 - `r` resets a running or paused session to its full duration. Running sessions
   continue immediately; paused sessions remain paused.
@@ -100,6 +112,7 @@ The default configuration is:
 ```yaml
 default-duration: 25m0s
 short-break-duration: 5m0s
+active-project-id: ""
 ```
 
 SkyTUI uses `default-duration` from `config.yaml`, falling back to 25 minutes
@@ -108,6 +121,21 @@ focus duration for the current run. Short breaks default to five minutes.
 
 Configured durations follow the same rules as `--duration`: they must be at
 least one second and use whole-second precision.
+
+`active-project-id` stores the last selected project. SkyTUI manages this value
+when a project is selected.
+
+## Projects
+
+SkyTUI stores projects separately from session history:
+
+```text
+~/Library/Application Support/skytui/projects.csv
+```
+
+Project names must be non-empty and unique regardless of letter case. Each
+project receives a stable internal ID that associates it with completed focus
+sessions. Short breaks are not associated with a project.
 
 ## Session History
 
@@ -118,8 +146,13 @@ SkyTUI saves completed sessions to:
 ```
 
 The dashboard shows the five most recently completed focus sessions, with the
-newest session first. Each entry includes its completion date and duration.
-Partial focus sessions and short breaks are not saved or included in totals.
+newest session first. Each entry includes its completion date, duration, and
+project name. Partial focus sessions and short breaks are not saved or included
+in totals.
+
+Sessions created before `v0.6.0` remain supported. Their existing two-field CSV
+rows are loaded as unassigned sessions and are not rewritten. New focus sessions
+include their project ID as a third field.
 
 ## Logs
 

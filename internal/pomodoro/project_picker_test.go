@@ -148,3 +148,44 @@ func TestSelectingProjectStartsFocusSession(t *testing.T) {
 		t.Fatal("dashboard does not show the active project")
 	}
 }
+
+func TestRememberedProjectSurvivesRestart(t *testing.T) {
+	dir := t.TempDir()
+	projectPath := filepath.Join(dir, "projects.csv")
+	projectStore, err := project.NewStore(projectPath)
+	if err != nil {
+		t.Fatalf("create project store: %v", err)
+	}
+	first, err := projectStore.Create("First")
+	if err != nil {
+		t.Fatalf("create first project: %v", err)
+	}
+	second, err := projectStore.Create("Second")
+	if err != nil {
+		t.Fatalf("create second project: %v", err)
+	}
+	settings, err := config.New(dir)
+	if err != nil {
+		t.Fatalf("create config: %v", err)
+	}
+	if err := settings.SaveActiveProjectID(second.ID); err != nil {
+		t.Fatalf("save active project: %v", err)
+	}
+
+	reopenedStore, err := project.NewStore(projectPath)
+	if err != nil {
+		t.Fatalf("reopen project store: %v", err)
+	}
+	reloadedSettings, err := config.New(dir)
+	if err != nil {
+		t.Fatalf("reload config: %v", err)
+	}
+	m := New(history.NewStore(filepath.Join(dir, "sessions.csv")), reopenedStore, reloadedSettings, time.Minute, 5*time.Minute)
+
+	if m.projectPicker.cursor != 1 {
+		t.Fatalf("got picker cursor %d, want remembered project at index 1", m.projectPicker.cursor)
+	}
+	if got := m.projectPicker.projects; len(got) != 2 || got[0] != first || got[1] != second {
+		t.Fatalf("got projects %#v after restart, want %#v and %#v", got, first, second)
+	}
+}
