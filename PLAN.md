@@ -386,9 +386,9 @@ turning SkyTUI into a project-management application.
 
 **Commit:** `feat: select an active project`
 
-### [ ] 33. Save Projects With Focus Sessions
+### [x] 33. Save Projects With Focus Sessions
 
-- Add the project ID as an optional third field in `sessions.csv`.
+- Add the project ID as a required third field for newly saved sessions.
 - Load existing two-field rows as unassigned sessions without rewriting them.
 - Save the active project with completed focus sessions.
 - Show project names beside recent sessions.

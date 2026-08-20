@@ -89,17 +89,18 @@ func TestDashboardRendering(t *testing.T) {
 			m := model{
 				session:       timer.New(timer.Focus, 25*time.Minute, now),
 				activeProject: project.Project{Name: "SkyTUI"},
+				projectPicker: projectPicker{projects: []project.Project{{ID: "project-1", Name: "SkyTUI"}}},
 				progress:      progress.New(progress.WithDefaultBlend()),
 				todaysTotal:   90 * time.Minute,
 				thisWeek:      4*time.Hour + 10*time.Minute,
 				thisMonth:     12 * time.Hour,
 				allTime:       24*time.Hour + 30*time.Minute,
 				sessions: []history.Record{
-					{CompletedAt: now.AddDate(0, 0, -4), Duration: time.Minute},
-					{CompletedAt: now.AddDate(0, 0, -3), Duration: 2 * time.Minute},
-					{CompletedAt: now.AddDate(0, 0, -2), Duration: 3 * time.Minute},
-					{CompletedAt: now.AddDate(0, 0, -1), Duration: 4 * time.Minute},
-					{CompletedAt: now, Duration: 5 * time.Minute},
+					{CompletedAt: now.AddDate(0, 0, -4), Duration: time.Minute, ProjectID: "project-1"},
+					{CompletedAt: now.AddDate(0, 0, -3), Duration: 2 * time.Minute, ProjectID: "project-1"},
+					{CompletedAt: now.AddDate(0, 0, -2), Duration: 3 * time.Minute, ProjectID: "project-1"},
+					{CompletedAt: now.AddDate(0, 0, -1), Duration: 4 * time.Minute, ProjectID: "project-1"},
+					{CompletedAt: now, Duration: 5 * time.Minute, ProjectID: "project-1"},
 				},
 			}
 
@@ -116,6 +117,7 @@ func TestDashboardRendering(t *testing.T) {
 				"Today's       : 1h 30m",
 				"Recent Sessions",
 				"Wed Aug 19  5m",
+				"SkyTUI",
 				"[q] Quit",
 				"[Space] Pause",
 				"[r] Reset",

@@ -140,9 +140,10 @@ func TestCompletedStoresOnce(t *testing.T) {
 	storePath := filepath.Join(t.TempDir(), "sessions.csv")
 	historyStore := history.NewStore(storePath)
 	m := model{
-		session:      timer.New(timer.Focus, 20*time.Second, time.Now().Add(-21*time.Second)),
-		progress:     progress.New(progress.WithDefaultBlend()),
-		historyStore: historyStore,
+		session:          timer.New(timer.Focus, 20*time.Second, time.Now().Add(-21*time.Second)),
+		sessionProjectID: "project-1",
+		progress:         progress.New(progress.WithDefaultBlend()),
+		historyStore:     historyStore,
 	}
 
 	updated, _ := m.Update(tickType{})
@@ -171,7 +172,7 @@ func TestSessionList(t *testing.T) {
 	}
 
 	for _, record := range records {
-		if err := historyStore.Append(record.CompletedAt, record.Duration); err != nil {
+		if err := historyStore.Append(record.CompletedAt, record.Duration, "project-1"); err != nil {
 			t.Fatalf("append record: %v", err)
 		}
 	}
@@ -180,7 +181,10 @@ func TestSessionList(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load records: %v", err)
 	}
-	view := sessionList(loaded)
+	view := sessionList(loaded, []project.Project{{ID: "project-1", Name: "SkyTUI"}}, 60)
+	if !strings.Contains(view, "SkyTUI") {
+		t.Fatalf("view does not contain the project name: %q", view)
+	}
 
 	if strings.Contains(view, "  1m") {
 		t.Error("view should not contain the oldest record")

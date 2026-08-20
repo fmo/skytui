@@ -179,7 +179,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			slog.Info("countdown ends")
 			cmd := m.progress.SetPercent(1)
 			if m.session.Kind() == timer.Focus {
-				if err := m.historyStore.Append(time.Now(), m.session.Duration()); err != nil {
+				if err := m.historyStore.Append(time.Now(), m.session.Duration(), m.sessionProjectID); err != nil {
 					slog.Error("cant append the session", "err", err)
 				}
 			}
