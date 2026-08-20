@@ -9,6 +9,7 @@ import (
 	"charm.land/bubbles/v2/progress"
 	tea "charm.land/bubbletea/v2"
 	"github.com/fmo/skytui/internal/history"
+	"github.com/fmo/skytui/internal/project"
 	"github.com/fmo/skytui/internal/timer"
 )
 
@@ -228,7 +229,10 @@ func TestResetRunningSession(t *testing.T) {
 func TestNextSessionCyclesFocusAndBreak(t *testing.T) {
 	focusDuration := 25 * time.Minute
 	shortBreakDuration := 5 * time.Minute
-	m := New(history.NewStore(filepath.Join(t.TempDir(), "sessions.csv")), focusDuration, shortBreakDuration)
+	m := New(history.NewStore(filepath.Join(t.TempDir(), "sessions.csv")), nil, nil, focusDuration, shortBreakDuration)
+	m.screen = dashboardScreen
+	m.activeProject = project.Project{ID: "project-1", Name: "SkyTUI"}
+	m.sessionProjectID = m.activeProject.ID
 	m.session = completedSession(timer.Focus, focusDuration)
 	next := tea.KeyPressMsg{Text: "n", Code: 'n'}
 
@@ -247,6 +251,9 @@ func TestNextSessionCyclesFocusAndBreak(t *testing.T) {
 	if cmd == nil {
 		t.Fatal("starting a break should return a command")
 	}
+	if got.sessionProjectID != "" {
+		t.Fatalf("break has project ID %q, want none", got.sessionProjectID)
+	}
 
 	got.session.Tick(time.Now().Add(shortBreakDuration + time.Second))
 	updated, cmd = got.Update(next)
@@ -263,6 +270,9 @@ func TestNextSessionCyclesFocusAndBreak(t *testing.T) {
 	}
 	if cmd == nil {
 		t.Fatal("starting focus should return a command")
+	}
+	if got.sessionProjectID != m.activeProject.ID {
+		t.Fatalf("got focus project ID %q, want %q", got.sessionProjectID, m.activeProject.ID)
 	}
 }
 

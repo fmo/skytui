@@ -375,7 +375,7 @@ turning SkyTUI into a project-management application.
 
 **Commit:** `feat: add project storage`
 
-### [ ] 32. Select The Active Project
+### [x] 32. Select The Active Project
 
 - Add an in-app project picker for creating and selecting a project.
 - Require a project before the first focus session starts and remember the last

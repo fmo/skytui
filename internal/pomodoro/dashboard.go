@@ -19,6 +19,7 @@ const (
 	maxDashboardWidth     = 72
 	maxProgressWidth      = 60
 	progressLabelWidth    = 4
+	summaryLabelWidth     = 13
 	sessionsLimit         = 5
 )
 
@@ -80,10 +81,16 @@ func sessionList(sessions []history.Record) string {
 }
 
 func summaryRow(label, value string) string {
-	return fmt.Sprintf("%-10s : %s", label, value)
+	return fmt.Sprintf("%-*s : %s", summaryLabelWidth, label, value)
+}
+
+func sessionRow(kind timer.Kind, value string) string {
+	label := fmt.Sprintf("%-*s", summaryLabelWidth, sessionLabel(kind))
+	return fmt.Sprintf("%s : %s", label, value)
 }
 
 func topContent(
+	projectName string,
 	duration time.Duration,
 	remaining time.Duration,
 	progress progress.Model,
@@ -94,14 +101,12 @@ func topContent(
 	sessionType timer.Kind,
 ) string {
 	elapsed := duration - remaining
-	label := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(sessionColor(sessionType)).
-		Render(sessionLabel(sessionType))
-
-	return lipgloss.JoinVertical(
-		lipgloss.Left,
-		fmt.Sprintf("%s  %s / %s", label, formatDuration(elapsed), formatDuration(duration)),
+	rows := make([]string, 0, 11)
+	if sessionType == timer.Focus && projectName != "" {
+		rows = append(rows, summaryRow("Project", projectName))
+	}
+	rows = append(rows,
+		sessionRow(sessionType, fmt.Sprintf("%s / %s", formatDuration(elapsed), formatDuration(duration))),
 		"",
 		progress.View(),
 		"",
@@ -111,6 +116,8 @@ func topContent(
 		summaryRow("This month", formatDuration(thisMonth)),
 		summaryRow("Total", formatDuration(allTime)),
 	)
+
+	return lipgloss.JoinVertical(lipgloss.Left, rows...)
 }
 
 func bottomContent(status timer.Status, availableWidth int) string {
@@ -160,13 +167,14 @@ func renderPanel(content string, width int, kind timer.Kind) string {
 	return titledBorder(width, kind) + "\n\n" + body
 }
 
-func (m model) View() tea.View {
+func (m model) dashboardView() tea.View {
 	width := dashboardWidth(m.width)
 	contentWidth := dashboardContentWidth(width)
 	divider := lipgloss.NewStyle().Foreground(mutedColor).Render(strings.Repeat("─", contentWidth))
 	content := lipgloss.JoinVertical(
 		lipgloss.Left,
 		topContent(
+			m.activeProject.Name,
 			m.session.Duration(),
 			m.session.Remaining(),
 			m.progress,
