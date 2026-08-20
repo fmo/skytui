@@ -365,7 +365,7 @@ turning SkyTUI into a project-management application.
 
 **Commit:** `refactor: rename session package to history`
 
-### [ ] 31. Add Project Storage
+### [x] 31. Add Project Storage
 
 - Define a project with a stable internal ID and a user-facing name.
 - Store projects separately from sessions and inject the storage path so tests
