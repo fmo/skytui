@@ -52,6 +52,7 @@ func (s Store) Load() ([]Record, error) {
 	defer file.Close()
 
 	csvReader := csv.NewReader(file)
+	csvReader.FieldsPerRecord = -1
 	rows, err := csvReader.ReadAll()
 	if err != nil {
 		return []Record{}, err

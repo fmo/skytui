@@ -395,7 +395,7 @@ turning SkyTUI into a project-management application.
 
 **Commit:** `feat: associate focus sessions with projects`
 
-### [ ] 34. Test Project Workflows
+### [x] 34. Test Project Workflows
 
 - Cover project-name validation, duplicate names, persistence, and selection.
 - Cover old two-field session rows and new project-aware rows together.

@@ -57,6 +57,31 @@ func TestProjectPickerShowsValidationError(t *testing.T) {
 	}
 }
 
+func TestProjectPickerShowsDuplicateNameError(t *testing.T) {
+	store, err := project.NewStore(filepath.Join(t.TempDir(), "projects.csv"))
+	if err != nil {
+		t.Fatalf("create project store: %v", err)
+	}
+	if _, err := store.Create("SkyTUI"); err != nil {
+		t.Fatalf("create existing project: %v", err)
+	}
+	picker := newProjectPicker(store, "")
+
+	picker, _, _ = picker.Update(tea.KeyPressMsg{Text: "n", Code: 'n'})
+	picker.input.SetValue("  skytui  ")
+	picker, selected, _ := picker.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+
+	if selected != nil {
+		t.Fatalf("got selected project %#v, want none", selected)
+	}
+	if !picker.creating {
+		t.Fatal("picker should remain in creation mode after a duplicate name")
+	}
+	if !errors.Is(picker.err, project.ErrNameExists) {
+		t.Fatalf("got error %v, want %v", picker.err, project.ErrNameExists)
+	}
+}
+
 func TestRememberedProjectIsPreselected(t *testing.T) {
 	store, err := project.NewStore(filepath.Join(t.TempDir(), "projects.csv"))
 	if err != nil {

@@ -100,6 +100,43 @@ func TestLoadLegacyRecordWithoutProject(t *testing.T) {
 	}
 }
 
+func TestLoadMixedLegacyAndProjectRecords(t *testing.T) {
+	testFile := filepath.Join(t.TempDir(), "sessions.csv")
+	firstCompletedAt := time.Date(2026, time.August, 19, 12, 0, 0, 0, time.UTC)
+	secondCompletedAt := firstCompletedAt.Add(24 * time.Hour)
+	rows := [][]string{
+		{firstCompletedAt.Format(time.RFC3339Nano), "25m0s"},
+		{secondCompletedAt.Format(time.RFC3339Nano), "30m0s", "project-1"},
+	}
+
+	file, err := os.OpenFile(testFile, os.O_CREATE|os.O_WRONLY, 0o600)
+	if err != nil {
+		t.Fatalf("create session fixture: %v", err)
+	}
+	writer := csv.NewWriter(file)
+	if err := writer.WriteAll(rows); err != nil {
+		file.Close()
+		t.Fatalf("write session fixture: %v", err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatalf("close session fixture: %v", err)
+	}
+
+	records, err := NewStore(testFile).Load()
+	if err != nil {
+		t.Fatalf("load mixed sessions: %v", err)
+	}
+	if len(records) != 2 {
+		t.Fatalf("got %d records, want 2", len(records))
+	}
+	if records[0].ProjectID != "" {
+		t.Fatalf("legacy record has project ID %q, want empty", records[0].ProjectID)
+	}
+	if records[1].ProjectID != "project-1" {
+		t.Fatalf("project-aware record has project ID %q, want %q", records[1].ProjectID, "project-1")
+	}
+}
+
 func TestTodaysTotal(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "sessions.csv")
 

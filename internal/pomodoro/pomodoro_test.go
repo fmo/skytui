@@ -157,6 +157,9 @@ func TestCompletedStoresOnce(t *testing.T) {
 	if len(records) != 1 {
 		t.Fatalf("got %d records, want 1", len(records))
 	}
+	if records[0].ProjectID != "project-1" {
+		t.Fatalf("got project ID %q, want %q", records[0].ProjectID, "project-1")
+	}
 }
 
 func TestSessionList(t *testing.T) {
@@ -298,6 +301,9 @@ func TestCompletedBreakIsNotStoredOrTotaled(t *testing.T) {
 	}
 	if len(got.sessions) != 0 {
 		t.Fatalf("got %d stored sessions, want 0", len(got.sessions))
+	}
+	if got.sessionProjectID != "" {
+		t.Fatalf("completed break has project ID %q, want none", got.sessionProjectID)
 	}
 	if got.todaysTotal != 0 || got.thisWeek != 0 || got.thisMonth != 0 || got.allTime != 0 {
 		t.Fatalf("break changed focus totals: today=%v week=%v month=%v all=%v", got.todaysTotal, got.thisWeek, got.thisMonth, got.allTime)
