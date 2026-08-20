@@ -1,6 +1,7 @@
 package pomodoro
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -9,22 +10,25 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/fmo/skytui/internal/history"
+	"github.com/fmo/skytui/internal/project"
 	"github.com/fmo/skytui/internal/timer"
 )
 
-func TestSessionLabelsUseDistinctColors(t *testing.T) {
-	focus := topContent(25*time.Minute, 20*time.Minute, progress.New(), 0, 0, 0, 0, timer.Focus)
-	shortBreak := topContent(5*time.Minute, 4*time.Minute, progress.New(), 0, 0, 0, 0, timer.ShortBreak)
+func TestSessionLabelsUseSummaryStyle(t *testing.T) {
+	focus := topContent("SkyTUI", 25*time.Minute, 20*time.Minute, progress.New(), 0, 0, 0, 0, timer.Focus)
+	shortBreak := topContent("", 5*time.Minute, 4*time.Minute, progress.New(), 0, 0, 0, 0, timer.ShortBreak)
 
-	focusLabel := lipgloss.NewStyle().Bold(true).Foreground(sessionColor(timer.Focus)).Render("Focus Session")
-	breakLabel := lipgloss.NewStyle().Bold(true).Foreground(sessionColor(timer.ShortBreak)).Render("Short Break")
+	focusLabel := fmt.Sprintf("%-*s", summaryLabelWidth, "Focus Session")
+	breakLabel := fmt.Sprintf("%-*s", summaryLabelWidth, "Short Break")
 	if !strings.Contains(focus, focusLabel) {
-		t.Fatal("focus view does not contain the styled focus label")
+		t.Fatal("focus view does not contain the focus label")
 	}
 	if !strings.Contains(shortBreak, breakLabel) {
-		t.Fatal("break view does not contain the styled short-break label")
+		t.Fatal("break view does not contain the short-break label")
 	}
+}
 
+func TestSessionAccentsUseDistinctColors(t *testing.T) {
 	fr, fg, fb, fa := sessionColor(timer.Focus).RGBA()
 	br, bg, bb, ba := sessionColor(timer.ShortBreak).RGBA()
 	if fr == br && fg == bg && fb == bb && fa == ba {
@@ -33,7 +37,7 @@ func TestSessionLabelsUseDistinctColors(t *testing.T) {
 }
 
 func TestSessionProgressUsesItsAccentColor(t *testing.T) {
-	m := New(history.Store{}, 25*time.Minute, 5*time.Minute)
+	m := New(history.Store{}, nil, nil, 25*time.Minute, 5*time.Minute)
 	fr, fg, fb, fa := m.progress.FullColor.RGBA()
 	wantR, wantG, wantB, wantA := sessionColor(timer.Focus).RGBA()
 	if fr != wantR || fg != wantG || fb != wantB || fa != wantA {
@@ -83,12 +87,13 @@ func TestDashboardRendering(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			now := time.Date(2026, time.August, 19, 12, 0, 0, 0, time.Local)
 			m := model{
-				session:     timer.New(timer.Focus, 25*time.Minute, now),
-				progress:    progress.New(progress.WithDefaultBlend()),
-				todaysTotal: 90 * time.Minute,
-				thisWeek:    4*time.Hour + 10*time.Minute,
-				thisMonth:   12 * time.Hour,
-				allTime:     24*time.Hour + 30*time.Minute,
+				session:       timer.New(timer.Focus, 25*time.Minute, now),
+				activeProject: project.Project{Name: "SkyTUI"},
+				progress:      progress.New(progress.WithDefaultBlend()),
+				todaysTotal:   90 * time.Minute,
+				thisWeek:      4*time.Hour + 10*time.Minute,
+				thisMonth:     12 * time.Hour,
+				allTime:       24*time.Hour + 30*time.Minute,
 				sessions: []history.Record{
 					{CompletedAt: now.AddDate(0, 0, -4), Duration: time.Minute},
 					{CompletedAt: now.AddDate(0, 0, -3), Duration: 2 * time.Minute},
@@ -104,9 +109,11 @@ func TestDashboardRendering(t *testing.T) {
 			want := []string{
 				"SkyTUI Pomodoro",
 				"┌─",
+				"Project       : SkyTUI",
 				"Focus Session",
-				"Remaining  : 25m",
-				"Today's    : 1h 30m",
+				"0s / 25m",
+				"Remaining     : 25m",
+				"Today's       : 1h 30m",
 				"Recent Sessions",
 				"Wed Aug 19  5m",
 				"[q] Quit",

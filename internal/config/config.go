@@ -16,6 +16,7 @@ const (
 
 type Config struct {
 	viper *viper.Viper
+	path  string
 }
 
 func New(appDir string) (*Config, error) {
@@ -26,6 +27,8 @@ func New(appDir string) (*Config, error) {
 
 	config.SetDefault("default-duration", defaultFocusDuration.String())
 	config.SetDefault("short-break-duration", defaultShortBreakDuration.String())
+	config.SetDefault("active-project-id", "")
+	configPath := filepath.Join(appDir, "config.yaml")
 
 	if err := config.ReadInConfig(); err != nil {
 		var notFound viper.ConfigFileNotFoundError
@@ -33,12 +36,25 @@ func New(appDir string) (*Config, error) {
 			return nil, fmt.Errorf("read config: %w", err)
 		}
 
-		if err := config.SafeWriteConfigAs(filepath.Join(appDir, "config.yaml")); err != nil {
+		if err := config.SafeWriteConfigAs(configPath); err != nil {
 			return nil, fmt.Errorf("create config: %w", err)
 		}
 	}
 
-	return &Config{config}, nil
+	return &Config{viper: config, path: configPath}, nil
+}
+
+func (c *Config) LoadActiveProjectID() string {
+	return c.viper.GetString("active-project-id")
+}
+
+func (c *Config) SaveActiveProjectID(id string) error {
+	c.viper.Set("active-project-id", id)
+	if err := c.viper.WriteConfigAs(c.path); err != nil {
+		return fmt.Errorf("save active-project-id: %w", err)
+	}
+
+	return nil
 }
 
 func (c *Config) LoadDefaultFocusDuration() (time.Duration, error) {
