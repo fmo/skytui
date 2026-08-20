@@ -5,12 +5,12 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/fmo/skytui/internal/history"
 	"github.com/fmo/skytui/internal/pomodoro"
-	"github.com/fmo/skytui/internal/session"
 	"github.com/spf13/cobra"
 )
 
-func newRootCmd(store session.Store, defaultFocusDuration, shortBreakDuration time.Duration) *cobra.Command {
+func newRootCmd(historyStore history.Store, defaultFocusDuration, shortBreakDuration time.Duration) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:     "skytui",
 		Short:   "Execute SkyTUI Dashboard",
@@ -25,7 +25,7 @@ func newRootCmd(store session.Store, defaultFocusDuration, shortBreakDuration ti
 				return fmt.Errorf("duration should be at least 1 second and use whole seconds: %v", focusDuration)
 			}
 
-			m := pomodoro.New(store, focusDuration, shortBreakDuration)
+			m := pomodoro.New(historyStore, focusDuration, shortBreakDuration)
 			p := tea.NewProgram(m)
 			if _, err := p.Run(); err != nil {
 				return err
@@ -40,8 +40,8 @@ func newRootCmd(store session.Store, defaultFocusDuration, shortBreakDuration ti
 	return rootCmd
 }
 
-func Exec(store session.Store, defaultFocusDuration, shortBreakDuration time.Duration) error {
-	if err := newRootCmd(store, defaultFocusDuration, shortBreakDuration).Execute(); err != nil {
+func Exec(historyStore history.Store, defaultFocusDuration, shortBreakDuration time.Duration) error {
+	if err := newRootCmd(historyStore, defaultFocusDuration, shortBreakDuration).Execute(); err != nil {
 		return err
 	}
 

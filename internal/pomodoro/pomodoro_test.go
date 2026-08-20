@@ -8,7 +8,7 @@ import (
 
 	"charm.land/bubbles/v2/progress"
 	tea "charm.land/bubbletea/v2"
-	"github.com/fmo/skytui/internal/session"
+	"github.com/fmo/skytui/internal/history"
 	"github.com/fmo/skytui/internal/timer"
 )
 
@@ -22,9 +22,9 @@ func completedSession(kind timer.Kind, duration time.Duration) *timer.Session {
 func TestRunningTickUpdatesSession(t *testing.T) {
 	now := time.Now()
 	m := model{
-		session:  timer.New(timer.Focus, time.Minute, now.Add(-15*time.Second)),
-		progress: progress.New(progress.WithDefaultBlend()),
-		store:    session.New(filepath.Join(t.TempDir(), "sessions.csv")),
+		session:      timer.New(timer.Focus, time.Minute, now.Add(-15*time.Second)),
+		progress:     progress.New(progress.WithDefaultBlend()),
+		historyStore: history.NewStore(filepath.Join(t.TempDir(), "sessions.csv")),
 	}
 
 	updated, cmd := m.Update(tickType{})
@@ -87,9 +87,9 @@ func TestPausedTickDoesNotAdvance(t *testing.T) {
 func TestTickReachesDeadline(t *testing.T) {
 	storePath := filepath.Join(t.TempDir(), "sessions.csv")
 	m := model{
-		session:  timer.New(timer.Focus, time.Minute, time.Now().Add(-time.Minute-time.Second)),
-		progress: progress.New(progress.WithDefaultBlend()),
-		store:    session.New(storePath),
+		session:      timer.New(timer.Focus, time.Minute, time.Now().Add(-time.Minute-time.Second)),
+		progress:     progress.New(progress.WithDefaultBlend()),
+		historyStore: history.NewStore(storePath),
 	}
 
 	updated, cmd := m.Update(tickType{})
@@ -137,18 +137,18 @@ func TestCompletedControls(t *testing.T) {
 
 func TestCompletedStoresOnce(t *testing.T) {
 	storePath := filepath.Join(t.TempDir(), "sessions.csv")
-	store := session.New(storePath)
+	historyStore := history.NewStore(storePath)
 	m := model{
-		session:  timer.New(timer.Focus, 20*time.Second, time.Now().Add(-21*time.Second)),
-		progress: progress.New(progress.WithDefaultBlend()),
-		store:    store,
+		session:      timer.New(timer.Focus, 20*time.Second, time.Now().Add(-21*time.Second)),
+		progress:     progress.New(progress.WithDefaultBlend()),
+		historyStore: historyStore,
 	}
 
 	updated, _ := m.Update(tickType{})
 	got := updated.(model)
 	got.Update(tickType{})
 
-	records, err := store.Load()
+	records, err := historyStore.Load()
 	if err != nil {
 		t.Fatalf("load sessions: %v", err)
 	}
@@ -158,9 +158,9 @@ func TestCompletedStoresOnce(t *testing.T) {
 }
 
 func TestSessionList(t *testing.T) {
-	store := session.New(filepath.Join(t.TempDir(), "sessions.csv"))
+	historyStore := history.NewStore(filepath.Join(t.TempDir(), "sessions.csv"))
 
-	records := []session.Record{
+	records := []history.Record{
 		{CompletedAt: time.Now().Add(-60 * time.Minute), Duration: time.Minute},
 		{CompletedAt: time.Now().Add(-50 * time.Minute), Duration: 2 * time.Minute},
 		{CompletedAt: time.Now().Add(-40 * time.Minute), Duration: 3 * time.Minute},
@@ -170,12 +170,12 @@ func TestSessionList(t *testing.T) {
 	}
 
 	for _, record := range records {
-		if err := store.Append(record.CompletedAt, record.Duration); err != nil {
+		if err := historyStore.Append(record.CompletedAt, record.Duration); err != nil {
 			t.Fatalf("append record: %v", err)
 		}
 	}
 
-	loaded, err := store.Load()
+	loaded, err := historyStore.Load()
 	if err != nil {
 		t.Fatalf("load records: %v", err)
 	}
@@ -228,7 +228,7 @@ func TestResetRunningSession(t *testing.T) {
 func TestNextSessionCyclesFocusAndBreak(t *testing.T) {
 	focusDuration := 25 * time.Minute
 	shortBreakDuration := 5 * time.Minute
-	m := New(session.New(filepath.Join(t.TempDir(), "sessions.csv")), focusDuration, shortBreakDuration)
+	m := New(history.NewStore(filepath.Join(t.TempDir(), "sessions.csv")), focusDuration, shortBreakDuration)
 	m.session = completedSession(timer.Focus, focusDuration)
 	next := tea.KeyPressMsg{Text: "n", Code: 'n'}
 
@@ -267,11 +267,11 @@ func TestNextSessionCyclesFocusAndBreak(t *testing.T) {
 }
 
 func TestCompletedBreakIsNotStoredOrTotaled(t *testing.T) {
-	store := session.New(filepath.Join(t.TempDir(), "sessions.csv"))
+	historyStore := history.NewStore(filepath.Join(t.TempDir(), "sessions.csv"))
 	m := model{
-		session:  timer.New(timer.ShortBreak, 5*time.Minute, time.Now().Add(-5*time.Minute-time.Second)),
-		progress: progress.New(progress.WithDefaultBlend()),
-		store:    store,
+		session:      timer.New(timer.ShortBreak, 5*time.Minute, time.Now().Add(-5*time.Minute-time.Second)),
+		progress:     progress.New(progress.WithDefaultBlend()),
+		historyStore: historyStore,
 	}
 
 	updated, _ := m.Update(tickType{})

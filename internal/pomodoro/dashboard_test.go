@@ -8,7 +8,7 @@ import (
 	"charm.land/bubbles/v2/progress"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
-	"github.com/fmo/skytui/internal/session"
+	"github.com/fmo/skytui/internal/history"
 	"github.com/fmo/skytui/internal/timer"
 )
 
@@ -33,7 +33,7 @@ func TestSessionLabelsUseDistinctColors(t *testing.T) {
 }
 
 func TestSessionProgressUsesItsAccentColor(t *testing.T) {
-	m := New(session.Store{}, 25*time.Minute, 5*time.Minute)
+	m := New(history.Store{}, 25*time.Minute, 5*time.Minute)
 	fr, fg, fb, fa := m.progress.FullColor.RGBA()
 	wantR, wantG, wantB, wantA := sessionColor(timer.Focus).RGBA()
 	if fr != wantR || fg != wantG || fb != wantB || fa != wantA {
@@ -89,7 +89,7 @@ func TestDashboardRendering(t *testing.T) {
 				thisWeek:    4*time.Hour + 10*time.Minute,
 				thisMonth:   12 * time.Hour,
 				allTime:     24*time.Hour + 30*time.Minute,
-				sessions: []session.Record{
+				sessions: []history.Record{
 					{CompletedAt: now.AddDate(0, 0, -4), Duration: time.Minute},
 					{CompletedAt: now.AddDate(0, 0, -3), Duration: 2 * time.Minute},
 					{CompletedAt: now.AddDate(0, 0, -2), Duration: 3 * time.Minute},

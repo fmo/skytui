@@ -356,7 +356,16 @@ alignment, borders, and color without adding an ASCII-art font.
 Goal: give every completed focus session a real project identity without
 turning SkyTUI into a project-management application.
 
-### [ ] 30. Add Project Storage
+### [x] 30. Rename The Session Package To History
+
+- Rename `internal/session` to `internal/history` to distinguish persisted
+  completed sessions from the active `timer.Session`.
+- Rename the store constructor to `history.NewStore` and update all imports,
+  parameters, and tests without changing behavior or data formats.
+
+**Commit:** `refactor: rename session package to history`
+
+### [ ] 31. Add Project Storage
 
 - Define a project with a stable internal ID and a user-facing name.
 - Store projects separately from sessions and inject the storage path so tests
@@ -366,7 +375,7 @@ turning SkyTUI into a project-management application.
 
 **Commit:** `feat: add project storage`
 
-### [ ] 31. Select The Active Project
+### [ ] 32. Select The Active Project
 
 - Add an in-app project picker for creating and selecting a project.
 - Require a project before the first focus session starts and remember the last
@@ -377,7 +386,7 @@ turning SkyTUI into a project-management application.
 
 **Commit:** `feat: select an active project`
 
-### [ ] 32. Save Projects With Focus Sessions
+### [ ] 33. Save Projects With Focus Sessions
 
 - Add the project ID as an optional third field in `sessions.csv`.
 - Load existing two-field rows as unassigned sessions without rewriting them.
@@ -386,7 +395,7 @@ turning SkyTUI into a project-management application.
 
 **Commit:** `feat: associate focus sessions with projects`
 
-### [ ] 33. Test Project Workflows
+### [ ] 34. Test Project Workflows
 
 - Cover project-name validation, duplicate names, persistence, and selection.
 - Cover old two-field session rows and new project-aware rows together.
@@ -394,7 +403,7 @@ turning SkyTUI into a project-management application.
 
 **Commit:** `test: cover project workflows`
 
-### [ ] 34. Prepare v0.6.0
+### [ ] 35. Prepare v0.6.0
 
 - Document project creation, selection, persistence, and legacy sessions.
 - Verify first-run setup and repeated launches with a remembered project.
@@ -407,7 +416,7 @@ turning SkyTUI into a project-management application.
 
 Goal: make focus history and totals useful for one project or across all work.
 
-### [ ] 35. Filter Sessions By Project
+### [ ] 36. Filter Sessions By Project
 
 - Filter records by project ID before calculating recent sessions and totals.
 - Support `All Projects`, one selected project, and `Unassigned` legacy rows.
@@ -415,7 +424,7 @@ Goal: make focus history and totals useful for one project or across all work.
 
 **Commit:** `feat: filter sessions by project`
 
-### [ ] 36. Add Dashboard Filter Controls
+### [ ] 37. Add Dashboard Filter Controls
 
 - Add `[f] Filter` to open an in-app project filter.
 - Show the active filter beside history and totals.
@@ -424,7 +433,7 @@ Goal: make focus history and totals useful for one project or across all work.
 
 **Commit:** `feat: add project filter controls`
 
-### [ ] 37. Test Project Filtering
+### [ ] 38. Test Project Filtering
 
 - Cover all-project, single-project, and unassigned totals and recent sessions.
 - Cover empty results and projects with the same prefix.
@@ -432,7 +441,7 @@ Goal: make focus history and totals useful for one project or across all work.
 
 **Commit:** `test: cover project filtering`
 
-### [ ] 38. Prepare v0.7.0
+### [ ] 39. Prepare v0.7.0
 
 - Document project filters and the difference between active project and
   history filter.
@@ -448,7 +457,7 @@ Goal: make focus history and totals useful for one project or across all work.
 Goal: tell the user when a session finishes without requiring them to watch the
 terminal.
 
-### [ ] 39. Add A Notification Boundary
+### [ ] 40. Add A Notification Boundary
 
 - Define a small notifier interface and inject it into the Pomodoro model.
 - Emit one completion notification request when a timer reaches zero.
@@ -457,7 +466,7 @@ terminal.
 
 **Commit:** `refactor: add notification boundary`
 
-### [ ] 40. Notify On Session Completion
+### [ ] 41. Notify On Session Completion
 
 - Send a desktop notification when a focus or short-break session completes.
 - State which session completed and which session is available next.
@@ -467,14 +476,14 @@ terminal.
 
 **Commit:** `feat: notify when sessions complete`
 
-### [ ] 41. Test Completion Notifications
+### [ ] 42. Test Completion Notifications
 
 - Cover focus and short-break messages, disabled notifications, and failures.
 - Verify that completion emits once even when more tick messages arrive.
 
 **Commit:** `test: cover completion notifications`
 
-### [ ] 42. Prepare v0.8.0
+### [ ] 43. Prepare v0.8.0
 
 - Document notification behavior and configuration.
 - Verify notifications with focus/break cycling and manual next-session starts.
@@ -488,7 +497,7 @@ terminal.
 Goal: make the release candidate safe to install, upgrade, and run on supported
 desktop platforms.
 
-### [ ] 43. Use Platform-Appropriate Paths
+### [ ] 44. Use Platform-Appropriate Paths
 
 - Resolve configuration, session, project, and log paths per operating system.
 - Preserve existing macOS data and migrate only when the destination is safe.
@@ -496,7 +505,7 @@ desktop platforms.
 
 **Commit:** `feat: use cross-platform application paths`
 
-### [ ] 44. Build On Supported Platforms
+### [ ] 45. Build On Supported Platforms
 
 - Build and test supported macOS, Linux, and Windows targets in CI.
 - Publish archives with consistent names and checksums.
@@ -504,7 +513,7 @@ desktop platforms.
 
 **Commit:** `build: add cross-platform release builds`
 
-### [ ] 45. Harden Local Storage
+### [ ] 46. Harden Local Storage
 
 - Return file and row context for malformed project and session data.
 - Prevent failed project writes or migrations from truncating valid data.
@@ -512,7 +521,7 @@ desktop platforms.
 
 **Commit:** `fix: protect local project and session data`
 
-### [ ] 46. Automate Release Checks
+### [ ] 47. Automate Release Checks
 
 - Run formatting, tests, builds, and archive generation through one release
   workflow.
@@ -520,7 +529,7 @@ desktop platforms.
 
 **Commit:** `build: automate release verification`
 
-### [ ] 47. Prepare v0.9.0
+### [ ] 48. Prepare v0.9.0
 
 - Verify clean installs and upgrades with legacy sessions on every supported
   platform.
@@ -535,7 +544,7 @@ desktop platforms.
 Goal: declare the local timer, project, history, and configuration contracts
 stable and ready for normal use.
 
-### [ ] 48. Stabilize User-Facing Contracts
+### [ ] 49. Stabilize User-Facing Contracts
 
 - Document supported CLI flags, controls, configuration keys, and data files.
 - Define compatibility rules for session and project formats.
@@ -543,7 +552,7 @@ stable and ready for normal use.
 
 **Commit:** `docs: define stable skytui contracts`
 
-### [ ] 49. Verify The Complete Product
+### [ ] 50. Verify The Complete Product
 
 - Cover first run, project creation and selection, focus/break cycling,
   filtering, notifications, restart, and legacy-data upgrade paths.
@@ -553,7 +562,7 @@ stable and ready for normal use.
 
 **Commit:** `test: verify stable product workflows`
 
-### [ ] 50. Prepare v1.0.0
+### [ ] 51. Prepare v1.0.0
 
 - Update the CLI version, README, screenshots, and installation instructions.
 - Publish release archives and checksums for every supported platform.

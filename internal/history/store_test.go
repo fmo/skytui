@@ -1,4 +1,4 @@
-package session
+package history
 
 import (
 	"encoding/csv"
@@ -10,7 +10,7 @@ import (
 
 func TestAppend(t *testing.T) {
 	testFile := filepath.Join(t.TempDir(), "sessions.csv")
-	store := New(testFile)
+	store := NewStore(testFile)
 	if err := store.Append(time.Now(), time.Second*10); err != nil {
 		t.Fatalf("cant append the row: %v", err)
 	}
@@ -42,7 +42,7 @@ func TestLoad(t *testing.T) {
 	completedAt := time.Now().Add(-10 * time.Second)
 	duration := time.Second * 20
 
-	store := New(testFile)
+	store := NewStore(testFile)
 
 	err := store.Append(completedAt, duration)
 	if err != nil {
@@ -74,7 +74,7 @@ func TestTodaysTotal(t *testing.T) {
 	today := time.Date(now.Year(), now.Month(), now.Day(), 12, 0, 0, 0, now.Location())
 	yesterday := today.AddDate(0, 0, -1)
 
-	store := New(path)
+	store := NewStore(path)
 
 	if err := store.Append(today, time.Second*10); err != nil {
 		t.Fatalf("cant append the record: %v", err)
@@ -99,7 +99,7 @@ func TestTodaysTotal(t *testing.T) {
 }
 
 func TestThisWeek(t *testing.T) {
-	store := New("")
+	store := NewStore("")
 	now := time.Now()
 	today := time.Date(now.Year(), now.Month(), now.Day(), 12, 0, 0, 0, now.Location())
 	weekday := int(today.Weekday())
@@ -122,7 +122,7 @@ func TestThisWeek(t *testing.T) {
 }
 
 func TestThisMonth(t *testing.T) {
-	store := New("")
+	store := NewStore("")
 	now := time.Now()
 	monthStart := time.Date(now.Year(), now.Month(), 1, 12, 0, 0, 0, now.Location())
 
@@ -140,7 +140,7 @@ func TestThisMonth(t *testing.T) {
 }
 
 func TestAllTime(t *testing.T) {
-	store := New("")
+	store := NewStore("")
 	records := []Record{
 		{Duration: 10 * time.Minute},
 		{Duration: 20 * time.Minute},

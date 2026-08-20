@@ -6,7 +6,7 @@ import (
 
 	"charm.land/bubbles/v2/progress"
 	tea "charm.land/bubbletea/v2"
-	"github.com/fmo/skytui/internal/session"
+	"github.com/fmo/skytui/internal/history"
 	"github.com/fmo/skytui/internal/timer"
 )
 
@@ -16,18 +16,18 @@ type model struct {
 	thisWeek           time.Duration
 	thisMonth          time.Duration
 	allTime            time.Duration
-	store              session.Store
+	historyStore       history.Store
 	progress           progress.Model
 	focusDuration      time.Duration
 	shortBreakDuration time.Duration
-	sessions           []session.Record
+	sessions           []history.Record
 	width, height      int
 }
 
-func New(store session.Store, focusDuration, shortBreakDuration time.Duration) model {
+func New(historyStore history.Store, focusDuration, shortBreakDuration time.Duration) model {
 	return model{
 		session:            timer.New(timer.Focus, focusDuration, time.Now()),
-		store:              store,
+		historyStore:       historyStore,
 		progress:           progress.New(progress.WithColors(sessionColor(timer.Focus))),
 		focusDuration:      focusDuration,
 		shortBreakDuration: shortBreakDuration,
@@ -94,16 +94,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 	case loadType:
-		records, err := m.store.Load()
+		records, err := m.historyStore.Load()
 		if err != nil {
 			slog.Error("cant load sessions", "err", err)
 		}
 		m.sessions = records
 
-		m.todaysTotal = m.store.TodaysTotal(records)
-		m.thisWeek = m.store.ThisWeek(records)
-		m.thisMonth = m.store.ThisMonth(records)
-		m.allTime = m.store.AllTime(records)
+		m.todaysTotal = m.historyStore.TodaysTotal(records)
+		m.thisWeek = m.historyStore.ThisWeek(records)
+		m.thisMonth = m.historyStore.ThisMonth(records)
+		m.allTime = m.historyStore.AllTime(records)
 	case tickType:
 		if m.session.Status() == timer.Completed {
 			return m, nil
@@ -119,7 +119,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			slog.Info("countdown ends")
 			cmd := m.progress.SetPercent(1)
 			if m.session.Kind() == timer.Focus {
-				if err := m.store.Append(time.Now(), m.session.Duration()); err != nil {
+				if err := m.historyStore.Append(time.Now(), m.session.Duration()); err != nil {
 					slog.Error("cant append the session", "err", err)
 				}
 			}

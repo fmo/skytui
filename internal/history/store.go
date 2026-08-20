@@ -1,4 +1,4 @@
-package session
+package history
 
 import (
 	"encoding/csv"
@@ -11,7 +11,7 @@ type Store struct {
 	path string
 }
 
-func New(path string) Store {
+func NewStore(path string) Store {
 	return Store{path: path}
 }
 
