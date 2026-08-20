@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -15,15 +16,20 @@ func NewStore(path string) Store {
 	return Store{path: path}
 }
 
-func (s Store) Append(completedAt time.Time, duration time.Duration) error {
-	file, err := os.OpenFile(s.path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, os.FileMode(0o600))
+func (s Store) Append(completedAt time.Time, duration time.Duration, projectID string) error {
+	projectID = strings.TrimSpace(projectID)
+	if projectID == "" {
+		return fmt.Errorf("project ID is required")
+	}
+
+	file, err := os.OpenFile(s.path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
 	csvWriter := csv.NewWriter(file)
-	if err := csvWriter.Write([]string{completedAt.Format(time.RFC3339Nano), duration.String()}); err != nil {
+	if err := csvWriter.Write([]string{completedAt.Format(time.RFC3339Nano), duration.String(), projectID}); err != nil {
 		return err
 	}
 	csvWriter.Flush()
@@ -51,21 +57,29 @@ func (s Store) Load() ([]Record, error) {
 		return []Record{}, err
 	}
 
-	var records []Record
-	for _, row := range rows {
-		if len(row) != 2 {
-			return []Record{}, fmt.Errorf("there has to be two fields")
+	records := make([]Record, 0, len(rows))
+	for index, row := range rows {
+		if len(row) != 2 && len(row) != 3 {
+			return []Record{}, fmt.Errorf("read session row %d: expected 2 or 3 fields, got %d", index+1, len(row))
 		}
-		complatedAt, err := time.Parse(time.RFC3339Nano, row[0])
+		completedAt, err := time.Parse(time.RFC3339Nano, row[0])
 		if err != nil {
-			return []Record{}, err
+			return []Record{}, fmt.Errorf("read session row %d completion time: %w", index+1, err)
 		}
 		duration, err := time.ParseDuration(row[1])
 		if err != nil {
-			return []Record{}, err
+			return []Record{}, fmt.Errorf("read session row %d duration: %w", index+1, err)
 		}
 
-		records = append(records, Record{complatedAt, duration})
+		projectID := ""
+		if len(row) == 3 {
+			projectID = strings.TrimSpace(row[2])
+			if projectID == "" {
+				return []Record{}, fmt.Errorf("read session row %d: project ID is required", index+1)
+			}
+		}
+
+		records = append(records, Record{CompletedAt: completedAt, Duration: duration, ProjectID: projectID})
 	}
 
 	return records, nil

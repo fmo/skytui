@@ -11,6 +11,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/fmo/skytui/internal/history"
+	"github.com/fmo/skytui/internal/project"
 	"github.com/fmo/skytui/internal/timer"
 )
 
@@ -65,7 +66,7 @@ func sessionLabel(kind timer.Kind) string {
 	return "Focus Session"
 }
 
-func sessionList(sessions []history.Record) string {
+func sessionList(sessions []history.Record, projects []project.Project, availableWidth int) string {
 	rows := make([]string, 0, sessionsLimit+2)
 	rows = append(rows, lipgloss.NewStyle().Bold(true).Render("Recent Sessions"), "")
 
@@ -73,11 +74,56 @@ func sessionList(sessions []history.Record) string {
 	slices.Reverse(recent)
 	recent = recent[:min(len(recent), sessionsLimit)]
 
+	projectNames := make(map[string]string, len(projects))
+	for _, project := range projects {
+		projectNames[project.ID] = project.Name
+	}
+
+	durationWidth := 0
 	for _, record := range recent {
-		rows = append(rows, fmt.Sprintf("%-10s  %s", record.CompletedAt.Format("Mon Jan 02"), formatDuration(record.Duration)))
+		durationWidth = max(durationWidth, lipgloss.Width(formatDuration(record.Duration)))
+	}
+	const dateWidth = 10
+	projectWidth := max(1, availableWidth-dateWidth-durationWidth-4)
+
+	for _, record := range recent {
+		name := "Unassigned"
+		if record.ProjectID != "" {
+			name = projectNames[record.ProjectID]
+			if name == "" {
+				name = "Unknown project"
+			}
+		}
+		rows = append(rows, fmt.Sprintf(
+			"%-*s  %-*s  %s",
+			dateWidth,
+			record.CompletedAt.Format("Mon Jan 02"),
+			durationWidth,
+			formatDuration(record.Duration),
+			truncate(name, projectWidth),
+		))
 	}
 
 	return strings.Join(rows, "\n")
+}
+
+func truncate(value string, width int) string {
+	if lipgloss.Width(value) <= width {
+		return value
+	}
+	if width <= 1 {
+		return "…"
+	}
+
+	var truncated strings.Builder
+	for _, character := range value {
+		if lipgloss.Width(truncated.String()+string(character)+"…") > width {
+			break
+		}
+		truncated.WriteRune(character)
+	}
+
+	return truncated.String() + "…"
 }
 
 func summaryRow(label, value string) string {
@@ -187,7 +233,7 @@ func (m model) dashboardView() tea.View {
 		"",
 		divider,
 		"",
-		sessionList(m.sessions),
+		sessionList(m.sessions, m.projectPicker.projects, contentWidth),
 	)
 
 	dashboard := lipgloss.JoinVertical(

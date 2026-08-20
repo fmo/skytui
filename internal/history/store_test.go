@@ -11,7 +11,7 @@ import (
 func TestAppend(t *testing.T) {
 	testFile := filepath.Join(t.TempDir(), "sessions.csv")
 	store := NewStore(testFile)
-	if err := store.Append(time.Now(), time.Second*10); err != nil {
+	if err := store.Append(time.Now(), time.Second*10, "project-1"); err != nil {
 		t.Fatalf("cant append the row: %v", err)
 	}
 
@@ -34,6 +34,16 @@ func TestAppend(t *testing.T) {
 	if rows[0][1] != (time.Second * 10).String() {
 		t.Error("append does not work")
 	}
+	if len(rows[0]) != 3 || rows[0][2] != "project-1" {
+		t.Fatalf("got row %#v, want project ID as third field", rows[0])
+	}
+}
+
+func TestAppendRequiresProjectID(t *testing.T) {
+	store := NewStore(filepath.Join(t.TempDir(), "sessions.csv"))
+	if err := store.Append(time.Now(), 25*time.Minute, ""); err == nil {
+		t.Fatal("append without a project ID should fail")
+	}
 }
 
 func TestLoad(t *testing.T) {
@@ -44,7 +54,7 @@ func TestLoad(t *testing.T) {
 
 	store := NewStore(testFile)
 
-	err := store.Append(completedAt, duration)
+	err := store.Append(completedAt, duration, "project-1")
 	if err != nil {
 		t.Fatalf("cant append the record: %v", err)
 	}
@@ -65,6 +75,29 @@ func TestLoad(t *testing.T) {
 	if records[0].Duration != duration {
 		t.Errorf("wanted: %v, got: %v", duration, records[0].Duration)
 	}
+	if records[0].ProjectID != "project-1" {
+		t.Errorf("wanted project ID %q, got %q", "project-1", records[0].ProjectID)
+	}
+}
+
+func TestLoadLegacyRecordWithoutProject(t *testing.T) {
+	testFile := filepath.Join(t.TempDir(), "sessions.csv")
+	completedAt := time.Date(2026, time.August, 20, 12, 0, 0, 0, time.UTC)
+	row := completedAt.Format(time.RFC3339Nano) + ",25m0s\n"
+	if err := os.WriteFile(testFile, []byte(row), 0o600); err != nil {
+		t.Fatalf("write legacy session: %v", err)
+	}
+
+	records, err := NewStore(testFile).Load()
+	if err != nil {
+		t.Fatalf("load legacy session: %v", err)
+	}
+	if len(records) != 1 {
+		t.Fatalf("got %d records, want 1", len(records))
+	}
+	if records[0].ProjectID != "" {
+		t.Fatalf("got project ID %q, want empty", records[0].ProjectID)
+	}
 }
 
 func TestTodaysTotal(t *testing.T) {
@@ -76,13 +109,13 @@ func TestTodaysTotal(t *testing.T) {
 
 	store := NewStore(path)
 
-	if err := store.Append(today, time.Second*10); err != nil {
+	if err := store.Append(today, time.Second*10, "project-1"); err != nil {
 		t.Fatalf("cant append the record: %v", err)
 	}
-	if err := store.Append(today.Add(-10*time.Minute), time.Minute*3); err != nil {
+	if err := store.Append(today.Add(-10*time.Minute), time.Minute*3, "project-1"); err != nil {
 		t.Fatalf("cant append the record: %v", err)
 	}
-	if err := store.Append(yesterday, time.Minute*3); err != nil {
+	if err := store.Append(yesterday, time.Minute*3, "project-1"); err != nil {
 		t.Fatalf("cant append the record: %v", err)
 	}
 
