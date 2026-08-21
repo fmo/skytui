@@ -170,7 +170,7 @@ Goal: make completed focus time useful after the timer exits.
 ### [x] 12. Show Recent Sessions
 
 - Load saved sessions when SkyTUI starts.
-- Show the five most recent completed sessions below the timer.
+- Show the four most recent completed sessions below the timer.
 - Refresh the recent sessions after a session completes.
 - Treat a missing or empty session file as an empty history.
 
@@ -424,10 +424,10 @@ Goal: make focus history and totals useful for one project or across all work.
 
 **Commit:** `feat: filter sessions by project`
 
-### [ ] 37. Add Dashboard Filter Controls
+### [x] 37. Add Dashboard Filter Controls
 
 - Add `[f] Filter` to open an in-app project filter.
-- Show the active filter beside history and totals.
+- Show the active filter as the shared heading for totals and recent sessions.
 - Default to `All Projects` and preserve the filter while SkyTUI remains open.
 - Changing the filter must not pause, reset, or reassign the active session.
 

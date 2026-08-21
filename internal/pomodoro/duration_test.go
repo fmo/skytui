@@ -41,11 +41,13 @@ func TestTopContentFormatsDurations(t *testing.T) {
 		25*time.Minute,
 		time.Minute+5*time.Second,
 		progress.New(progress.WithDefaultBlend()),
+		timer.Focus,
+	) + "\n" + statsContent(
+		"All Projects",
 		4*time.Hour+10*time.Minute,
 		time.Minute+5*time.Second,
 		0,
 		time.Hour+2*time.Minute+3*time.Second,
-		timer.Focus,
 	)
 
 	want := []string{

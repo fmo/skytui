@@ -21,7 +21,7 @@ const (
 	maxProgressWidth      = 60
 	progressLabelWidth    = 4
 	summaryLabelWidth     = 13
-	sessionsLimit         = 5
+	sessionsLimit         = 4
 )
 
 var (
@@ -67,12 +67,10 @@ func sessionLabel(kind timer.Kind) string {
 }
 
 func sessionList(sessions []history.Record, projects []project.Project, availableWidth int) string {
-	rows := make([]string, 0, sessionsLimit+2)
-	rows = append(rows, lipgloss.NewStyle().Bold(true).Render("Recent Sessions"), "")
-
 	recent := slices.Clone(sessions)
 	slices.Reverse(recent)
 	recent = recent[:min(len(recent), sessionsLimit)]
+	rows := make([]string, 0, len(recent))
 
 	projectNames := make(map[string]string, len(projects))
 	for _, project := range projects {
@@ -140,10 +138,6 @@ func topContent(
 	duration time.Duration,
 	remaining time.Duration,
 	progress progress.Model,
-	todaysTotal time.Duration,
-	thisWeek time.Duration,
-	thisMonth time.Duration,
-	allTime time.Duration,
 	sessionType timer.Kind,
 ) string {
 	elapsed := duration - remaining
@@ -157,25 +151,42 @@ func topContent(
 		progress.View(),
 		"",
 		summaryRow("Remaining", formatDuration(remaining)),
-		summaryRow("Today's", formatDuration(todaysTotal)),
-		summaryRow("This week", formatDuration(thisWeek)),
-		summaryRow("This month", formatDuration(thisMonth)),
-		summaryRow("Total", formatDuration(allTime)),
 	)
 
 	return lipgloss.JoinVertical(lipgloss.Left, rows...)
 }
 
+func statsContent(
+	filterLabel string,
+	todaysTotal time.Duration,
+	thisWeek time.Duration,
+	thisMonth time.Duration,
+	allTime time.Duration,
+) string {
+	return lipgloss.JoinVertical(
+		lipgloss.Left,
+		lipgloss.NewStyle().Bold(true).Render(filterLabel),
+		"",
+		summaryRow("Today's", formatDuration(todaysTotal)),
+		summaryRow("This week", formatDuration(thisWeek)),
+		summaryRow("This month", formatDuration(thisMonth)),
+		summaryRow("Total", formatDuration(allTime)),
+	)
+}
+
 func bottomContent(status timer.Status, availableWidth int) string {
-	controls := []string{"[q] Quit", "[Space] Pause", "[r] Reset"}
+	controls := []string{"[q] Quit", "[Space] Pause", "[r] Reset", "[f] Filter"}
 	if status == timer.Paused {
 		controls[1] = "[Space] Resume"
 	}
 	if status == timer.Completed {
-		controls = []string{"[q] Quit", "[n] Next"}
+		controls = []string{"[q] Quit", "[n] Next", "[f] Filter"}
 	}
 
 	separator := "   "
+	if lipgloss.Width(strings.Join(controls, separator)) > availableWidth {
+		separator = "  "
+	}
 	if lipgloss.Width(strings.Join(controls, separator)) > availableWidth {
 		separator = "\n"
 	}
@@ -216,6 +227,10 @@ func renderPanel(content string, width int, kind timer.Kind) string {
 func (m model) dashboardView() tea.View {
 	width := dashboardWidth(m.width)
 	contentWidth := dashboardContentWidth(width)
+	filterLabel := truncate(
+		historyFilterLabel(m.historyFilter, m.projectPicker.projects),
+		contentWidth,
+	)
 	divider := lipgloss.NewStyle().Foreground(mutedColor).Render(strings.Repeat("─", contentWidth))
 	content := lipgloss.JoinVertical(
 		lipgloss.Left,
@@ -224,14 +239,12 @@ func (m model) dashboardView() tea.View {
 			m.session.Duration(),
 			m.session.Remaining(),
 			m.progress,
-			m.todaysTotal,
-			m.thisWeek,
-			m.thisMonth,
-			m.allTime,
 			m.session.Kind(),
 		),
 		"",
 		divider,
+		"",
+		statsContent(filterLabel, m.todaysTotal, m.thisWeek, m.thisMonth, m.allTime),
 		"",
 		sessionList(m.sessions, m.projectPicker.projects, contentWidth),
 	)

@@ -145,7 +145,7 @@ SkyTUI saves completed sessions to:
 ~/Library/Application Support/skytui/sessions.csv
 ```
 
-The dashboard shows the five most recently completed focus sessions, with the
+The dashboard shows the four most recently completed focus sessions, with the
 newest session first. Each entry includes its completion date, duration, and
 project name. Partial focus sessions and short breaks are not saved or included
 in totals.

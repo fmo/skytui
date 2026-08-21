@@ -15,8 +15,8 @@ import (
 )
 
 func TestSessionLabelsUseSummaryStyle(t *testing.T) {
-	focus := topContent("SkyTUI", 25*time.Minute, 20*time.Minute, progress.New(), 0, 0, 0, 0, timer.Focus)
-	shortBreak := topContent("", 5*time.Minute, 4*time.Minute, progress.New(), 0, 0, 0, 0, timer.ShortBreak)
+	focus := topContent("SkyTUI", 25*time.Minute, 20*time.Minute, progress.New(), timer.Focus)
+	shortBreak := topContent("", 5*time.Minute, 4*time.Minute, progress.New(), timer.ShortBreak)
 
 	focusLabel := fmt.Sprintf("%-*s", summaryLabelWidth, "Focus Session")
 	breakLabel := fmt.Sprintf("%-*s", summaryLabelWidth, "Short Break")
@@ -59,9 +59,9 @@ func TestFooterControls(t *testing.T) {
 		status timer.Status
 		want   string
 	}{
-		{name: "running", status: timer.Running, want: "[q] Quit   [Space] Pause   [r] Reset"},
-		{name: "paused", status: timer.Paused, want: "[q] Quit   [Space] Resume   [r] Reset"},
-		{name: "completed", status: timer.Completed, want: "[q] Quit   [n] Next"},
+		{name: "running", status: timer.Running, want: "[q] Quit   [Space] Pause   [r] Reset   [f] Filter"},
+		{name: "paused", status: timer.Paused, want: "[q] Quit   [Space] Resume   [r] Reset   [f] Filter"},
+		{name: "completed", status: timer.Completed, want: "[q] Quit   [n] Next   [f] Filter"},
 	}
 
 	for _, tt := range tests {
@@ -114,13 +114,15 @@ func TestDashboardRendering(t *testing.T) {
 				"Focus Session",
 				"0s / 25m",
 				"Remaining     : 25m",
+				"All Projects",
 				"Today's       : 1h 30m",
-				"Recent Sessions",
+				"Total         : 24h 30m",
 				"Wed Aug 19  5m",
 				"SkyTUI",
 				"[q] Quit",
 				"[Space] Pause",
 				"[r] Reset",
+				"[f] Filter",
 			}
 			for _, value := range want {
 				if !strings.Contains(content, value) {

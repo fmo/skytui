@@ -17,26 +17,28 @@ type screen int
 const (
 	dashboardScreen screen = iota
 	projectScreen
+	historyFilterScreen
 )
 
 type model struct {
-	session            *timer.Session
-	activeProject      project.Project
-	sessionProjectID   string
-	projectPicker      projectPicker
-	settings           *config.Config
-	screen             screen
-	todaysTotal        time.Duration
-	thisWeek           time.Duration
-	thisMonth          time.Duration
-	allTime            time.Duration
-	historyStore       history.Store
-	historyFilter      history.Filter
-	progress           progress.Model
-	focusDuration      time.Duration
-	shortBreakDuration time.Duration
-	sessions           []history.Record
-	width, height      int
+	session             *timer.Session
+	activeProject       project.Project
+	sessionProjectID    string
+	projectPicker       projectPicker
+	historyFilterPicker historyFilterPicker
+	settings            *config.Config
+	screen              screen
+	todaysTotal         time.Duration
+	thisWeek            time.Duration
+	thisMonth           time.Duration
+	allTime             time.Duration
+	historyStore        history.Store
+	historyFilter       history.Filter
+	progress            progress.Model
+	focusDuration       time.Duration
+	shortBreakDuration  time.Duration
+	sessions            []history.Record
+	width, height       int
 }
 
 func New(
@@ -122,9 +124,36 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, m.startFocusSession(*selected, time.Now())
 	}
 
+	if m.screen == historyFilterScreen {
+		if key, ok := msg.(tea.KeyPressMsg); ok {
+			switch key.String() {
+			case "esc":
+				m.screen = dashboardScreen
+				return m, nil
+			case "q":
+				slog.Info("closing the application")
+				return m, tea.Quit
+			}
+
+			picker, selected := m.historyFilterPicker.Update(msg)
+			m.historyFilterPicker = picker
+			if selected != nil {
+				m.historyFilter = *selected
+				m.screen = dashboardScreen
+				return m, loadSessions()
+			}
+
+			return m, nil
+		}
+	}
+
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
 		switch msg.String() {
+		case "f":
+			m.historyFilterPicker = newHistoryFilterPicker(m.projectPicker.projects, m.historyFilter)
+			m.screen = historyFilterScreen
+			return m, nil
 		case "n":
 			if m.session.Status() != timer.Completed {
 				return m, nil
@@ -204,6 +233,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) View() tea.View {
 	if m.screen == projectScreen {
 		return tea.NewView(m.projectPicker.View(m.width))
+	}
+	if m.screen == historyFilterScreen {
+		return tea.NewView(m.historyFilterPicker.View(m.width, m.session.Kind()))
 	}
 
 	return m.dashboardView()

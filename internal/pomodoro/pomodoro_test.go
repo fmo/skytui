@@ -189,8 +189,8 @@ func TestSessionList(t *testing.T) {
 		t.Fatalf("view does not contain the project name: %q", view)
 	}
 
-	if strings.Contains(view, "  1m") {
-		t.Error("view should not contain the oldest record")
+	if strings.Contains(view, "  1m") || strings.Contains(view, "  2m") {
+		t.Error("view should not contain records older than the four most recent")
 	}
 
 	indices := []int{
@@ -198,7 +198,6 @@ func TestSessionList(t *testing.T) {
 		strings.Index(view, "5m"),
 		strings.Index(view, "4m"),
 		strings.Index(view, "3m"),
-		strings.Index(view, "2m"),
 	}
 	for _, index := range indices {
 		if index == -1 {
