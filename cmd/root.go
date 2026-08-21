@@ -22,7 +22,7 @@ func newRootCmd(
 	rootCmd := &cobra.Command{
 		Use:     "skytui",
 		Short:   "Execute SkyTUI Dashboard",
-		Version: "v0.6.0",
+		Version: "v0.7.0",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			focusDuration, err := cmd.Flags().GetDuration("duration")
 			if err != nil {
