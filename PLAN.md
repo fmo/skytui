@@ -433,7 +433,7 @@ Goal: make focus history and totals useful for one project or across all work.
 
 **Commit:** `feat: add project filter controls`
 
-### [ ] 38. Test Project Filtering
+### [x] 38. Test Project Filtering
 
 - Cover all-project, single-project, and unassigned totals and recent sessions.
 - Cover empty results and projects with the same prefix.

@@ -1,7 +1,9 @@
 package pomodoro
 
 import (
+	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -13,6 +15,116 @@ import (
 	"github.com/fmo/skytui/internal/project"
 	"github.com/fmo/skytui/internal/timer"
 )
+
+func TestHistoryFiltersRecentSessionsAndTotals(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "sessions.csv")
+	now := time.Now()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 12, 0, 0, 0, now.Location())
+	legacyRow := today.Add(-3*time.Minute).Format(time.RFC3339Nano) + ",10m0s\n"
+	if err := os.WriteFile(path, []byte(legacyRow), 0o600); err != nil {
+		t.Fatalf("write legacy session: %v", err)
+	}
+	store := history.NewStore(path)
+	if err := store.Append(today.Add(-2*time.Minute), 20*time.Minute, "project-1"); err != nil {
+		t.Fatalf("append first project session: %v", err)
+	}
+	if err := store.Append(today.Add(-time.Minute), 30*time.Minute, "project-10"); err != nil {
+		t.Fatalf("append second project session: %v", err)
+	}
+
+	tests := []struct {
+		name         string
+		filter       history.Filter
+		wantIDs      []string
+		wantDuration time.Duration
+	}{
+		{
+			name:         "all projects",
+			filter:       history.Filter{Mode: history.AllProjects},
+			wantIDs:      []string{"", "project-1", "project-10"},
+			wantDuration: time.Hour,
+		},
+		{
+			name:         "one project",
+			filter:       history.Filter{Mode: history.OneProject, ProjectID: "project-1"},
+			wantIDs:      []string{"project-1"},
+			wantDuration: 20 * time.Minute,
+		},
+		{
+			name:         "unassigned",
+			filter:       history.Filter{Mode: history.Unassigned},
+			wantIDs:      []string{""},
+			wantDuration: 10 * time.Minute,
+		},
+		{
+			name:         "empty project",
+			filter:       history.Filter{Mode: history.OneProject, ProjectID: "missing"},
+			wantIDs:      []string{},
+			wantDuration: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := model{historyStore: store, historyFilter: tt.filter}
+			updated, _ := m.Update(loadType{})
+			got := updated.(model)
+
+			gotIDs := make([]string, len(got.sessions))
+			for index, record := range got.sessions {
+				gotIDs[index] = record.ProjectID
+			}
+			if !slices.Equal(gotIDs, tt.wantIDs) {
+				t.Fatalf("got recent-session project IDs %#v, want %#v", gotIDs, tt.wantIDs)
+			}
+			if got.todaysTotal != tt.wantDuration || got.thisWeek != tt.wantDuration || got.thisMonth != tt.wantDuration || got.allTime != tt.wantDuration {
+				t.Fatalf(
+					"got totals today=%v week=%v month=%v all=%v, want %v",
+					got.todaysTotal,
+					got.thisWeek,
+					got.thisMonth,
+					got.allTime,
+					tt.wantDuration,
+				)
+			}
+		})
+	}
+}
+
+func TestSimilarProjectNamesSelectExactHistoryFilter(t *testing.T) {
+	activeProject := project.Project{ID: "project-1", Name: "SkyTUI"}
+	otherProject := project.Project{ID: "project-2", Name: "SkyTUI Outreach"}
+	session := timer.New(timer.Focus, time.Minute, time.Now())
+	m := model{
+		screen:           dashboardScreen,
+		session:          session,
+		activeProject:    activeProject,
+		sessionProjectID: activeProject.ID,
+		projectPicker: projectPicker{projects: []project.Project{
+			activeProject,
+			otherProject,
+		}},
+		historyFilter: history.Filter{Mode: history.AllProjects},
+		progress:      progress.New(progress.WithDefaultBlend()),
+	}
+
+	updated, _ := m.Update(tea.KeyPressMsg{Text: "f", Code: 'f'})
+	got := updated.(model)
+	updated, _ = got.Update(tea.KeyPressMsg{Code: tea.KeyDown})
+	got = updated.(model)
+	updated, _ = got.Update(tea.KeyPressMsg{Code: tea.KeyDown})
+	got = updated.(model)
+	updated, _ = got.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+	got = updated.(model)
+
+	wantFilter := history.Filter{Mode: history.OneProject, ProjectID: otherProject.ID}
+	if got.historyFilter != wantFilter {
+		t.Fatalf("got filter %#v, want %#v", got.historyFilter, wantFilter)
+	}
+	if got.activeProject != activeProject || got.sessionProjectID != activeProject.ID || got.session != session {
+		t.Fatal("changing to a similarly named history filter changed the active session")
+	}
+}
 
 func TestHistoryFilterPickerViewFitsNarrowTerminal(t *testing.T) {
 	picker := newHistoryFilterPicker(
