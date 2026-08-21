@@ -441,7 +441,7 @@ Goal: make focus history and totals useful for one project or across all work.
 
 **Commit:** `test: cover project filtering`
 
-### [ ] 39. Prepare v0.7.0
+### [x] 39. Prepare v0.7.0
 
 - Document project filters and the difference between active project and
   history filter.
