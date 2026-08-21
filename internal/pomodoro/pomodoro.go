@@ -31,6 +31,7 @@ type model struct {
 	thisMonth          time.Duration
 	allTime            time.Duration
 	historyStore       history.Store
+	historyFilter      history.Filter
 	progress           progress.Model
 	focusDuration      time.Duration
 	shortBreakDuration time.Duration
@@ -55,6 +56,7 @@ func New(
 		settings:           settings,
 		screen:             projectScreen,
 		historyStore:       historyStore,
+		historyFilter:      history.Filter{Mode: history.AllProjects},
 		progress:           progress.New(progress.WithColors(sessionColor(timer.Focus))),
 		focusDuration:      focusDuration,
 		shortBreakDuration: shortBreakDuration,
@@ -158,7 +160,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if err != nil {
 			slog.Error("cant load sessions", "err", err)
 		}
-		filteredRecords := history.Filter(records, m.activeProject.ID)
+		filteredRecords := history.FilterRecords(records, m.historyFilter)
 		m.sessions = filteredRecords
 
 		m.todaysTotal = m.historyStore.TodaysTotal(m.sessions)
