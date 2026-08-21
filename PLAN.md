@@ -416,7 +416,7 @@ turning SkyTUI into a project-management application.
 
 Goal: make focus history and totals useful for one project or across all work.
 
-### [ ] 36. Filter Sessions By Project
+### [x] 36. Filter Sessions By Project
 
 - Filter records by project ID before calculating recent sessions and totals.
 - Support `All Projects`, one selected project, and `Unassigned` legacy rows.
