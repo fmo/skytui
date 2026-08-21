@@ -158,12 +158,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if err != nil {
 			slog.Error("cant load sessions", "err", err)
 		}
-		m.sessions = records
+		filteredRecords := history.Filter(records, m.activeProject.ID)
+		m.sessions = filteredRecords
 
-		m.todaysTotal = m.historyStore.TodaysTotal(records)
-		m.thisWeek = m.historyStore.ThisWeek(records)
-		m.thisMonth = m.historyStore.ThisMonth(records)
-		m.allTime = m.historyStore.AllTime(records)
+		m.todaysTotal = m.historyStore.TodaysTotal(m.sessions)
+		m.thisWeek = m.historyStore.ThisWeek(m.sessions)
+		m.thisMonth = m.historyStore.ThisMonth(m.sessions)
+		m.allTime = m.historyStore.AllTime(m.sessions)
 	case tickType:
 		if m.session.Status() == timer.Completed {
 			return m, nil
