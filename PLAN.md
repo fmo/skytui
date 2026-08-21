@@ -445,6 +445,7 @@ Goal: make focus history and totals useful for one project or across all work.
 
 - Document project filters and the difference between active project and
   history filter.
+- Update the README screenshot for the v0.7.0 dashboard.
 - Verify project selection, focus storage, filtering, and session cycling
   together.
 

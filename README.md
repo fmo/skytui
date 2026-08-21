@@ -4,9 +4,7 @@ SkyTUI is a terminal Pomodoro timer for running focused work sessions, organizin
 them by project, and tracking completed focus time.
 The Pomodoro Technique organizes work into timed focus intervals, commonly 25 minutes, separated by short breaks.
 
-![SkyTUI v0.6.0 Pomodoro dashboard](docs/images/skytui-v0.6.0a.png)
-
-![SkyTUI v0.6.0 project picker](docs/images/skytui-v0.6.0b.png)
+![SkyTUI v0.7.0 dashboard with project filtering](docs/images/skytui-v0.7.0.png)
 
 ## Installation
 
