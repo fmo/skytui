@@ -237,7 +237,7 @@ func TestResetRunningSession(t *testing.T) {
 func TestNextSessionCyclesFocusAndBreak(t *testing.T) {
 	focusDuration := 25 * time.Minute
 	shortBreakDuration := 5 * time.Minute
-	m := New(history.NewStore(filepath.Join(t.TempDir(), "sessions.csv")), nil, nil, focusDuration, shortBreakDuration, &fakeNotifier{})
+	m := New(history.NewStore(filepath.Join(t.TempDir(), "sessions.csv")), nil, nil, focusDuration, shortBreakDuration, true, &fakeNotifier{})
 	m.screen = dashboardScreen
 	m.activeProject = project.Project{ID: "project-1", Name: "SkyTUI"}
 	m.sessionProjectID = m.activeProject.ID

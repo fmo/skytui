@@ -67,6 +67,7 @@ func main() {
 		logger.Error("cant load configuration", "err", err)
 		os.Exit(1)
 	}
+	notificationsEnabled := cfg.LoadNotificationsEnabled()
 
 	projectStore, err := project.NewStore(filepath.Join(appDir, "projects.csv"))
 	if err != nil {
@@ -76,7 +77,7 @@ func main() {
 
 	// history store
 	historyStore := history.NewStore(filepath.Join(appDir, "sessions.csv"))
-	if err := cmd.Exec(historyStore, projectStore, cfg, defaultFocusDuration, shortBreakDuration, notifier.MacOS{}); err != nil {
+	if err := cmd.Exec(historyStore, projectStore, cfg, defaultFocusDuration, shortBreakDuration, notificationsEnabled, notifier.MacOS{}); err != nil {
 		logFile.Close()
 		log.Fatalf("cant run the command: %v", err)
 	}

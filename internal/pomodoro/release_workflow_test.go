@@ -32,7 +32,7 @@ func TestProjectFocusFilterAndSessionCycleWorkflow(t *testing.T) {
 	}
 	historyStore := history.NewStore(filepath.Join(dir, "sessions.csv"))
 
-	m := New(historyStore, projectStore, settings, time.Second, time.Second, &fakeNotifier{})
+	m := New(historyStore, projectStore, settings, time.Second, time.Second, true, &fakeNotifier{})
 	updated, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	got := updated.(model)
 	if got.activeProject != selected || got.sessionProjectID != selected.ID {
