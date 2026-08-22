@@ -118,7 +118,7 @@ func TestSelectingProjectStartsFocusSession(t *testing.T) {
 		t.Fatalf("create config: %v", err)
 	}
 
-	m := New(history.NewStore(filepath.Join(dir, "sessions.csv")), projectStore, settings, time.Minute, 5*time.Minute)
+	m := New(history.NewStore(filepath.Join(dir, "sessions.csv")), projectStore, settings, time.Minute, 5*time.Minute, &fakeNotifier{})
 	if m.session != nil {
 		t.Fatal("timer should not start before project selection")
 	}
@@ -180,7 +180,7 @@ func TestRememberedProjectSurvivesRestart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reload config: %v", err)
 	}
-	m := New(history.NewStore(filepath.Join(dir, "sessions.csv")), reopenedStore, reloadedSettings, time.Minute, 5*time.Minute)
+	m := New(history.NewStore(filepath.Join(dir, "sessions.csv")), reopenedStore, reloadedSettings, time.Minute, 5*time.Minute, &fakeNotifier{})
 
 	if m.projectPicker.cursor != 1 {
 		t.Fatalf("got picker cursor %d, want remembered project at index 1", m.projectPicker.cursor)
