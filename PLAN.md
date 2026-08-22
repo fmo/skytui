@@ -484,7 +484,7 @@ terminal.
 
 **Commit:** `test: cover completion notifications`
 
-### [ ] 43. Prepare v0.8.0
+### [x] 43. Prepare v0.8.0
 
 - Document notification behavior and configuration.
 - Verify notifications with focus/break cycling and manual next-session starts.

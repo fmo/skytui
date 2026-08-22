@@ -8,16 +8,16 @@ The Pomodoro Technique organizes work into timed focus intervals, commonly 25 mi
 
 ## Installation
 
-SkyTUI v0.7.0 supports macOS.
+SkyTUI v0.8.0 supports macOS.
 
 ### Download a binary
 
 Download the appropriate archive from the
-[GitHub release](https://github.com/fmo/skytui/releases/tag/v0.7.0):
+[GitHub release](https://github.com/fmo/skytui/releases/tag/v0.8.0):
 
-- [Apple Silicon (`arm64`)](https://github.com/fmo/skytui/releases/download/v0.7.0/skytui_0.7.0_darwin_arm64.tar.gz)
-- [Intel Mac (`amd64`)](https://github.com/fmo/skytui/releases/download/v0.7.0/skytui_0.7.0_darwin_amd64.tar.gz)
-- [SHA-256 checksums](https://github.com/fmo/skytui/releases/download/v0.7.0/checksums.txt)
+- [Apple Silicon (`arm64`)](https://github.com/fmo/skytui/releases/download/v0.8.0/skytui_0.8.0_darwin_arm64.tar.gz)
+- [Intel Mac (`amd64`)](https://github.com/fmo/skytui/releases/download/v0.8.0/skytui_0.8.0_darwin_amd64.tar.gz)
+- [SHA-256 checksums](https://github.com/fmo/skytui/releases/download/v0.8.0/checksums.txt)
 
 Extract the archive and move the `skytui` executable to a directory in your `PATH`, such as `/usr/local/bin`.
 
@@ -44,7 +44,7 @@ A valid download reports OK.
 Requires Go 1.25.3 or later.
 
 ```sh
-go install github.com/fmo/skytui@v0.7.0
+go install github.com/fmo/skytui@v0.8.0
 ```
 
 ## Usage
@@ -117,6 +117,7 @@ The default configuration is:
 default-duration: 25m0s
 short-break-duration: 5m0s
 active-project-id: ""
+notifications-enabled: true
 ```
 
 SkyTUI uses `default-duration` from `config.yaml`, falling back to 25 minutes
@@ -128,6 +129,17 @@ least one second and use whole-second precision.
 
 `active-project-id` stores the last selected project. SkyTUI manages this value
 when a project is selected.
+
+## Notifications
+
+SkyTUI sends a macOS desktop notification when a focus or short-break session
+completes. The notification identifies the completed session and the session
+available next. It does not start the next session; press `n` when you are
+ready to continue.
+
+Set `notifications-enabled` to `false` in `config.yaml` to disable desktop
+notifications. Missing notification settings default to enabled. Delivery
+failures are written to the application log without stopping the timer.
 
 ## Projects
 
