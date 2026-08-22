@@ -19,6 +19,7 @@ func newRootCmd(
 	settings *config.Config,
 	defaultFocusDuration,
 	shortBreakDuration time.Duration,
+	notificationsEnabled bool,
 	notifier notifier.Notifier,
 ) *cobra.Command {
 	rootCmd := &cobra.Command{
@@ -35,7 +36,7 @@ func newRootCmd(
 				return fmt.Errorf("duration should be at least 1 second and use whole seconds: %v", focusDuration)
 			}
 
-			m := pomodoro.New(historyStore, projectStore, settings, focusDuration, shortBreakDuration, notifier)
+			m := pomodoro.New(historyStore, projectStore, settings, focusDuration, shortBreakDuration, notificationsEnabled, notifier)
 			p := tea.NewProgram(m)
 			if _, err := p.Run(); err != nil {
 				return err
@@ -56,9 +57,10 @@ func Exec(
 	settings *config.Config,
 	defaultFocusDuration,
 	shortBreakDuration time.Duration,
+	notificationsEnabled bool,
 	notifier notifier.Notifier,
 ) error {
-	if err := newRootCmd(historyStore, projectStore, settings, defaultFocusDuration, shortBreakDuration, notifier).Execute(); err != nil {
+	if err := newRootCmd(historyStore, projectStore, settings, defaultFocusDuration, shortBreakDuration, notificationsEnabled, notifier).Execute(); err != nil {
 		return err
 	}
 

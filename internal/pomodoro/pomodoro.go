@@ -22,25 +22,26 @@ const (
 )
 
 type model struct {
-	notifier            notifier.Notifier
-	session             *timer.Session
-	activeProject       project.Project
-	sessionProjectID    string
-	projectPicker       projectPicker
-	historyFilterPicker historyFilterPicker
-	settings            *config.Config
-	screen              screen
-	todaysTotal         time.Duration
-	thisWeek            time.Duration
-	thisMonth           time.Duration
-	allTime             time.Duration
-	historyStore        history.Store
-	historyFilter       history.Filter
-	progress            progress.Model
-	focusDuration       time.Duration
-	shortBreakDuration  time.Duration
-	sessions            []history.Record
-	width, height       int
+	notifier             notifier.Notifier
+	session              *timer.Session
+	activeProject        project.Project
+	sessionProjectID     string
+	projectPicker        projectPicker
+	historyFilterPicker  historyFilterPicker
+	settings             *config.Config
+	screen               screen
+	todaysTotal          time.Duration
+	thisWeek             time.Duration
+	thisMonth            time.Duration
+	allTime              time.Duration
+	historyStore         history.Store
+	historyFilter        history.Filter
+	progress             progress.Model
+	focusDuration        time.Duration
+	shortBreakDuration   time.Duration
+	notificationsEnabled bool
+	sessions             []history.Record
+	width, height        int
 }
 
 func New(
@@ -49,6 +50,7 @@ func New(
 	settings *config.Config,
 	focusDuration,
 	shortBreakDuration time.Duration,
+	notificationsEnabled bool,
 	notifier notifier.Notifier,
 ) model {
 	selectedProjectID := ""
@@ -57,15 +59,16 @@ func New(
 	}
 
 	return model{
-		projectPicker:      newProjectPicker(projectStore, selectedProjectID),
-		settings:           settings,
-		screen:             projectScreen,
-		historyStore:       historyStore,
-		historyFilter:      history.Filter{Mode: history.AllProjects},
-		progress:           progress.New(progress.WithColors(sessionColor(timer.Focus))),
-		focusDuration:      focusDuration,
-		shortBreakDuration: shortBreakDuration,
-		notifier:           notifier,
+		projectPicker:        newProjectPicker(projectStore, selectedProjectID),
+		settings:             settings,
+		screen:               projectScreen,
+		historyStore:         historyStore,
+		historyFilter:        history.Filter{Mode: history.AllProjects},
+		progress:             progress.New(progress.WithColors(sessionColor(timer.Focus))),
+		focusDuration:        focusDuration,
+		shortBreakDuration:   shortBreakDuration,
+		notificationsEnabled: notificationsEnabled,
+		notifier:             notifier,
 	}
 }
 
@@ -200,6 +203,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.thisWeek = m.historyStore.ThisWeek(m.sessions)
 		m.thisMonth = m.historyStore.ThisMonth(m.sessions)
 		m.allTime = m.historyStore.AllTime(m.sessions)
+	case notificationResult:
+		if msg.err != nil {
+			slog.Error("cant notify", "err", msg.err)
+		}
 	case tickType:
 		if m.session.Status() == timer.Completed {
 			return m, nil
@@ -220,10 +227,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 
-			if err := m.notifier.Notify("Session Completed", "Session completed"); err != nil {
-				slog.Error("cant notify", "err", err)
+			commands := []tea.Cmd{cmd, loadSessions()}
+			if m.notificationsEnabled {
+				commands = append(commands, notifySessionCompletion(m.notifier, m.session.Kind()))
 			}
-			return m, tea.Batch(cmd, loadSessions())
+
+			return m, tea.Batch(commands...)
 		}
 
 		cmd := m.progress.SetPercent(m.session.Progress())

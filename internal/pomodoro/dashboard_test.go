@@ -37,7 +37,7 @@ func TestSessionAccentsUseDistinctColors(t *testing.T) {
 }
 
 func TestSessionProgressUsesItsAccentColor(t *testing.T) {
-	m := New(history.Store{}, nil, nil, 25*time.Minute, 5*time.Minute, &fakeNotifier{})
+	m := New(history.Store{}, nil, nil, 25*time.Minute, 5*time.Minute, true, &fakeNotifier{})
 	fr, fg, fb, fa := m.progress.FullColor.RGBA()
 	wantR, wantG, wantB, wantA := sessionColor(timer.Focus).RGBA()
 	if fr != wantR || fg != wantG || fb != wantB || fa != wantA {

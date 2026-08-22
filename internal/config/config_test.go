@@ -1,6 +1,10 @@
 package config
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 func TestActiveProjectIDPersists(t *testing.T) {
 	dir := t.TempDir()
@@ -22,5 +26,31 @@ func TestActiveProjectIDPersists(t *testing.T) {
 	}
 	if got := reloaded.LoadActiveProjectID(); got != "project-1" {
 		t.Fatalf("got active project ID %q, want %q", got, "project-1")
+	}
+}
+
+func TestNotificationsEnabledByDefault(t *testing.T) {
+	settings, err := New(t.TempDir())
+	if err != nil {
+		t.Fatalf("create config: %v", err)
+	}
+
+	if !settings.LoadNotificationsEnabled() {
+		t.Fatal("notifications should be enabled by default")
+	}
+}
+
+func TestNotificationsCanBeDisabled(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "config.yaml"), []byte("notifications-enabled: false\n"), 0o600); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+	settings, err := New(dir)
+	if err != nil {
+		t.Fatalf("create config: %v", err)
+	}
+
+	if settings.LoadNotificationsEnabled() {
+		t.Fatal("notifications should be disabled")
 	}
 }

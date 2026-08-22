@@ -28,6 +28,7 @@ func New(appDir string) (*Config, error) {
 	config.SetDefault("default-duration", defaultFocusDuration.String())
 	config.SetDefault("short-break-duration", defaultShortBreakDuration.String())
 	config.SetDefault("active-project-id", "")
+	config.SetDefault("notifications-enabled", true)
 	configPath := filepath.Join(appDir, "config.yaml")
 
 	if err := config.ReadInConfig(); err != nil {
@@ -46,6 +47,10 @@ func New(appDir string) (*Config, error) {
 
 func (c *Config) LoadActiveProjectID() string {
 	return c.viper.GetString("active-project-id")
+}
+
+func (c *Config) LoadNotificationsEnabled() bool {
+	return c.viper.GetBool("notifications-enabled")
 }
 
 func (c *Config) SaveActiveProjectID(id string) error {

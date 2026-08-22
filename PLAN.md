@@ -458,7 +458,7 @@ Goal: make focus history and totals useful for one project or across all work.
 Goal: tell the user when a session finishes without requiring them to watch the
 terminal.
 
-### [ ] 40. Add A Notification Boundary
+### [x] 40. Add A Notification Boundary
 
 - Define a small notifier interface and inject it into the Pomodoro model.
 - Emit one completion notification request when a timer reaches zero.
@@ -467,7 +467,7 @@ terminal.
 
 **Commit:** `refactor: add notification boundary`
 
-### [ ] 41. Notify On Session Completion
+### [x] 41. Notify On Session Completion
 
 - Send a desktop notification when a focus or short-break session completes.
 - State which session completed and which session is available next.
