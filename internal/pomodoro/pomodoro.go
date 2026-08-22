@@ -8,6 +8,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/fmo/skytui/internal/config"
 	"github.com/fmo/skytui/internal/history"
+	"github.com/fmo/skytui/internal/notifier"
 	"github.com/fmo/skytui/internal/project"
 	"github.com/fmo/skytui/internal/timer"
 )
@@ -21,6 +22,7 @@ const (
 )
 
 type model struct {
+	notifier            notifier.Notifier
 	session             *timer.Session
 	activeProject       project.Project
 	sessionProjectID    string
@@ -47,6 +49,7 @@ func New(
 	settings *config.Config,
 	focusDuration,
 	shortBreakDuration time.Duration,
+	notifier notifier.Notifier,
 ) model {
 	selectedProjectID := ""
 	if settings != nil {
@@ -62,6 +65,7 @@ func New(
 		progress:           progress.New(progress.WithColors(sessionColor(timer.Focus))),
 		focusDuration:      focusDuration,
 		shortBreakDuration: shortBreakDuration,
+		notifier:           notifier,
 	}
 }
 
@@ -214,6 +218,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if err := m.historyStore.Append(time.Now(), m.session.Duration(), m.sessionProjectID); err != nil {
 					slog.Error("cant append the session", "err", err)
 				}
+			}
+
+			if err := m.notifier.Notify("Session Completed", "Session completed"); err != nil {
+				slog.Error("cant notify", "err", err)
 			}
 			return m, tea.Batch(cmd, loadSessions())
 		}

@@ -9,6 +9,7 @@ import (
 	"github.com/fmo/skytui/cmd"
 	"github.com/fmo/skytui/internal/config"
 	"github.com/fmo/skytui/internal/history"
+	"github.com/fmo/skytui/internal/notifier"
 	"github.com/fmo/skytui/internal/project"
 )
 
@@ -75,7 +76,7 @@ func main() {
 
 	// history store
 	historyStore := history.NewStore(filepath.Join(appDir, "sessions.csv"))
-	if err := cmd.Exec(historyStore, projectStore, cfg, defaultFocusDuration, shortBreakDuration); err != nil {
+	if err := cmd.Exec(historyStore, projectStore, cfg, defaultFocusDuration, shortBreakDuration, notifier.MacOS{}); err != nil {
 		logFile.Close()
 		log.Fatalf("cant run the command: %v", err)
 	}

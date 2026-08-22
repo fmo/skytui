@@ -7,6 +7,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/fmo/skytui/internal/config"
 	"github.com/fmo/skytui/internal/history"
+	"github.com/fmo/skytui/internal/notifier"
 	"github.com/fmo/skytui/internal/pomodoro"
 	"github.com/fmo/skytui/internal/project"
 	"github.com/spf13/cobra"
@@ -18,6 +19,7 @@ func newRootCmd(
 	settings *config.Config,
 	defaultFocusDuration,
 	shortBreakDuration time.Duration,
+	notifier notifier.Notifier,
 ) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:     "skytui",
@@ -33,7 +35,7 @@ func newRootCmd(
 				return fmt.Errorf("duration should be at least 1 second and use whole seconds: %v", focusDuration)
 			}
 
-			m := pomodoro.New(historyStore, projectStore, settings, focusDuration, shortBreakDuration)
+			m := pomodoro.New(historyStore, projectStore, settings, focusDuration, shortBreakDuration, notifier)
 			p := tea.NewProgram(m)
 			if _, err := p.Run(); err != nil {
 				return err
@@ -54,8 +56,9 @@ func Exec(
 	settings *config.Config,
 	defaultFocusDuration,
 	shortBreakDuration time.Duration,
+	notifier notifier.Notifier,
 ) error {
-	if err := newRootCmd(historyStore, projectStore, settings, defaultFocusDuration, shortBreakDuration).Execute(); err != nil {
+	if err := newRootCmd(historyStore, projectStore, settings, defaultFocusDuration, shortBreakDuration, notifier).Execute(); err != nil {
 		return err
 	}
 

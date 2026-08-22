@@ -91,6 +91,7 @@ func TestTickReachesDeadline(t *testing.T) {
 		session:      timer.New(timer.Focus, time.Minute, time.Now().Add(-time.Minute-time.Second)),
 		progress:     progress.New(progress.WithDefaultBlend()),
 		historyStore: history.NewStore(storePath),
+		notifier:     &fakeNotifier{},
 	}
 
 	updated, cmd := m.Update(tickType{})
@@ -144,6 +145,7 @@ func TestCompletedStoresOnce(t *testing.T) {
 		sessionProjectID: "project-1",
 		progress:         progress.New(progress.WithDefaultBlend()),
 		historyStore:     historyStore,
+		notifier:         &fakeNotifier{},
 	}
 
 	updated, _ := m.Update(tickType{})
@@ -235,7 +237,7 @@ func TestResetRunningSession(t *testing.T) {
 func TestNextSessionCyclesFocusAndBreak(t *testing.T) {
 	focusDuration := 25 * time.Minute
 	shortBreakDuration := 5 * time.Minute
-	m := New(history.NewStore(filepath.Join(t.TempDir(), "sessions.csv")), nil, nil, focusDuration, shortBreakDuration)
+	m := New(history.NewStore(filepath.Join(t.TempDir(), "sessions.csv")), nil, nil, focusDuration, shortBreakDuration, &fakeNotifier{})
 	m.screen = dashboardScreen
 	m.activeProject = project.Project{ID: "project-1", Name: "SkyTUI"}
 	m.sessionProjectID = m.activeProject.ID
@@ -288,6 +290,7 @@ func TestCompletedBreakIsNotStoredOrTotaled(t *testing.T) {
 		session:      timer.New(timer.ShortBreak, 5*time.Minute, time.Now().Add(-5*time.Minute-time.Second)),
 		progress:     progress.New(progress.WithDefaultBlend()),
 		historyStore: historyStore,
+		notifier:     &fakeNotifier{},
 	}
 
 	updated, _ := m.Update(tickType{})
