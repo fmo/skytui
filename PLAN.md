@@ -477,7 +477,7 @@ terminal.
 
 **Commit:** `feat: notify when sessions complete`
 
-### [ ] 42. Test Completion Notifications
+### [x] 42. Test Completion Notifications
 
 - Cover focus and short-break messages, disabled notifications, and failures.
 - Verify that completion emits once even when more tick messages arrive.
