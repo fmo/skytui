@@ -506,15 +506,38 @@ desktop platforms.
 
 **Commit:** `feat: use cross-platform application paths`
 
-### [ ] 45. Build On Supported Platforms
+### [x] 45. Build On Supported Platforms
 
 - Build and test supported macOS, Linux, and Windows targets in CI.
 - Publish archives with consistent names and checksums.
 - Document platform-specific installation and any required dependencies.
+- Select notification implementations by platform without running macOS
+  commands on Linux or Windows.
 
 **Commit:** `build: add cross-platform release builds`
 
-### [ ] 46. Harden Local Storage
+### [ ] 46. Notify On Linux
+
+- Send focus and short-break completion notifications through `notify-send`.
+- Preserve the existing asynchronous delivery, messages, and configuration.
+- Return a clear error when `notify-send` is unavailable and document the
+  required Linux package.
+- Test command arguments and failures through an injected command runner.
+
+**Commit:** `feat: add linux desktop notifications`
+
+### [ ] 47. Notify On Windows
+
+- Send focus and short-break completion notifications through a native Windows
+  toast invoked with PowerShell and Windows Runtime APIs.
+- Require no user-installed PowerShell modules.
+- Pass notification content as arguments instead of interpolating it into the
+  PowerShell script.
+- Test command arguments and failures through an injected command runner.
+
+**Commit:** `feat: add windows desktop notifications`
+
+### [ ] 48. Harden Local Storage
 
 - Return file and row context for malformed project and session data.
 - Prevent failed project writes or migrations from truncating valid data.
@@ -522,7 +545,7 @@ desktop platforms.
 
 **Commit:** `fix: protect local project and session data`
 
-### [ ] 47. Automate Release Checks
+### [ ] 49. Automate Release Checks
 
 - Run formatting, tests, builds, and archive generation through one release
   workflow.
@@ -530,7 +553,7 @@ desktop platforms.
 
 **Commit:** `build: automate release verification`
 
-### [ ] 48. Prepare v0.9.0
+### [ ] 50. Prepare v0.9.0
 
 - Verify clean installs and upgrades with legacy sessions on every supported
   platform.
@@ -545,7 +568,7 @@ desktop platforms.
 Goal: declare the local timer, project, history, and configuration contracts
 stable and ready for normal use.
 
-### [ ] 49. Stabilize User-Facing Contracts
+### [ ] 51. Stabilize User-Facing Contracts
 
 - Document supported CLI flags, controls, configuration keys, and data files.
 - Define compatibility rules for session and project formats.
@@ -553,7 +576,7 @@ stable and ready for normal use.
 
 **Commit:** `docs: define stable skytui contracts`
 
-### [ ] 50. Verify The Complete Product
+### [ ] 52. Verify The Complete Product
 
 - Cover first run, project creation and selection, focus/break cycling,
   filtering, notifications, restart, and legacy-data upgrade paths.
@@ -563,7 +586,7 @@ stable and ready for normal use.
 
 **Commit:** `test: verify stable product workflows`
 
-### [ ] 51. Prepare v1.0.0
+### [ ] 53. Prepare v1.0.0
 
 - Update the CLI version, README, screenshots, and installation instructions.
 - Publish release archives and checksums for every supported platform.

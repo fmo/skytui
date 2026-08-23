@@ -75,7 +75,7 @@ func main() {
 
 	// history store
 	historyStore := history.NewStore(paths.SessionsFile)
-	if err := cmd.Exec(historyStore, projectStore, cfg, defaultFocusDuration, shortBreakDuration, notificationsEnabled, notifier.MacOS{}); err != nil {
+	if err := cmd.Exec(historyStore, projectStore, cfg, defaultFocusDuration, shortBreakDuration, notificationsEnabled, notifier.New()); err != nil {
 		logFile.Close()
 		log.Fatalf("cant run the command: %v", err)
 	}

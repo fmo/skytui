@@ -8,7 +8,19 @@ The Pomodoro Technique organizes work into timed focus intervals, commonly 25 mi
 
 ## Installation
 
-SkyTUI v0.8.0 supports macOS.
+SkyTUI supports macOS, Linux, and Windows. The v0.8.0 binary downloads below
+support macOS; Linux and Windows release archives begin with v0.9.0.
+
+Supported release targets:
+
+| Platform | Architectures | Archive | Desktop notifications |
+| --- | --- | --- | --- |
+| macOS | `arm64`, `amd64` | `.tar.gz` | Yes |
+| Linux | `arm64`, `amd64` | `.tar.gz` | Not yet |
+| Windows | `amd64` | `.zip` | Not yet |
+
+Release binaries have no additional runtime dependencies. Installing from
+source requires Go 1.25.3 or later.
 
 ### Download a binary
 
@@ -19,11 +31,14 @@ Download the appropriate archive from the
 - [Intel Mac (`amd64`)](https://github.com/fmo/skytui/releases/download/v0.8.0/skytui_0.8.0_darwin_amd64.tar.gz)
 - [SHA-256 checksums](https://github.com/fmo/skytui/releases/download/v0.8.0/checksums.txt)
 
-Extract the archive and move the `skytui` executable to a directory in your `PATH`, such as `/usr/local/bin`.
+On macOS or Linux, extract the archive and move `skytui` to a directory in your
+`PATH`, such as `/usr/local/bin`. On Windows, extract `skytui.exe` and add its
+directory to `PATH`.
 
 ### Verify the download
 
-Download `checksums.txt` into the same directory as the archive, then run the command matching your Mac.
+Download `checksums.txt` into the same directory as the archive, then run the
+command matching your platform.
 
 Apple Silicon:
 
@@ -36,6 +51,26 @@ Intel Mac:
 ```sh
 grep darwin_amd64 checksums.txt | shasum -a 256 -c -
 ```
+
+Linux `arm64`:
+
+```sh
+grep linux_arm64 checksums.txt | sha256sum -c -
+```
+
+Linux `amd64`:
+
+```sh
+grep linux_amd64 checksums.txt | sha256sum -c -
+```
+
+Windows PowerShell:
+
+```powershell
+Get-FileHash .\skytui_0.9.0_windows_amd64.zip -Algorithm SHA256
+```
+
+Compare the PowerShell result with the matching entry in `checksums.txt`.
 
 A valid download reports OK.
 
@@ -132,10 +167,12 @@ when a project is selected.
 
 ## Notifications
 
-SkyTUI sends a macOS desktop notification when a focus or short-break session
+On macOS, SkyTUI sends a desktop notification when a focus or short-break session
 completes. The notification identifies the completed session and the session
 available next. It does not start the next session; press `n` when you are
 ready to continue.
+
+Linux and Windows builds currently run without desktop notifications.
 
 Set `notifications-enabled` to `false` in `config.yaml` to disable desktop
 notifications. Missing notification settings default to enabled. Delivery
