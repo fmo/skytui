@@ -526,7 +526,7 @@ desktop platforms.
 
 **Commit:** `feat: add linux desktop notifications`
 
-### [ ] 47. Notify On Windows
+### [x] 47. Notify On Windows
 
 - Send focus and short-break completion notifications through a native Windows
   toast invoked with PowerShell and Windows Runtime APIs.

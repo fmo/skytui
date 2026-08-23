@@ -17,7 +17,7 @@ Supported release targets:
 | --- | --- | --- | --- |
 | macOS | `arm64`, `amd64` | `.tar.gz` | Yes |
 | Linux | `arm64`, `amd64` | `.tar.gz` | Yes, with `notify-send` |
-| Windows | `amd64` | `.zip` | Not yet |
+| Windows | `amd64` | `.zip` | Yes |
 
 The core timer has no additional runtime dependencies. Linux desktop
 notifications require `notify-send`. Installing from source requires Go 1.25.3
@@ -168,14 +168,14 @@ when a project is selected.
 
 ## Notifications
 
-On macOS and Linux, SkyTUI sends a desktop notification when a focus or
-short-break session completes. The notification identifies the completed
-session and the session available next. It does not start the next session;
-press `n` when you are ready to continue.
+SkyTUI sends a desktop notification when a focus or short-break session
+completes. The notification identifies the completed session and the session
+available next. It does not start the next session; press `n` when you are
+ready to continue.
 
 Linux notifications require `notify-send`, provided by `libnotify-bin` on
-Debian and Ubuntu and by `libnotify` on Fedora and Arch Linux. Windows builds
-currently run without desktop notifications.
+Debian and Ubuntu and by `libnotify` on Fedora and Arch Linux. Windows uses its
+built-in PowerShell and Windows Runtime APIs without additional modules.
 
 Set `notifications-enabled` to `false` in `config.yaml` to disable desktop
 notifications. Missing notification settings default to enabled. Delivery
