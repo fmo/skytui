@@ -516,7 +516,7 @@ desktop platforms.
 
 **Commit:** `build: add cross-platform release builds`
 
-### [ ] 46. Notify On Linux
+### [x] 46. Notify On Linux
 
 - Send focus and short-break completion notifications through `notify-send`.
 - Preserve the existing asynchronous delivery, messages, and configuration.

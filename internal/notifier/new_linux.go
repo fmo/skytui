@@ -1,5 +1,5 @@
 package notifier
 
 func New() Notifier {
-	return Noop{}
+	return newLinux(systemCommandRunner{})
 }
