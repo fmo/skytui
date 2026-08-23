@@ -8,14 +8,16 @@ import (
 )
 
 type fakeCommandRunner struct {
-	name string
-	args []string
-	err  error
+	command commandSpec
+	err     error
 }
 
-func (f *fakeCommandRunner) Run(name string, args ...string) error {
-	f.name = name
-	f.args = append([]string(nil), args...)
+func (f *fakeCommandRunner) Run(spec commandSpec) error {
+	f.command = commandSpec{
+		name:        spec.name,
+		args:        append([]string(nil), spec.args...),
+		environment: append([]string(nil), spec.environment...),
+	}
 	return f.err
 }
 
@@ -27,12 +29,12 @@ func TestLinuxNotificationCommand(t *testing.T) {
 		t.Fatalf("send notification: %v", err)
 	}
 
-	if runner.name != "notify-send" {
-		t.Fatalf("got command %q, want notify-send", runner.name)
+	if runner.command.name != "notify-send" {
+		t.Fatalf("got command %q, want notify-send", runner.command.name)
 	}
 	wantArgs := []string{"--app-name=SkyTUI", "Focus session complete", "Short break is ready."}
-	if !slices.Equal(runner.args, wantArgs) {
-		t.Fatalf("got arguments %#v, want %#v", runner.args, wantArgs)
+	if !slices.Equal(runner.command.args, wantArgs) {
+		t.Fatalf("got arguments %#v, want %#v", runner.command.args, wantArgs)
 	}
 }
 
