@@ -498,7 +498,7 @@ terminal.
 Goal: make the release candidate safe to install, upgrade, and run on supported
 desktop platforms.
 
-### [ ] 44. Use Platform-Appropriate Paths
+### [x] 44. Use Platform-Appropriate Paths
 
 - Resolve configuration, session, project, and log paths per operating system.
 - Preserve existing macOS data and migrate only when the destination is safe.
