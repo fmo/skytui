@@ -11,7 +11,11 @@ func newLinux(runner commandRunner) linux {
 }
 
 func (l linux) Notify(title, message string) error {
-	if err := l.runner.Run("notify-send", "--app-name=SkyTUI", title, message); err != nil {
+	command := commandSpec{
+		name: "notify-send",
+		args: []string{"--app-name=SkyTUI", title, message},
+	}
+	if err := l.runner.Run(command); err != nil {
 		return fmt.Errorf("send Linux notification with notify-send: %w", err)
 	}
 

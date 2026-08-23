@@ -526,13 +526,13 @@ desktop platforms.
 
 **Commit:** `feat: add linux desktop notifications`
 
-### [ ] 47. Notify On Windows
+### [x] 47. Notify On Windows
 
 - Send focus and short-break completion notifications through a native Windows
   toast invoked with PowerShell and Windows Runtime APIs.
 - Require no user-installed PowerShell modules.
-- Pass notification content as arguments instead of interpolating it into the
-  PowerShell script.
+- Pass notification content through the child process environment instead of
+  interpolating it into the PowerShell script.
 - Test command arguments and failures through an injected command runner.
 
 **Commit:** `feat: add windows desktop notifications`
