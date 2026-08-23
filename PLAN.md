@@ -537,23 +537,15 @@ desktop platforms.
 
 **Commit:** `feat: add windows desktop notifications`
 
-### [ ] 48. Harden Local Storage
+### [x] 48. Automate Release Checks
 
-- Return file and row context for malformed project and session data.
-- Prevent failed project writes or migrations from truncating valid data.
-- Back up files before any format migration that rewrites user data.
-
-**Commit:** `fix: protect local project and session data`
-
-### [ ] 49. Automate Release Checks
-
-- Run formatting, tests, builds, and archive generation through one release
-  workflow.
+- Run formatting checks, tests, builds, archive generation, and checksums through
+  one `make release VERSION=...` command.
 - Keep version input explicit and fail before publishing incomplete artifacts.
 
 **Commit:** `build: automate release verification`
 
-### [ ] 50. Prepare v0.9.0
+### [ ] 49. Prepare v0.9.0
 
 - Verify clean installs and upgrades with legacy sessions on every supported
   platform.
@@ -568,7 +560,7 @@ desktop platforms.
 Goal: declare the local timer, project, history, and configuration contracts
 stable and ready for normal use.
 
-### [ ] 51. Stabilize User-Facing Contracts
+### [ ] 50. Stabilize User-Facing Contracts
 
 - Document supported CLI flags, controls, configuration keys, and data files.
 - Define compatibility rules for session and project formats.
@@ -576,7 +568,7 @@ stable and ready for normal use.
 
 **Commit:** `docs: define stable skytui contracts`
 
-### [ ] 52. Verify The Complete Product
+### [ ] 51. Verify The Complete Product
 
 - Cover first run, project creation and selection, focus/break cycling,
   filtering, notifications, restart, and legacy-data upgrade paths.
@@ -586,7 +578,7 @@ stable and ready for normal use.
 
 **Commit:** `test: verify stable product workflows`
 
-### [ ] 53. Prepare v1.0.0
+### [ ] 52. Prepare v1.0.0
 
 - Update the CLI version, README, screenshots, and installation instructions.
 - Publish release archives and checksums for every supported platform.
@@ -601,6 +593,7 @@ stable and ready for normal use.
 - Project rename, archive, delete, descriptions, goals, and budgets.
 - Long breaks and automatic session starts.
 - Full history editing, charts, and advanced reports.
+- Richer storage diagnostics and migration tooling.
 - Accounts, cloud sync, and third-party integrations.
 
 Plan these only after stable local usage shows which problem matters next.
