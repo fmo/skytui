@@ -11,8 +11,13 @@ ARCHIVES := \
 	skytui_$(VERSION)_linux_amd64.tar.gz \
 	skytui_$(VERSION)_windows_amd64.zip
 
-.PHONY: release archives checksums
-release: checksums
+.PHONY: release verify archives checksums
+release: verify checksums
+
+verify:
+	test -z "$$(gofmt -l .)"
+	go test ./...
+	go vet ./...
 
 archives:
 	mkdir -p $(RELEASE_DIR)/darwin_arm64 $(RELEASE_DIR)/darwin_amd64 $(RELEASE_DIR)/linux_arm64 $(RELEASE_DIR)/linux_amd64 $(RELEASE_DIR)/windows_amd64
