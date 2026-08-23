@@ -8,8 +8,7 @@ The Pomodoro Technique organizes work into timed focus intervals, commonly 25 mi
 
 ## Installation
 
-SkyTUI supports macOS, Linux, and Windows. The v0.8.0 binary downloads below
-support macOS; Linux and Windows release archives begin with v0.9.0.
+SkyTUI supports macOS, Linux, and Windows.
 
 Supported release targets:
 
@@ -26,11 +25,14 @@ or later.
 ### Download a binary
 
 Download the appropriate archive from the
-[GitHub release](https://github.com/fmo/skytui/releases/tag/v0.8.0):
+[GitHub release](https://github.com/fmo/skytui/releases/tag/v0.9.0):
 
-- [Apple Silicon (`arm64`)](https://github.com/fmo/skytui/releases/download/v0.8.0/skytui_0.8.0_darwin_arm64.tar.gz)
-- [Intel Mac (`amd64`)](https://github.com/fmo/skytui/releases/download/v0.8.0/skytui_0.8.0_darwin_amd64.tar.gz)
-- [SHA-256 checksums](https://github.com/fmo/skytui/releases/download/v0.8.0/checksums.txt)
+- [macOS Apple Silicon (`arm64`)](https://github.com/fmo/skytui/releases/download/v0.9.0/skytui_0.9.0_darwin_arm64.tar.gz)
+- [macOS Intel (`amd64`)](https://github.com/fmo/skytui/releases/download/v0.9.0/skytui_0.9.0_darwin_amd64.tar.gz)
+- [Linux (`arm64`)](https://github.com/fmo/skytui/releases/download/v0.9.0/skytui_0.9.0_linux_arm64.tar.gz)
+- [Linux (`amd64`)](https://github.com/fmo/skytui/releases/download/v0.9.0/skytui_0.9.0_linux_amd64.tar.gz)
+- [Windows (`amd64`)](https://github.com/fmo/skytui/releases/download/v0.9.0/skytui_0.9.0_windows_amd64.zip)
+- [SHA-256 checksums](https://github.com/fmo/skytui/releases/download/v0.9.0/checksums.txt)
 
 On macOS or Linux, extract the archive and move `skytui` to a directory in your
 `PATH`, such as `/usr/local/bin`. On Windows, extract `skytui.exe` and add its
@@ -80,7 +82,7 @@ A valid download reports OK.
 Requires Go 1.25.3 or later.
 
 ```sh
-go install github.com/fmo/skytui@v0.8.0
+go install github.com/fmo/skytui@v0.9.0
 ```
 
 ## Usage
@@ -141,11 +143,8 @@ skytui --help
 
 ## Configuration
 
-SkyTUI creates its configuration file on first run:
-
-```text
-~/Library/Application Support/skytui/config.yaml
-```
+SkyTUI creates its platform-specific configuration file on first run. See
+[Data Locations](#data-locations) for its path.
 
 The default configuration is:
 
@@ -166,6 +165,24 @@ least one second and use whole-second precision.
 `active-project-id` stores the last selected project. SkyTUI manages this value
 when a project is selected.
 
+## Data Locations
+
+SkyTUI keeps configuration, project, session, and log files in the standard
+locations for each platform:
+
+| Platform | Configuration | Projects and sessions | Log |
+| --- | --- | --- | --- |
+| macOS | `~/Library/Application Support/skytui/config.yaml` | `~/Library/Application Support/skytui/` | `~/Library/Logs/skytui/skytui.log` |
+| Linux | `${XDG_CONFIG_HOME:-~/.config}/skytui/config.yaml` | `${XDG_DATA_HOME:-~/.local/share}/skytui/` | `${XDG_STATE_HOME:-~/.local/state}/skytui/skytui.log` |
+| Windows | `%APPDATA%\skytui\config.yaml` | `%LOCALAPPDATA%\skytui\` | `%LOCALAPPDATA%\skytui\logs\skytui.log` |
+
+The project and session files are named `projects.csv` and `sessions.csv`.
+SkyTUI creates missing directories and a default configuration on first run.
+
+Completed focus sessions survive restarts. A running or paused timer is held
+only in memory, so reopening SkyTUI starts a new focus session. Legacy
+two-field session rows remain supported and are loaded without being rewritten.
+
 ## Notifications
 
 SkyTUI sends a desktop notification when a focus or short-break session
@@ -183,11 +200,7 @@ failures are written to the application log without stopping the timer.
 
 ## Projects
 
-SkyTUI stores projects separately from session history:
-
-```text
-~/Library/Application Support/skytui/projects.csv
-```
+SkyTUI stores projects in `projects.csv`, separately from session history.
 
 Project names must be non-empty and unique regardless of letter case. Each
 project receives a stable internal ID that associates it with completed focus
@@ -201,11 +214,7 @@ while the application is open.
 
 ## Session History
 
-SkyTUI saves completed sessions to:
-
-```text
-~/Library/Application Support/skytui/sessions.csv
-```
+SkyTUI saves completed sessions to `sessions.csv`.
 
 The dashboard shows the four most recently completed focus sessions, with the
 newest session first. Each entry includes its completion date, duration, and
@@ -218,8 +227,5 @@ include their project ID as a third field.
 
 ## Logs
 
-SkyTUI writes application logs to:
-
-```text
-~/Library/Logs/skytui/skytui.log
-```
+SkyTUI writes application logs to the platform-specific log file listed under
+[Data Locations](#data-locations).

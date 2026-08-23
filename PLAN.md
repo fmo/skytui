@@ -545,7 +545,7 @@ desktop platforms.
 
 **Commit:** `build: automate release verification`
 
-### [ ] 49. Prepare v0.9.0
+### [x] 49. Prepare v0.9.0
 
 - Verify clean installs and upgrades with legacy sessions on every supported
   platform.
