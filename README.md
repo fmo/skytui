@@ -22,6 +22,14 @@ The core timer has no additional runtime dependencies. Linux desktop
 notifications require `notify-send`. Installing from source requires Go 1.25.3
 or later.
 
+### Install with Homebrew
+
+On macOS or Linux:
+
+```sh
+brew install fmo/tap/skytui
+```
+
 ### Download a binary
 
 Download the appropriate archive from the

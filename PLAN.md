@@ -594,7 +594,7 @@ Plan these only after stable local usage shows which problem matters next.
 
 **Commit:** `refactor: rename pomodoro package to app`
 
-### [ ] 52. Add A Homebrew Tap
+### [x] 52. Add A Homebrew Tap
 
 - Create a separate `fmo/homebrew-tap` repository with a SkyTUI formula.
 - Install the correct macOS or Linux release archive for the current
