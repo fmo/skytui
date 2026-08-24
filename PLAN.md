@@ -557,32 +557,17 @@ desktop platforms.
 
 ## v1.0.0 - Stable Local Pomodoro
 
-Goal: declare the local timer, project, history, and configuration contracts
-stable and ready for normal use.
+Goal: make SkyTUI's timer, projects, session history, configuration, and local
+data formats stable for everyday use.
 
-### [ ] 50. Stabilize User-Facing Contracts
+### [x] 50. Prepare v1.0.0
 
-- Document supported CLI flags, controls, configuration keys, and data files.
-- Define compatibility rules for session and project formats.
-- Require migrations for future breaking config or storage changes.
-
-**Commit:** `docs: define stable skytui contracts`
-
-### [ ] 51. Verify The Complete Product
-
-- Cover first run, project creation and selection, focus/break cycling,
-  filtering, notifications, restart, and legacy-data upgrade paths.
-- Run the full automated suite and manual smoke tests on every supported
-  platform.
-- Resolve release-blocking errors and data-loss risks before tagging.
-
-**Commit:** `test: verify stable product workflows`
-
-### [ ] 52. Prepare v1.0.0
-
-- Update the CLI version, README, screenshots, and installation instructions.
-- Publish release archives and checksums for every supported platform.
-- State the compatibility promise and the deliberately excluded features.
+- Document the stable CLI, controls, configuration, and local data formats.
+- Keep legacy session rows readable; no migration is needed because v1 does
+  not change the existing project or session formats.
+- State the v1 compatibility promise and excluded features.
+- Update the CLI version and installation links, run the complete test suite,
+  and build release archives and checksums for every supported platform.
 
 **Commit:** `chore: prepare v1.0.0`
 

@@ -25,14 +25,14 @@ or later.
 ### Download a binary
 
 Download the appropriate archive from the
-[GitHub release](https://github.com/fmo/skytui/releases/tag/v0.9.0):
+[GitHub release](https://github.com/fmo/skytui/releases/tag/v1.0.0):
 
-- [macOS Apple Silicon (`arm64`)](https://github.com/fmo/skytui/releases/download/v0.9.0/skytui_0.9.0_darwin_arm64.tar.gz)
-- [macOS Intel (`amd64`)](https://github.com/fmo/skytui/releases/download/v0.9.0/skytui_0.9.0_darwin_amd64.tar.gz)
-- [Linux (`arm64`)](https://github.com/fmo/skytui/releases/download/v0.9.0/skytui_0.9.0_linux_arm64.tar.gz)
-- [Linux (`amd64`)](https://github.com/fmo/skytui/releases/download/v0.9.0/skytui_0.9.0_linux_amd64.tar.gz)
-- [Windows (`amd64`)](https://github.com/fmo/skytui/releases/download/v0.9.0/skytui_0.9.0_windows_amd64.zip)
-- [SHA-256 checksums](https://github.com/fmo/skytui/releases/download/v0.9.0/checksums.txt)
+- [macOS Apple Silicon (`arm64`)](https://github.com/fmo/skytui/releases/download/v1.0.0/skytui_1.0.0_darwin_arm64.tar.gz)
+- [macOS Intel (`amd64`)](https://github.com/fmo/skytui/releases/download/v1.0.0/skytui_1.0.0_darwin_amd64.tar.gz)
+- [Linux (`arm64`)](https://github.com/fmo/skytui/releases/download/v1.0.0/skytui_1.0.0_linux_arm64.tar.gz)
+- [Linux (`amd64`)](https://github.com/fmo/skytui/releases/download/v1.0.0/skytui_1.0.0_linux_amd64.tar.gz)
+- [Windows (`amd64`)](https://github.com/fmo/skytui/releases/download/v1.0.0/skytui_1.0.0_windows_amd64.zip)
+- [SHA-256 checksums](https://github.com/fmo/skytui/releases/download/v1.0.0/checksums.txt)
 
 On macOS or Linux, extract the archive and move `skytui` to a directory in your
 `PATH`, such as `/usr/local/bin`. On Windows, extract `skytui.exe` and add its
@@ -70,7 +70,7 @@ grep linux_amd64 checksums.txt | sha256sum -c -
 Windows PowerShell:
 
 ```powershell
-Get-FileHash .\skytui_0.9.0_windows_amd64.zip -Algorithm SHA256
+Get-FileHash .\skytui_1.0.0_windows_amd64.zip -Algorithm SHA256
 ```
 
 Compare the PowerShell result with the matching entry in `checksums.txt`.
@@ -82,7 +82,7 @@ A valid download reports OK.
 Requires Go 1.25.3 or later.
 
 ```sh
-go install github.com/fmo/skytui@v0.9.0
+go install github.com/fmo/skytui@v1.0.0
 ```
 
 ## Usage
