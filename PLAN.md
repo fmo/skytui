@@ -593,3 +593,52 @@ Plan these only after stable local usage shows which problem matters next.
 - Do not introduce new interfaces or split the model in this task.
 
 **Commit:** `refactor: rename pomodoro package to app`
+
+### [ ] 52. Add A Homebrew Tap
+
+- Create a separate `fmo/homebrew-tap` repository with a SkyTUI formula.
+- Install the correct macOS or Linux release archive for the current
+  architecture and verify its checksum.
+- Support `brew install fmo/tap/skytui` and confirm `brew uninstall skytui`
+  removes it cleanly.
+
+**Commit:** `build: add homebrew distribution`
+
+### [ ] 53. Add A Unix Install Script
+
+- Add an installer for supported macOS and Linux architectures.
+- Download the requested SkyTUI release and verify it against
+  `checksums.txt` before installation.
+- Install to a user-writable directory by default and never invoke `sudo`
+  automatically.
+- Fail clearly for unsupported systems, architectures, missing tools, and
+  checksum mismatches.
+
+**Commit:** `build: add verified install script`
+
+### [ ] 54. Publish A Project Domain
+
+- Register a short project domain and connect it to a static site over HTTPS.
+- Keep domain and hosting ownership under the project maintainer's accounts.
+- Serve the install script from a stable URL without hiding its source.
+
+**Commit:** `docs: configure project domain`
+
+### [ ] 55. Publish Project Documentation
+
+- Publish installation, configuration, controls, data locations, and platform
+  requirements on the project site.
+- Keep documentation versioned in the repository and deploy it automatically
+  from the main branch.
+- Link directly to GitHub releases and the install script.
+
+**Commit:** `docs: publish project documentation`
+
+### [ ] 56. Simplify The README
+
+- Keep the project summary, screenshot, primary installation commands, basic
+  usage, and links to documentation and releases.
+- Move detailed platform, configuration, storage, and checksum instructions to
+  the documentation site without removing them from published documentation.
+
+**Commit:** `docs: simplify project readme`
