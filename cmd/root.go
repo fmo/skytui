@@ -5,10 +5,10 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/fmo/skytui/internal/app"
 	"github.com/fmo/skytui/internal/config"
 	"github.com/fmo/skytui/internal/history"
 	"github.com/fmo/skytui/internal/notifier"
-	"github.com/fmo/skytui/internal/pomodoro"
 	"github.com/fmo/skytui/internal/project"
 	"github.com/spf13/cobra"
 )
@@ -36,7 +36,7 @@ func newRootCmd(
 				return fmt.Errorf("duration should be at least 1 second and use whole seconds: %v", focusDuration)
 			}
 
-			m := pomodoro.New(historyStore, projectStore, settings, focusDuration, shortBreakDuration, notificationsEnabled, notifier)
+			m := app.New(historyStore, projectStore, settings, focusDuration, shortBreakDuration, notificationsEnabled, notifier)
 			p := tea.NewProgram(m)
 			if _, err := p.Run(); err != nil {
 				return err

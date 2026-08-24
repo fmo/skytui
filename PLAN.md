@@ -582,3 +582,14 @@ data formats stable for everyday use.
 - Accounts, cloud sync, and third-party integrations.
 
 Plan these only after stable local usage shows which problem matters next.
+
+## Post-v1 Maintenance
+
+### [x] 51. Rename The TUI Application Package
+
+- Rename `internal/pomodoro` to `internal/app` and `pomodoro.go` to `app.go`.
+- Update package declarations and imports without changing behavior.
+- Keep the Bubble Tea model, controls, rendering, and tests otherwise unchanged.
+- Do not introduce new interfaces or split the model in this task.
+
+**Commit:** `refactor: rename pomodoro package to app`

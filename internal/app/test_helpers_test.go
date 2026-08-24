@@ -1,4 +1,4 @@
-package pomodoro
+package app
 
 type fakeNotifier struct {
 	calls   int
