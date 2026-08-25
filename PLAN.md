@@ -604,7 +604,40 @@ Plan these only after stable local usage shows which problem matters next.
 
 **Commit:** `build: add homebrew distribution`
 
-### [ ] 53. Add A Unix Install Script
+## v1.1.0 - Weekly Focus Statistics
+
+Goal: make focus trends visible by showing weekly totals for the current
+dashboard history filter.
+
+### [ ] 53. Display Weekly Focus Statistics
+
+- Press `s` from the dashboard to open the weekly statistics screen.
+- Use the current history filter so the screen can show all projects,
+  unassigned sessions, or one selected project.
+- Show the latest eight ISO calendar weeks with the year, week number,
+  completed focus-session count, and total focus time.
+- Include weeks with no completed sessions so gaps remain visible.
+- Press `Esc` to return and `q` to quit while the active timer continues to
+  receive ticks behind the statistics screen.
+- Keep the screen readable in narrow terminals and test week grouping,
+  filtering, navigation, and continued timer updates.
+
+**Commit:** `feat: add weekly focus statistics`
+
+### [ ] 54. Prepare v1.1.0
+
+- Document the statistics control and weekly totals.
+- Run the complete test suite and release checks.
+- Update the CLI version and release links, then build archives and checksums
+  for every supported platform.
+
+**Commit:** `chore: prepare v1.1.0`
+
+**Tag:** `v1.1.0`
+
+## Post-v1 Distribution And Documentation
+
+### [ ] 55. Add A Unix Install Script
 
 - Add an installer for supported macOS and Linux architectures.
 - Download the requested SkyTUI release and verify it against
@@ -616,7 +649,7 @@ Plan these only after stable local usage shows which problem matters next.
 
 **Commit:** `build: add verified install script`
 
-### [ ] 54. Publish A Project Domain
+### [ ] 56. Publish A Project Domain
 
 - Register a short project domain and connect it to a static site over HTTPS.
 - Keep domain and hosting ownership under the project maintainer's accounts.
@@ -624,7 +657,7 @@ Plan these only after stable local usage shows which problem matters next.
 
 **Commit:** `docs: configure project domain`
 
-### [ ] 55. Publish Project Documentation
+### [ ] 57. Publish Project Documentation
 
 - Publish installation, configuration, controls, data locations, and platform
   requirements on the project site.
@@ -634,7 +667,7 @@ Plan these only after stable local usage shows which problem matters next.
 
 **Commit:** `docs: publish project documentation`
 
-### [ ] 56. Simplify The README
+### [ ] 58. Simplify The README
 
 - Keep the project summary, screenshot, primary installation commands, basic
   usage, and links to documentation and releases.
