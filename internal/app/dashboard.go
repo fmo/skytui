@@ -175,12 +175,12 @@ func statsContent(
 }
 
 func bottomContent(status timer.Status, availableWidth int) string {
-	controls := []string{"[q] Quit", "[Space] Pause", "[r] Reset", "[f] Filter"}
+	controls := []string{"[q] Quit", "[Space] Pause", "[r] Reset", "[f] Filter", "[s] Stats"}
 	if status == timer.Paused {
 		controls[1] = "[Space] Resume"
 	}
 	if status == timer.Completed {
-		controls = []string{"[q] Quit", "[n] Next", "[f] Filter"}
+		controls = []string{"[q] Quit", "[n] Next", "[f] Filter", "[s] Stats"}
 	}
 
 	separator := "   "
@@ -188,10 +188,34 @@ func bottomContent(status timer.Status, availableWidth int) string {
 		separator = "  "
 	}
 	if lipgloss.Width(strings.Join(controls, separator)) > availableWidth {
-		separator = "\n"
+		return lipgloss.NewStyle().Foreground(mutedColor).Render(wrapControls(controls, availableWidth))
 	}
 
 	return lipgloss.NewStyle().Foreground(mutedColor).Render(strings.Join(controls, separator))
+}
+
+func wrapControls(controls []string, availableWidth int) string {
+	const separator = "   "
+	lines := make([]string, 0, len(controls))
+	line := ""
+	for _, control := range controls {
+		control = truncate(control, availableWidth)
+		candidate := control
+		if line != "" {
+			candidate = line + separator + control
+		}
+		if line != "" && lipgloss.Width(candidate) > availableWidth {
+			lines = append(lines, line)
+			line = control
+			continue
+		}
+		line = candidate
+	}
+	if line != "" {
+		lines = append(lines, line)
+	}
+
+	return strings.Join(lines, "\n")
 }
 
 func titledBorder(width int, kind timer.Kind) string {
@@ -249,12 +273,13 @@ func (m model) dashboardView() tea.View {
 		sessionList(m.sessions, m.projectPicker.projects, contentWidth),
 	)
 
-	dashboard := lipgloss.JoinVertical(
-		lipgloss.Left,
-		renderPanel(content, width, m.session.Kind()),
-		"",
-		bottomContent(m.session.Status(), width),
-	)
+	footer := bottomContent(m.session.Status(), width)
+	dashboardRows := []string{renderPanel(content, width, m.session.Kind())}
+	if lipgloss.Height(footer) == 1 {
+		dashboardRows = append(dashboardRows, "")
+	}
+	dashboardRows = append(dashboardRows, footer)
+	dashboard := lipgloss.JoinVertical(lipgloss.Left, dashboardRows...)
 
 	if m.width > 0 {
 		dashboard = lipgloss.PlaceHorizontal(m.width, lipgloss.Center, dashboard)

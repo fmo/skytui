@@ -19,6 +19,7 @@ const (
 	dashboardScreen screen = iota
 	projectScreen
 	historyFilterScreen
+	statsScreen
 )
 
 type model struct {
@@ -27,6 +28,7 @@ type model struct {
 	activeProject        project.Project
 	sessionProjectID     string
 	projectPicker        projectPicker
+	statsPage            statsPage
 	historyFilterPicker  historyFilterPicker
 	settings             *config.Config
 	screen               screen
@@ -41,6 +43,7 @@ type model struct {
 	shortBreakDuration   time.Duration
 	notificationsEnabled bool
 	sessions             []history.Record
+	allSessions          []history.Record
 	width, height        int
 }
 
@@ -154,6 +157,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
+	if m.screen == statsScreen {
+		if key, ok := msg.(tea.KeyPressMsg); ok {
+			switch key.String() {
+			case "esc":
+				m.screen = dashboardScreen
+				return m, nil
+			case "q":
+				slog.Info("closing the application")
+				return m, tea.Quit
+			}
+
+			return m, nil
+		}
+	}
+
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
 		switch msg.String() {
@@ -171,6 +189,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "q":
 			slog.Info("closing the application")
 			return m, tea.Quit
+		case "s":
+			m.statsPage = newStatsPage(m.activeProject, m.allSessions, time.Now())
+			m.screen = statsScreen
+			return m, nil
 		case "r":
 			m.session.Reset(time.Now())
 			cmd := m.progress.SetPercent(0.0)
@@ -196,6 +218,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if err != nil {
 			slog.Error("cant load sessions", "err", err)
 		}
+		m.allSessions = records
+		m.statsPage = newStatsPage(m.activeProject, records, time.Now())
 		filteredRecords := history.FilterRecords(records, m.historyFilter)
 		m.sessions = filteredRecords
 
@@ -253,6 +277,9 @@ func (m model) View() tea.View {
 	}
 	if m.screen == historyFilterScreen {
 		return tea.NewView(m.historyFilterPicker.View(m.width, m.session.Kind()))
+	}
+	if m.screen == statsScreen {
+		return tea.NewView(m.statsPage.View(m.width))
 	}
 
 	return m.dashboardView()

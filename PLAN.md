@@ -606,21 +606,21 @@ Plan these only after stable local usage shows which problem matters next.
 
 ## v1.1.0 - Weekly Focus Statistics
 
-Goal: make focus trends visible by showing weekly totals for the current
-dashboard history filter.
+Goal: make focus trends visible by showing weekly totals for the active
+project.
 
-### [ ] 53. Display Weekly Focus Statistics
+### [x] 53. Display Weekly Focus Statistics
 
 - Press `s` from the dashboard to open the weekly statistics screen.
-- Use the current history filter so the screen can show all projects,
-  unassigned sessions, or one selected project.
+- Show statistics for the active project selected when the focus session
+  started, independently of the dashboard history filter.
 - Show the latest eight ISO calendar weeks with the year, week number,
   completed focus-session count, and total focus time.
 - Include weeks with no completed sessions so gaps remain visible.
 - Press `Esc` to return and `q` to quit while the active timer continues to
   receive ticks behind the statistics screen.
 - Keep the screen readable in narrow terminals and test week grouping,
-  filtering, navigation, and continued timer updates.
+  active-project filtering, navigation, and continued timer updates.
 
 **Commit:** `feat: add weekly focus statistics`
 
