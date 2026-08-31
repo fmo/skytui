@@ -624,7 +624,7 @@ project.
 
 **Commit:** `feat: add weekly focus statistics`
 
-### [ ] 54. Prepare v1.1.0
+### [x] 54. Prepare v1.1.0
 
 - Document the statistics control and weekly totals.
 - Run the complete test suite and release checks.
