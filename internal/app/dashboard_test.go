@@ -59,9 +59,9 @@ func TestFooterControls(t *testing.T) {
 		status timer.Status
 		want   string
 	}{
-		{name: "running", status: timer.Running, want: "[q] Quit   [Space] Pause   [r] Reset   [f] Filter"},
-		{name: "paused", status: timer.Paused, want: "[q] Quit   [Space] Resume   [r] Reset   [f] Filter"},
-		{name: "completed", status: timer.Completed, want: "[q] Quit   [n] Next   [f] Filter"},
+		{name: "running", status: timer.Running, want: "[q] Quit   [Space] Pause   [r] Reset   [f] Filter   [s] Stats"},
+		{name: "paused", status: timer.Paused, want: "[q] Quit   [Space] Resume   [r] Reset   [f] Filter   [s] Stats"},
+		{name: "completed", status: timer.Completed, want: "[q] Quit   [n] Next   [f] Filter   [s] Stats"},
 	}
 
 	for _, tt := range tests {
@@ -123,6 +123,7 @@ func TestDashboardRendering(t *testing.T) {
 				"[Space] Pause",
 				"[r] Reset",
 				"[f] Filter",
+				"[s] Stats",
 			}
 			for _, value := range want {
 				if !strings.Contains(content, value) {
