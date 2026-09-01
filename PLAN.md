@@ -1,643 +1,88 @@
 # SkyTUI Plan
 
+This file tracks active and future work. Completed releases are documented in
+[`CHANGELOG.md`](CHANGELOG.md) and preserved in Git history.
+
 `[x]` is complete. `[ ]` is planned. Future tasks can be adjusted before work
 starts, but the current task should stay focused.
 
-## Design Reference
-
-This image is the direction for the completed dashboard, not the current
-released interface.
-
-![SkyTUI dashboard design reference](docs/images/dashboard-reference.png)
-
-## v0.1.0 - Usable Timer
-
-Goal: ship a reliable local Pomodoro timer that can be installed and used from
-the terminal.
-
-### [x] 1. Display A Static Pomodoro Screen
-
-Create the initial SkyTUI application:
-
-- Cobra provides the root `skytui` command and `--help` output.
-- Running `skytui` launches a Bubble Tea screen.
-- The screen shows the `SkyTUI Pomodoro` title, `Session: 0 / 25 min`, an empty
-  Bubbles progress bar at `0%`, `Remaining: 25m00s`, and `[q] Quit`.
-- A Lip Gloss normal border with padding wraps the timer content; `[q] Quit`
-  appears below the border.
-- `q` closes the application.
-
-#### Commit
-
-```text
-feat: display a static pomodoro screen
-```
-
-### [x] 2. Write Application Logs To A File
-
-Add minimal file logging with the standard library's `log/slog` package:
-
-- Use the existing macOS `~/Library/Logs` directory as the parent location.
-- Create `~/Library/Logs/skytui` with `0700` permissions so only the current
-  user can access SkyTUI's log directory.
-- Create `~/Library/Logs/skytui/skytui.log` when it does not exist, then open
-  it in append mode with `0600` permissions so only the current user can read
-  or write it.
-- Configure a `slog.TextHandler` as the default logger before the TUI starts.
-- Log when SkyTUI starts and when the user quits with `q`.
-- Close the log file after Cobra and Bubble Tea finish.
-- Do not add rotation, configurable levels, Viper, or another logging library
-  yet.
-
-#### Commit
-
-```text
-chore: add file logging
-```
-
-### [x] 3. Add The Pomodoro Countdown
-
-Make the 25-minute timer run automatically when SkyTUI opens:
-
-- Update the session time, progress bar, percentage, and remaining time every
-  second.
-- Stop at `25 / 25 min`, `100%`, and `Remaining: 0s`.
-- Keep the completed screen visible until the user presses `q`.
-- Log countdown start and completion events at `INFO` level.
-
-#### Commit
-
-```text
-feat: add pomodoro countdown
-```
-
-### [x] 4. Pause And Resume The Countdown
-
-Let the user control an active Pomodoro with `space`:
-
-- While running, pressing `space` pauses the countdown and changes the footer
-  control to `[Space] Resume`.
-- While paused, session time, progress, and remaining time stay unchanged.
-- Pressing `space` again resumes from the same point and changes the footer
-  control back to `[Space] Pause`.
-- After completion, `space` has no effect.
-- Log pause and resume events at `INFO` level.
-
-#### Commit
-
-```text
-feat: pause and resume pomodoro countdown
-```
-
-### [x] 5. Configure The Pomodoro Duration
-
-- Add a Cobra `--duration` flag with a `25m` default.
-- Use the selected duration for timer state, progress, and display values.
-- Reject invalid durations, values below one second, and fractional seconds
-  before opening the TUI.
-
-**Commit:** `feat: configure pomodoro duration`
-
-### [x] 6. Keep The Countdown Accurate
-
-- Derive running time from timestamps instead of the number of received tick
-  messages.
-- Keep remaining time correct when rendering is delayed.
-- Freeze elapsed time while paused and continue correctly after resume.
-
-**Commit:** `fix: prevent pomodoro timer drift`
-
-### [x] 7. Test The Timer States
-
-- Cover running ticks, pause, resume, reaching the deadline, and controls after completion.
-- Test state transitions by sending messages without waiting on real time.
-
-**Commit:** `test: cover pomodoro timer states`
-
-### [x] 8. Prepare v0.1.0
-
-- Document installation, usage, duration flag, controls, and log location.
-- Add `--version` output for `v0.1.0`.
-- State that `v0.1.0` supports macOS.
-- Add the MIT license and an image of the released interface.
-- Document release binaries for Apple Silicon and Intel Macs.
-- Verify a clean install and one complete short manual session.
-
-**Commit:** `chore: prepare v0.1.0`
-
-**Tag:** `v0.1.0`
-
-## Release Maintenance
-
-### [x] 9. Generate Release Checksums With Make
-
-- Add a `Makefile` with a `checksums` target.
-- Accept the release version so the target can be reused for later releases.
-- Generate `checksums.txt` for the Apple Silicon and Intel archives in the
-  matching `dist` release directory.
-
-**Commit:** `build: add release checksum target`
-
-## v0.2.0 - Session History
-
-Goal: make completed focus time useful after the timer exits.
-
-### [x] 10. Separate The Pomodoro Model From Cobra
-
-- Create `internal/pomodoro` for the Bubble Tea application.
-- Move the model fields, timer statuses, tick message, `Init`, `Update`, and
-  `View` from `cmd/root.go` into the new package.
-- Make the model own its duration, remaining time, deadline, pause state, and
-  Bubbles progress model.
-- Provide a constructor that receives the session duration and returns a fully
-  initialized Bubble Tea model.
-- Keep `cmd/root.go` responsible only for Cobra flags, duration validation,
-  help/version output, and starting `tea.NewProgram`.
-- Move the timer-state tests with the model and keep every current behavior
-  unchanged.
-
-**Commit:** `refactor: separate pomodoro model from command`
-
-### [x] 11. Store Completed Sessions
-
-- Create `~/Library/Application Support/skytui` with `0700` permissions.
-- Append completed session time and duration to `sessions.csv` with `0600`
-  permissions.
-- Save a completed session exactly once; do not save partial sessions yet.
-
-**Commit:** `feat: persist completed pomodoro sessions`
-
-### [x] 12. Show Recent Sessions
-
-- Load saved sessions when SkyTUI starts.
-- Show the four most recent completed sessions below the timer.
-- Refresh the recent sessions after a session completes.
-- Treat a missing or empty session file as an empty history.
-
-**Commit:** `feat: show recent pomodoro sessions`
-
-### [x] 13. Show Focus Totals
-
-- Display today's, the current week's, the current month's, and all-time completed focus durations.
-- Refresh the values after a session completes.
-
-**Commit:** `feat: show focus time totals`
-
-### [x] 14. Test Session Data
-
-- Test CSV append and load behavior using temporary directories.
-- Test recent-session ordering and total calculations around day and ISO-week
-  boundaries.
-
-**Commit:** `test: cover session storage and summaries`
-
-### [x] 15. Prepare v0.2.0
-
-- Document the session file and dashboard history.
-- Add an updated screenshot.
-- Verify fresh startup and startup with existing session data.
-
-**Commit:** `chore: prepare v0.2.0`
-
-**Tag:** `v0.2.0`
-
-## v0.3.0 - Defaults And Polish
-
-Goal: make repeated daily use configurable and resilient.
-
-### [x] 16. Load Persistent Defaults
-
-- Use Viper with `~/Library/Application Support/skytui/config.yaml`.
-- Persist a default Pomodoro duration.
-- Let the Cobra `--duration` flag override the configured value.
-
-**Commit:** `feat: load pomodoro defaults from config`
-
-### [x] 17. Reset The Timer
-
-- Reset the active or paused timer with `r`.
-- Return session time, remaining time, and progress to their initial values.
-- Do not save the discarded session.
-
-**Commit:** `feat: reset pomodoro countdown`
-
-### [x] 18. Make The Dashboard Responsive
-
-- Respond to terminal resize messages.
-- Keep the timer, progress bar, history, totals, and controls readable at
-  80x24 and wider terminal sizes.
-
-**Commit:** `feat: make pomodoro dashboard responsive`
-
-### [x] 19. Prepare v0.3.0
-
-- Document configuration precedence and reset behavior.
-- Verify configuration, resize, timer, and history workflows together.
-
-**Commit:** `chore: prepare v0.3.0`
-
-**Tag:** `v0.3.0`
-
-## v0.4.0 - Work And Break Cycle
-
-Goal: alternate between focused work and short breaks without automatically
-starting the next session.
-
-### [x] 20. Configure Short Break Duration
-
-- Add `short-break-duration: 5m0s` to `config.yaml`.
-- Load and validate the break duration with the existing Pomodoro default.
-- Keep `--duration` scoped to focus sessions.
-
-**Commit:** `feat: configure short break duration`
-
-### [x] 21. Add Focus And Break Session Types
-
-- Represent the active session as either focus or short break.
-- Start SkyTUI with a focus session.
-- Show the active session type on the dashboard.
-- Persist completed focus sessions; do not persist short breaks.
-
-**Commit:** `feat: add focus and break session types`
-
-### [x] 22. Cycle Between Focus And Break Sessions
-
-- After a focus session completes, show `[n] Next` to start a short break.
-- After a short break completes, show `[n] Next` to start a focus session.
-- Do not start the next session automatically.
-- Keep pause and reset behavior available during both session types.
-
-**Commit:** `feat: cycle between focus and break sessions`
-
-### [x] 23. Test The Session Cycle
-
-- Test focus-to-break and break-to-focus transitions.
-- Test that completed breaks are not persisted or included in focus totals.
-- Test pause and reset behavior during short breaks.
-
-**Commit:** `test: cover focus and break cycles`
-
-### [x] 24. Prepare v0.4.0
-
-- Document short-break configuration, session types, and next-session controls.
-- Verify focus, break, reset, persistence, history, and configuration workflows
-  together.
-
-**Commit:** `chore: prepare v0.4.0`
-
-**Tag:** `v0.4.0`
-
-## v0.5.0 - Dashboard Clarity
-
-Goal: make the dashboard easier to scan and strong enough to represent SkyTUI
-in screenshots without changing the timer workflow.
-
-The terminal controls the font. This release improves hierarchy, spacing,
-alignment, borders, and color without adding an ASCII-art font.
-
-### [x] 25. Extract Timer Session State
-
-- Add `internal/timer/session.go` for the active timer domain.
-- Represent one active session with its type, status, duration, remaining time,
-  deadline, and pause state.
-- Move pause, resume, reset, tick, elapsed-time, remaining-time, and progress
-  calculations out of the Bubble Tea model.
-- Pass explicit timestamps into timer methods so tests do not use sleeps or
-  depend directly on `time.Now()`.
-- Keep focus/break cycling, persistence, Bubble Tea commands, and rendering in
-  the Pomodoro model.
-- Do not add timelines, interrupted-session recovery, interfaces, or an event
-  system.
-
-**Commit:** `refactor: extract timer session state`
-
-### [x] 26. Format Dashboard Durations
-
-- Replace raw `time.Duration.String()` values in the dashboard with one
-  consistent formatter.
-- Render examples such as `25m`, `1m 05s`, and `4h 10m` without unnecessary
-  zero-value suffixes.
-- Use the formatter for the active session, remaining time, totals, and recent
-  sessions.
-
-**Commit:** `feat: format dashboard durations`
-
-### [x] 27-28. Redesign And Test The Dashboard Layout
-
-- Render `SkyTUI Pomodoro` inside the top border, following the shape in
-  `docs/images/dashboard-reference.png`.
-- Align summary labels and values into readable columns.
-- Add a horizontal divider before recent sessions and align recent-session
-  rows.
-- Use distinct, restrained colors for focus and short-break sessions while
-  keeping the dashboard readable without color.
-- Keep controls visually separate at the bottom.
-- Do not add projects or copy the reference image as a strict pixel layout.
-- Cover focus and short-break labels and their colors.
-- Cover running, paused, and completed footer controls.
-- Verify the titled border, summary columns, recent sessions, and controls fit
-  at 80x24 and remain usable in a narrower terminal.
-
-**Commit:** `feat: refine the pomodoro dashboard`
-
-### [x] 29. Prepare v0.5.0
-
-- Update the CLI version and README for `v0.5.0`.
-- Replace the README image with a current dashboard screenshot captured using
-  a readable terminal font.
-- Verify focus, break, resize, history, and configuration workflows together.
-
-**Commit:** `chore: prepare v0.5.0`
-
-**Tag:** `v0.5.0`
-
-## v0.6.0 - Projects
-
-Goal: give every completed focus session a real project identity without
-turning SkyTUI into a project-management application.
-
-### [x] 30. Rename The Session Package To History
-
-- Rename `internal/session` to `internal/history` to distinguish persisted
-  completed sessions from the active `timer.Session`.
-- Rename the store constructor to `history.NewStore` and update all imports,
-  parameters, and tests without changing behavior or data formats.
-
-**Commit:** `refactor: rename session package to history`
-
-### [x] 31. Add Project Storage
-
-- Define a project with a stable internal ID and a user-facing name.
-- Store projects separately from sessions and inject the storage path so tests
-  use `t.TempDir()`.
-- Require non-empty, case-insensitively unique project names.
-- Do not add rename, archive, delete, descriptions, or remote identifiers yet.
-
-**Commit:** `feat: add project storage`
-
-### [x] 32. Select The Active Project
-
-- Add an in-app project picker for creating and selecting a project.
-- Require a project before the first focus session starts and remember the last
-  selected project for later launches.
-- Show the active project on the dashboard.
-- Bind the project when a focus session starts; short breaks do not own a
-  project.
-
-**Commit:** `feat: select an active project`
-
-### [x] 33. Save Projects With Focus Sessions
-
-- Add the project ID as a required third field for newly saved sessions.
-- Load existing two-field rows as unassigned sessions without rewriting them.
-- Save the active project with completed focus sessions.
-- Show project names beside recent sessions.
-
-**Commit:** `feat: associate focus sessions with projects`
-
-### [x] 34. Test Project Workflows
-
-- Cover project-name validation, duplicate names, persistence, and selection.
-- Cover old two-field session rows and new project-aware rows together.
-- Verify that breaks are not assigned to projects or persisted.
-
-**Commit:** `test: cover project workflows`
-
-### [x] 35. Prepare v0.6.0
-
-- Document project creation, selection, persistence, and legacy sessions.
-- Verify first-run setup and repeated launches with a remembered project.
-
-**Commit:** `chore: prepare v0.6.0`
-
-**Tag:** `v0.6.0`
-
-## v0.7.0 - Project Filters
-
-Goal: make focus history and totals useful for one project or across all work.
-
-### [x] 36. Filter Sessions By Project
-
-- Filter records by project ID before calculating recent sessions and totals.
-- Support `All Projects`, one selected project, and `Unassigned` legacy rows.
-- Keep the history filter independent from the active timer project.
-
-**Commit:** `feat: filter sessions by project`
-
-### [x] 37. Add Dashboard Filter Controls
-
-- Add `[f] Filter` to open an in-app project filter.
-- Show the active filter as the shared heading for totals and recent sessions.
-- Default to `All Projects` and preserve the filter while SkyTUI remains open.
-- Changing the filter must not pause, reset, or reassign the active session.
-
-**Commit:** `feat: add project filter controls`
-
-### [x] 38. Test Project Filtering
-
-- Cover all-project, single-project, and unassigned totals and recent sessions.
-- Cover empty results and projects with the same prefix.
-- Verify that changing the history filter does not change the active project.
-
-**Commit:** `test: cover project filtering`
-
-### [x] 39. Prepare v0.7.0
-
-- Document project filters and the difference between active project and
-  history filter.
-- Update the README screenshot for the v0.7.0 dashboard.
-- Verify project selection, focus storage, filtering, and session cycling
-  together.
-
-**Commit:** `chore: prepare v0.7.0`
-
-**Tag:** `v0.7.0`
-
-## v0.8.0 - Completion Notifications
-
-Goal: tell the user when a session finishes without requiring them to watch the
-terminal.
-
-### [x] 40. Add A Notification Boundary
-
-- Define a small notifier interface and inject it into the Pomodoro model.
-- Emit one completion notification request when a timer reaches zero.
-- Keep notification code outside the timer domain and make tests use a fake
-  notifier.
-
-**Commit:** `refactor: add notification boundary`
-
-### [x] 41. Notify On Session Completion
-
-- Send a desktop notification when a focus or short-break session completes.
-- State which session completed and which session is available next.
-- Keep next-session startup manual.
-- Add a configuration option to disable notifications.
-- Log notification failures without terminating or blocking the TUI.
-
-**Commit:** `feat: notify when sessions complete`
-
-### [x] 42. Test Completion Notifications
-
-- Cover focus and short-break messages, disabled notifications, and failures.
-- Verify that completion emits once even when more tick messages arrive.
-
-**Commit:** `test: cover completion notifications`
-
-### [x] 43. Prepare v0.8.0
-
-- Document notification behavior and configuration.
-- Verify notifications with focus/break cycling and manual next-session starts.
-
-**Commit:** `chore: prepare v0.8.0`
-
-**Tag:** `v0.8.0`
-
-## v0.9.0 - Portability And Reliability
-
-Goal: make the release candidate safe to install, upgrade, and run on supported
-desktop platforms.
-
-### [x] 44. Use Platform-Appropriate Paths
-
-- Resolve configuration, session, project, and log paths per operating system.
-- Preserve existing macOS data and migrate only when the destination is safe.
-- Keep path resolution injectable for tests.
-
-**Commit:** `feat: use cross-platform application paths`
-
-### [x] 45. Build On Supported Platforms
-
-- Build and test supported macOS, Linux, and Windows targets in CI.
-- Publish archives with consistent names and checksums.
-- Document platform-specific installation and any required dependencies.
-- Select notification implementations by platform without running macOS
-  commands on Linux or Windows.
-
-**Commit:** `build: add cross-platform release builds`
-
-### [x] 46. Notify On Linux
-
-- Send focus and short-break completion notifications through `notify-send`.
-- Preserve the existing asynchronous delivery, messages, and configuration.
-- Return a clear error when `notify-send` is unavailable and document the
-  required Linux package.
-- Test command arguments and failures through an injected command runner.
-
-**Commit:** `feat: add linux desktop notifications`
-
-### [x] 47. Notify On Windows
-
-- Send focus and short-break completion notifications through a native Windows
-  toast invoked with PowerShell and Windows Runtime APIs.
-- Require no user-installed PowerShell modules.
-- Pass notification content through the child process environment instead of
-  interpolating it into the PowerShell script.
-- Test command arguments and failures through an injected command runner.
-
-**Commit:** `feat: add windows desktop notifications`
-
-### [x] 48. Automate Release Checks
-
-- Run formatting checks, tests, builds, archive generation, and checksums through
-  one `make release VERSION=...` command.
-- Keep version input explicit and fail before publishing incomplete artifacts.
-
-**Commit:** `build: automate release verification`
-
-### [x] 49. Prepare v0.9.0
-
-- Verify clean installs and upgrades with legacy sessions on every supported
-  platform.
-- Document supported platforms, paths, and recovery behavior.
-
-**Commit:** `chore: prepare v0.9.0`
-
-**Tag:** `v0.9.0`
-
-## v1.0.0 - Stable Local Pomodoro
-
-Goal: make SkyTUI's timer, projects, session history, configuration, and local
-data formats stable for everyday use.
-
-### [x] 50. Prepare v1.0.0
-
-- Document the stable CLI, controls, configuration, and local data formats.
-- Keep legacy session rows readable; no migration is needed because v1 does
-  not change the existing project or session formats.
-- State the v1 compatibility promise and excluded features.
-- Update the CLI version and installation links, run the complete test suite,
-  and build release archives and checksums for every supported platform.
-
-**Commit:** `chore: prepare v1.0.0`
-
-**Tag:** `v1.0.0`
-
-## Outside The v1 Scope
-
-- Project rename, archive, delete, descriptions, goals, and budgets.
-- Long breaks and automatic session starts.
-- Full history editing, charts, and advanced reports.
-- Richer storage diagnostics and migration tooling.
-- Accounts, cloud sync, and third-party integrations.
-
-Plan these only after stable local usage shows which problem matters next.
-
-## Post-v1 Maintenance
-
-### [x] 51. Rename The TUI Application Package
-
-- Rename `internal/pomodoro` to `internal/app` and `pomodoro.go` to `app.go`.
-- Update package declarations and imports without changing behavior.
-- Keep the Bubble Tea model, controls, rendering, and tests otherwise unchanged.
-- Do not introduce new interfaces or split the model in this task.
-
-**Commit:** `refactor: rename pomodoro package to app`
-
-### [x] 52. Add A Homebrew Tap
-
-- Create a separate `fmo/homebrew-tap` repository with a SkyTUI formula.
-- Install the correct macOS or Linux release archive for the current
-  architecture and verify its checksum.
-- Support `brew install fmo/tap/skytui` and confirm `brew uninstall skytui`
-  removes it cleanly.
-
-**Commit:** `build: add homebrew distribution`
-
-## v1.1.0 - Weekly Focus Statistics
-
-Goal: make focus trends visible by showing weekly totals for the active
-project.
-
-### [x] 53. Display Weekly Focus Statistics
-
-- Press `s` from the dashboard to open the weekly statistics screen.
-- Show statistics for the active project selected when the focus session
-  started, independently of the dashboard history filter.
-- Show the latest eight ISO calendar weeks with the year, week number,
-  completed focus-session count, and total focus time.
-- Include weeks with no completed sessions so gaps remain visible.
+## v1.2.0 - Monthly Focus Statistics
+
+Goal: extend the statistics screen from weekly trends to longer-term monthly
+focus trends for the active project.
+
+### [ ] Aggregate Monthly Focus Statistics
+
+- Calculate completed focus-session counts and total focus time for the latest
+  twelve calendar months.
+- Include months with no completed sessions so gaps remain visible.
+- Scope monthly statistics to the active project independently of the
+  dashboard history filter.
+- Test month grouping across year boundaries, empty months, active-project
+  filtering, session counts, and focus-time totals.
+
+**Commit:** `feat: aggregate monthly focus statistics`
+
+### [ ] Add Statistics Period Controls
+
+- Keep `s` as the dashboard control that opens the statistics screen.
+- Open the statistics screen in Weekly mode by default.
+- Press `w` within the statistics screen to show Weekly statistics and `m` to
+  show Monthly statistics.
+- Keep the existing latest-eight-weeks view and weekly aggregation behavior.
+- Show the monthly aggregation with the year, month, completed focus-session
+  count, and total focus time.
+- Show the selected Weekly or Monthly mode clearly in the screen heading or
+  controls.
 - Press `Esc` to return and `q` to quit while the active timer continues to
   receive ticks behind the statistics screen.
-- Keep the screen readable in narrow terminals and test week grouping,
-  active-project filtering, navigation, and continued timer updates.
+- Keep both modes readable in narrow terminals.
+- Test the default mode, mode switching, navigation, narrow rendering, and
+  continued timer updates.
 
-**Commit:** `feat: add weekly focus statistics`
+**Commit:** `feat: add statistics period controls`
 
-### [x] 54. Prepare v1.1.0
+### [ ] Prepare v1.2.0
 
-- Document the statistics control and weekly totals.
+- Document weekly and monthly statistics controls and behavior.
+- Add all user-visible v1.2.0 changes to `CHANGELOG.md`.
 - Run the complete test suite and release checks.
-- Update the CLI version and release links, then build archives and checksums
-  for every supported platform.
+- Update the CLI version and release links.
+- Build the final release archives once from the tagged release state.
+- Verify the checksums of the exact GitHub release assets before updating the
+  Homebrew formula.
 
-**Commit:** `chore: prepare v1.1.0`
+**Commit:** `chore: prepare v1.2.0`
 
-**Tag:** `v1.1.0`
+**Tag:** `v1.2.0`
 
-## Post-v1 Distribution And Documentation
+## Backlog
 
-### [ ] 55. Add A Unix Install Script
+Backlog items are ideas, not commitments to a particular release.
+
+### Render Statistics With A Bubble Tea Table
+
+- Replace the manually formatted weekly and monthly rows with a Bubble Tea
+  table component.
+- Preserve readable narrow-terminal behavior instead of forcing horizontal
+  overflow.
+- Keep statistics mode controls and navigation predictable when the table has
+  focus.
+- Add rendering and interaction coverage before making the table the default.
+
+### Native macOS Notification Helper — On Hold
+
+- Investigate replacing `osascript` with a small native macOS notification
+  helper that uses the UserNotifications framework.
+- Give the helper a stable SkyTUI bundle identifier so it appears clearly in
+  macOS Notification settings and can request permission explicitly.
+- Prototype and test the helper on affected Apple Silicon Macs before changing
+  the release pipeline.
+- Decide whether unsigned distribution provides an acceptable experience
+  before adding Developer ID signing and notarization.
+- Keep Linux and Windows notification implementations unchanged.
+
+### Add A Verified Unix Install Script
 
 - Add an installer for supported macOS and Linux architectures.
 - Download the requested SkyTUI release and verify it against
@@ -647,31 +92,20 @@ project.
 - Fail clearly for unsupported systems, architectures, missing tools, and
   checksum mismatches.
 
-**Commit:** `build: add verified install script`
-
-### [ ] 56. Publish A Project Domain
+### Publish A Project Website
 
 - Register a short project domain and connect it to a static site over HTTPS.
-- Keep domain and hosting ownership under the project maintainer's accounts.
-- Serve the install script from a stable URL without hiding its source.
-
-**Commit:** `docs: configure project domain`
-
-### [ ] 57. Publish Project Documentation
-
 - Publish installation, configuration, controls, data locations, and platform
-  requirements on the project site.
+  requirements.
 - Keep documentation versioned in the repository and deploy it automatically
   from the main branch.
 - Link directly to GitHub releases and the install script.
+- Simplify the README after the complete documentation is available elsewhere.
 
-**Commit:** `docs: publish project documentation`
+### Product Ideas
 
-### [ ] 58. Simplify The README
-
-- Keep the project summary, screenshot, primary installation commands, basic
-  usage, and links to documentation and releases.
-- Move detailed platform, configuration, storage, and checksum instructions to
-  the documentation site without removing them from published documentation.
-
-**Commit:** `docs: simplify project readme`
+- Project rename, archive, delete, descriptions, goals, and budgets.
+- Long breaks and automatic session starts.
+- Full history editing, charts, and advanced reports.
+- Richer storage diagnostics and migration tooling.
+- Accounts, cloud sync, and third-party integrations.
