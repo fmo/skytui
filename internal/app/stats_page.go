@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -11,7 +12,10 @@ import (
 	"github.com/fmo/skytui/internal/timer"
 )
 
-const weeklyStatsLimit = 8
+const (
+	weeklyStatsLimit = 8
+	yearlyStatsLimit = 12
+)
 
 type weeklyStat struct {
 	year      int
@@ -20,16 +24,92 @@ type weeklyStat struct {
 	focusTime time.Duration
 }
 
+type monthlyStat struct {
+	year      int
+	month     int
+	sessions  int
+	focusTime time.Duration
+}
+
 type statsPage struct {
 	activeProject project.Project
 	weeks         []weeklyStat
+	months        []monthlyStat
 }
 
 func newStatsPage(activeProject project.Project, records []history.Record, now time.Time) statsPage {
 	return statsPage{
 		activeProject: activeProject,
 		weeks:         weeklyFocusStats(records, activeProject.ID, now),
+		months:        monthlyFocusStats(records, activeProject.ID, now),
 	}
+}
+
+func monthlyFocusStats(records []history.Record, projectID string, now time.Time) []monthlyStat {
+	months := make(map[string]monthlyStat, yearlyStatsLimit)
+
+	// create buckets for last 12 months
+	current := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	i := 0
+	for {
+		i++
+		monthsKey := fmt.Sprintf("%d-%d", current.Year(), current.Month())
+		months[monthsKey] = monthlyStat{year: current.Year(), month: int(current.Month())}
+		current = current.AddDate(0, -1, 0)
+		if i >= yearlyStatsLimit {
+			break
+		}
+	}
+
+	for _, record := range records {
+		if now.Compare(record.CompletedAt) < 0 {
+			continue
+		}
+		if record.ProjectID != projectID {
+			continue
+		}
+
+		completedAt := record.CompletedAt.In(now.Location())
+		yearMonth := fmt.Sprintf("%d-%d", completedAt.Year(), completedAt.Month())
+		ms, ok := months[yearMonth]
+		if !ok {
+			continue
+		}
+		ms.focusTime += record.Duration
+		ms.sessions++
+		months[yearMonth] = ms
+	}
+
+	ms := []monthlyStat{}
+	for _, v := range months {
+		ms = append(ms, v)
+	}
+
+	slices.SortFunc(ms, func(x, y monthlyStat) int {
+		xMonth, err := time.Parse("2006-01", fmt.Sprintf("%04d-%02d", x.year, x.month))
+		if err != nil {
+			return 0
+		}
+		yMonth, err := time.Parse("2006-01", fmt.Sprintf("%04d-%02d", y.year, y.month))
+		if err != nil {
+			return 0
+		}
+		return yMonth.Compare(xMonth)
+	})
+
+	uplimit := min(yearlyStatsLimit, len(ms))
+
+	return ms[:uplimit]
+}
+
+func startOfISOWeek(value time.Time) time.Time {
+	day := time.Date(value.Year(), value.Month(), value.Day(), 0, 0, 0, 0, value.Location())
+	weekday := int(day.Weekday())
+	if weekday == 0 {
+		weekday = 7
+	}
+
+	return day.AddDate(0, 0, 1-weekday)
 }
 
 func weeklyFocusStats(records []history.Record, projectID string, now time.Time) []weeklyStat {
@@ -58,16 +138,6 @@ func weeklyFocusStats(records []history.Record, projectID string, now time.Time)
 	}
 
 	return weeks
-}
-
-func startOfISOWeek(value time.Time) time.Time {
-	day := time.Date(value.Year(), value.Month(), value.Day(), 0, 0, 0, 0, value.Location())
-	weekday := int(day.Weekday())
-	if weekday == 0 {
-		weekday = 7
-	}
-
-	return day.AddDate(0, 0, 1-weekday)
 }
 
 func (s statsPage) View(terminalWidth int) string {
