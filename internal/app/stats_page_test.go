@@ -48,6 +48,66 @@ func TestWeeklyFocusStatsGroupsISOWeeksAndFiltersProject(t *testing.T) {
 	}
 }
 
+func TestMonthlyFocusStatsGroupsMonthsAndFiltersProject(t *testing.T) {
+	now := time.Date(2026, time.January, 15, 12, 0, 0, 0, time.UTC)
+	records := []history.Record{
+		{CompletedAt: time.Date(2026, time.January, 2, 9, 0, 0, 0, time.UTC), Duration: 25 * time.Minute, ProjectID: "active"},
+		{CompletedAt: time.Date(2026, time.January, 14, 9, 0, 0, 0, time.UTC), Duration: 50 * time.Minute, ProjectID: "active"},
+		{CompletedAt: time.Date(2025, time.December, 20, 9, 0, 0, 0, time.UTC), Duration: 30 * time.Minute, ProjectID: "active"},
+		{CompletedAt: time.Date(2026, time.January, 10, 9, 0, 0, 0, time.UTC), Duration: 2 * time.Hour, ProjectID: "other"},
+		{CompletedAt: time.Date(2025, time.January, 31, 9, 0, 0, 0, time.UTC), Duration: time.Hour, ProjectID: "active"},
+		{CompletedAt: time.Date(2026, time.February, 1, 9, 0, 0, 0, time.UTC), Duration: time.Hour, ProjectID: "active"},
+	}
+
+	months := monthlyFocusStats(records, "active", now)
+	if len(months) != yearlyStatsLimit {
+		t.Fatalf("got %d months, want %d", len(months), yearlyStatsLimit)
+	}
+
+	current := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	for index, month := range months {
+		expected := current.AddDate(0, -index, 0)
+		if month.year != expected.Year() || month.month != int(expected.Month()) {
+			t.Fatalf("month %d is %04d-%02d, want %04d-%02d", index, month.year, month.month, expected.Year(), expected.Month())
+		}
+	}
+
+	if months[0].sessions != 2 || months[0].focusTime != 75*time.Minute {
+		t.Fatalf("got current month %#v, want 2 sessions totaling 75m", months[0])
+	}
+	if months[1].sessions != 1 || months[1].focusTime != 30*time.Minute {
+		t.Fatalf("got previous month %#v, want 1 session totaling 30m", months[1])
+	}
+	for _, month := range months[2:] {
+		if month.sessions != 0 || month.focusTime != 0 {
+			t.Fatalf("empty month has sessions or focus time: %#v", month)
+		}
+	}
+}
+
+func TestMonthlyFocusStatsUsesCurrentLocation(t *testing.T) {
+	location := time.FixedZone("UTC+3", 3*60*60)
+	now := time.Date(2026, time.October, 1, 2, 0, 0, 0, location)
+	records := []history.Record{
+		{
+			CompletedAt: time.Date(2026, time.September, 30, 22, 30, 0, 0, time.UTC),
+			Duration:    25 * time.Minute,
+			ProjectID:   "active",
+		},
+	}
+
+	months := monthlyFocusStats(records, "active", now)
+	if months[0].year != 2026 || months[0].month != int(time.October) {
+		t.Fatalf("got latest month %04d-%02d, want 2026-10", months[0].year, months[0].month)
+	}
+	if months[0].sessions != 1 || months[0].focusTime != 25*time.Minute {
+		t.Fatalf("got latest month %#v, want 1 session totaling 25m", months[0])
+	}
+	if months[1].sessions != 0 || months[1].focusTime != 0 {
+		t.Fatalf("UTC month received local October session: %#v", months[1])
+	}
+}
+
 func TestStatsPageRenderingFitsTerminal(t *testing.T) {
 	now := time.Date(2026, time.January, 1, 12, 0, 0, 0, time.UTC)
 	page := newStatsPage(
