@@ -118,7 +118,7 @@ func TestStatsPageRenderingFitsTerminal(t *testing.T) {
 
 	for _, width := range []int{80, 30} {
 		t.Run(fmt.Sprintf("width_%d", width), func(t *testing.T) {
-			view := page.View(width)
+			view := page.ViewWeekly(width)
 			for _, value := range []string{"Weekly Focus Statistics", "Project: SkyTUI", "2026-W01", "25m", "[Esc] Back"} {
 				if !strings.Contains(view, value) {
 					t.Errorf("view does not contain %q", value)
@@ -149,7 +149,7 @@ func TestStatsScreenUsesActiveProjectAndNavigates(t *testing.T) {
 
 	updated, _ := m.Update(tea.KeyPressMsg{Text: "s", Code: 's'})
 	got := updated.(model)
-	if got.screen != statsScreen {
+	if got.screen != statsScreenWeekly {
 		t.Fatal("stats control should open the statistics screen")
 	}
 	if got.statsPage.weeks[0].sessions != 1 || got.statsPage.weeks[0].focusTime != 25*time.Minute {
@@ -165,7 +165,7 @@ func TestStatsScreenUsesActiveProjectAndNavigates(t *testing.T) {
 	updated, _ = got.Update(tea.KeyPressMsg{Text: "s", Code: 's'})
 	got = updated.(model)
 	updated, cmd := got.Update(tea.KeyPressMsg{Text: "q", Code: 'q'})
-	if updated.(model).screen != statsScreen {
+	if updated.(model).screen != statsScreenWeekly {
 		t.Fatal("quit should not change screens")
 	}
 	if cmd == nil {
@@ -179,7 +179,7 @@ func TestStatsScreenUsesActiveProjectAndNavigates(t *testing.T) {
 func TestTimerContinuesWhileStatsScreenIsOpen(t *testing.T) {
 	now := time.Now()
 	m := model{
-		screen:       statsScreen,
+		screen:       statsScreenWeekly,
 		session:      timer.New(timer.Focus, time.Minute, now.Add(-15*time.Second)),
 		progress:     progress.New(progress.WithDefaultBlend()),
 		historyStore: history.NewStore(filepath.Join(t.TempDir(), "sessions.csv")),
@@ -187,7 +187,7 @@ func TestTimerContinuesWhileStatsScreenIsOpen(t *testing.T) {
 
 	updated, cmd := m.Update(tickType{})
 	got := updated.(model)
-	if got.screen != statsScreen {
+	if got.screen != statsScreenWeekly {
 		t.Fatal("timer tick should not close the statistics screen")
 	}
 	if got.session.Remaining() != 45*time.Second {

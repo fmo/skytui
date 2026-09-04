@@ -50,13 +50,12 @@ func monthlyFocusStats(records []history.Record, projectID string, now time.Time
 
 	// create buckets for last 12 months
 	current := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
-	i := 0
+	limit := now.AddDate(0, -12, 0)
 	for {
-		i++
 		monthsKey := fmt.Sprintf("%d-%d", current.Year(), current.Month())
 		months[monthsKey] = monthlyStat{year: current.Year(), month: int(current.Month())}
 		current = current.AddDate(0, -1, 0)
-		if i >= yearlyStatsLimit {
+		if current.Compare(limit) <= 0 {
 			break
 		}
 	}
@@ -97,9 +96,7 @@ func monthlyFocusStats(records []history.Record, projectID string, now time.Time
 		return yMonth.Compare(xMonth)
 	})
 
-	uplimit := min(yearlyStatsLimit, len(ms))
-
-	return ms[:uplimit]
+	return ms
 }
 
 func startOfISOWeek(value time.Time) time.Time {
@@ -140,7 +137,7 @@ func weeklyFocusStats(records []history.Record, projectID string, now time.Time)
 	return weeks
 }
 
-func (s statsPage) View(terminalWidth int) string {
+func (s statsPage) ViewWeekly(terminalWidth int) string {
 	width := dashboardWidth(terminalWidth)
 	contentWidth := dashboardContentWidth(width)
 	rows := []string{
@@ -150,7 +147,28 @@ func (s statsPage) View(terminalWidth int) string {
 		"",
 	}
 	rows = append(rows, weeklyStatsTable(s.weeks, contentWidth)...)
-	rows = append(rows, "", lipgloss.NewStyle().Foreground(mutedColor).Render(truncate("[Esc] Back   [q] Quit", contentWidth)))
+	rows = append(rows, "", lipgloss.NewStyle().Foreground(mutedColor).Render(truncate("[Esc] Back   [m] Monthly   [q] Quit", contentWidth)))
+
+	view := renderPanel(strings.Join(rows, "\n"), width, timer.Focus)
+	if terminalWidth > 0 {
+		view = lipgloss.PlaceHorizontal(terminalWidth, lipgloss.Center, view)
+	}
+
+	return view
+}
+
+func (s statsPage) ViewMonthly(terminalWidth int) string {
+	width := dashboardWidth(terminalWidth)
+	contentWidth := dashboardContentWidth(width)
+
+	rows := []string{
+		lipgloss.NewStyle().Bold(true).Render(truncate("Monthly Focus Statistics", contentWidth)),
+		"",
+		statsProjectLabel(s.activeProject.Name, contentWidth),
+		"",
+	}
+	rows = append(rows, monthlyStatsTable(s.months, contentWidth)...)
+	rows = append(rows, "", lipgloss.NewStyle().Foreground(mutedColor).Render(truncate("[Esc] Back   [w] Weekly   [q] Quit", contentWidth)))
 
 	view := renderPanel(strings.Join(rows, "\n"), width, timer.Focus)
 	if terminalWidth > 0 {
@@ -166,6 +184,34 @@ func statsProjectLabel(name string, availableWidth int) string {
 	}
 	const prefix = "Project: "
 	return truncate(prefix+name, availableWidth)
+}
+
+func monthlyStatsTable(months []monthlyStat, availableWidth int) []string {
+	rows := make([]string, 0, len(months)+1)
+	if availableWidth >= 34 {
+		rows = append(rows, fmt.Sprintf("%-8s  %8s  %10s", "Month", "Sessions", "Focus Time"))
+		for _, month := range months {
+			date := time.Date(month.year, time.Month(month.month), 1, 0, 0, 0, 0, time.UTC)
+
+			rows = append(rows, truncate(fmt.Sprintf(
+				"%04d-%3s  %8d  %10s",
+				month.year,
+				date.Format("Jan"),
+				month.sessions,
+				formatDuration(month.focusTime),
+			), availableWidth))
+		}
+		return rows
+	}
+
+	rows = append(rows, truncate(fmt.Sprintf("%-8s %3s %s", "Month", "#", "Time"), availableWidth))
+	for _, month := range months {
+		date := time.Date(month.year, time.Month(month.month), 1, 0, 0, 0, 0, time.UTC)
+		row := fmt.Sprintf("%04d-%02s %3d %s", month.year, date.Format("Jan"), month.sessions, month.focusTime)
+		rows = append(rows, truncate(row, availableWidth))
+	}
+
+	return rows
 }
 
 func weeklyStatsTable(weeks []weeklyStat, availableWidth int) []string {
