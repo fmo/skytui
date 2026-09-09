@@ -4,6 +4,19 @@ All notable changes to SkyTUI are documented in this file.
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-09-09
+
+### Added
+
+- Add monthly statistics for the active project, showing completed
+  focus-session counts and total focus time for the latest twelve calendar
+  months.
+- Include months without completed sessions so gaps in focus activity remain
+  visible.
+- Switch between Weekly and Monthly statistics with `w` and `m` while keeping
+  Weekly as the default view.
+- Support monthly statistics in both standard and narrow terminal layouts.
+
 ## [1.1.0] - 2026-08-31
 
 ### Added
@@ -165,7 +178,8 @@ SkyTUI's first public release for macOS.
 - Provide built-in `--help` and `--version` output.
 - Publish archives for Apple Silicon and Intel Macs.
 
-[Unreleased]: https://github.com/fmo/skytui/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/fmo/skytui/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/fmo/skytui/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/fmo/skytui/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/fmo/skytui/compare/v0.9.0...v1.0.0
 [0.9.0]: https://github.com/fmo/skytui/compare/v0.8.0...v0.9.0

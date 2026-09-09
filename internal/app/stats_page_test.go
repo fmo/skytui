@@ -48,7 +48,67 @@ func TestWeeklyFocusStatsGroupsISOWeeksAndFiltersProject(t *testing.T) {
 	}
 }
 
-func TestStatsPageRenderingFitsTerminal(t *testing.T) {
+func TestMonthlyFocusStatsGroupsMonthsAndFiltersProject(t *testing.T) {
+	now := time.Date(2026, time.January, 15, 12, 0, 0, 0, time.UTC)
+	records := []history.Record{
+		{CompletedAt: time.Date(2026, time.January, 2, 9, 0, 0, 0, time.UTC), Duration: 25 * time.Minute, ProjectID: "active"},
+		{CompletedAt: time.Date(2026, time.January, 14, 9, 0, 0, 0, time.UTC), Duration: 50 * time.Minute, ProjectID: "active"},
+		{CompletedAt: time.Date(2025, time.December, 20, 9, 0, 0, 0, time.UTC), Duration: 30 * time.Minute, ProjectID: "active"},
+		{CompletedAt: time.Date(2026, time.January, 10, 9, 0, 0, 0, time.UTC), Duration: 2 * time.Hour, ProjectID: "other"},
+		{CompletedAt: time.Date(2025, time.January, 31, 9, 0, 0, 0, time.UTC), Duration: time.Hour, ProjectID: "active"},
+		{CompletedAt: time.Date(2026, time.February, 1, 9, 0, 0, 0, time.UTC), Duration: time.Hour, ProjectID: "active"},
+	}
+
+	months := monthlyFocusStats(records, "active", now)
+	if len(months) != monthlyStatsLimit {
+		t.Fatalf("got %d months, want %d", len(months), monthlyStatsLimit)
+	}
+
+	current := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	for index, month := range months {
+		expected := current.AddDate(0, -index, 0)
+		if month.year != expected.Year() || month.month != int(expected.Month()) {
+			t.Fatalf("month %d is %04d-%02d, want %04d-%02d", index, month.year, month.month, expected.Year(), expected.Month())
+		}
+	}
+
+	if months[0].sessions != 2 || months[0].focusTime != 75*time.Minute {
+		t.Fatalf("got current month %#v, want 2 sessions totaling 75m", months[0])
+	}
+	if months[1].sessions != 1 || months[1].focusTime != 30*time.Minute {
+		t.Fatalf("got previous month %#v, want 1 session totaling 30m", months[1])
+	}
+	for _, month := range months[2:] {
+		if month.sessions != 0 || month.focusTime != 0 {
+			t.Fatalf("empty month has sessions or focus time: %#v", month)
+		}
+	}
+}
+
+func TestMonthlyFocusStatsUsesCurrentLocation(t *testing.T) {
+	location := time.FixedZone("UTC+3", 3*60*60)
+	now := time.Date(2026, time.October, 1, 2, 0, 0, 0, location)
+	records := []history.Record{
+		{
+			CompletedAt: time.Date(2026, time.September, 30, 22, 30, 0, 0, time.UTC),
+			Duration:    25 * time.Minute,
+			ProjectID:   "active",
+		},
+	}
+
+	months := monthlyFocusStats(records, "active", now)
+	if months[0].year != 2026 || months[0].month != int(time.October) {
+		t.Fatalf("got latest month %04d-%02d, want 2026-10", months[0].year, months[0].month)
+	}
+	if months[0].sessions != 1 || months[0].focusTime != 25*time.Minute {
+		t.Fatalf("got latest month %#v, want 1 session totaling 25m", months[0])
+	}
+	if months[1].sessions != 0 || months[1].focusTime != 0 {
+		t.Fatalf("UTC month received local October session: %#v", months[1])
+	}
+}
+
+func TestStatsPageViewsFitTerminal(t *testing.T) {
 	now := time.Date(2026, time.January, 1, 12, 0, 0, 0, time.UTC)
 	page := newStatsPage(
 		project.Project{ID: "active", Name: "SkyTUI"},
@@ -56,20 +116,46 @@ func TestStatsPageRenderingFitsTerminal(t *testing.T) {
 		now,
 	)
 
-	for _, width := range []int{80, 30} {
-		t.Run(fmt.Sprintf("width_%d", width), func(t *testing.T) {
-			view := page.View(width)
-			for _, value := range []string{"Weekly Focus Statistics", "Project: SkyTUI", "2026-W01", "25m", "[Esc] Back"} {
-				if !strings.Contains(view, value) {
-					t.Errorf("view does not contain %q", value)
+	views := []struct {
+		name       string
+		render     func(int) string
+		expected   []string
+		unexpected []string
+	}{
+		{
+			name:     "weekly",
+			render:   page.ViewWeekly,
+			expected: []string{"Weekly Focus Statistics", "Project: SkyTUI", "2026-W01", "25m", "[m] Monthly"},
+		},
+		{
+			name:       "monthly",
+			render:     page.ViewMonthly,
+			expected:   []string{"Monthly Focus Statistics", "Project: SkyTUI", "2026-Jan", "25m", "[w] Weekly"},
+			unexpected: []string{"25m0s"},
+		},
+	}
+
+	for _, statsView := range views {
+		for _, width := range []int{80, 30} {
+			t.Run(fmt.Sprintf("%s_width_%d", statsView.name, width), func(t *testing.T) {
+				view := statsView.render(width)
+				for _, value := range statsView.expected {
+					if !strings.Contains(view, value) {
+						t.Errorf("view does not contain %q", value)
+					}
 				}
-			}
-			for lineNumber, line := range strings.Split(view, "\n") {
-				if lineWidth := lipgloss.Width(line); lineWidth > width {
-					t.Errorf("line %d has width %d, terminal width is %d", lineNumber+1, lineWidth, width)
+				for _, value := range statsView.unexpected {
+					if strings.Contains(view, value) {
+						t.Errorf("view unexpectedly contains %q", value)
+					}
 				}
-			}
-		})
+				for lineNumber, line := range strings.Split(view, "\n") {
+					if lineWidth := lipgloss.Width(line); lineWidth > width {
+						t.Errorf("line %d has width %d, terminal width is %d", lineNumber+1, lineWidth, width)
+					}
+				}
+			})
+		}
 	}
 }
 
@@ -89,11 +175,42 @@ func TestStatsScreenUsesActiveProjectAndNavigates(t *testing.T) {
 
 	updated, _ := m.Update(tea.KeyPressMsg{Text: "s", Code: 's'})
 	got := updated.(model)
-	if got.screen != statsScreen {
+	if got.screen != statsScreenWeekly {
 		t.Fatal("stats control should open the statistics screen")
 	}
 	if got.statsPage.weeks[0].sessions != 1 || got.statsPage.weeks[0].focusTime != 25*time.Minute {
 		t.Fatalf("statistics do not contain only the active project: %#v", got.statsPage.weeks[0])
+	}
+	if got.statsPage.months[0].sessions != 1 || got.statsPage.months[0].focusTime != 25*time.Minute {
+		t.Fatalf("monthly statistics do not contain only the active project: %#v", got.statsPage.months[0])
+	}
+
+	updated, _ = got.Update(tea.KeyPressMsg{Text: "m", Code: 'm'})
+	got = updated.(model)
+	if got.screen != statsScreenMonthly {
+		t.Fatal("monthly control should show monthly statistics")
+	}
+	if !strings.Contains(got.View().Content, "Monthly Focus Statistics") {
+		t.Fatal("monthly statistics screen should render the monthly view")
+	}
+
+	updated, _ = got.Update(tea.KeyPressMsg{Code: tea.KeyEsc})
+	got = updated.(model)
+	if got.screen != dashboardScreen {
+		t.Fatal("escape should return to the dashboard from monthly statistics")
+	}
+
+	updated, _ = got.Update(tea.KeyPressMsg{Text: "s", Code: 's'})
+	got = updated.(model)
+	updated, _ = got.Update(tea.KeyPressMsg{Text: "m", Code: 'm'})
+	got = updated.(model)
+	updated, _ = got.Update(tea.KeyPressMsg{Text: "w", Code: 'w'})
+	got = updated.(model)
+	if got.screen != statsScreenWeekly {
+		t.Fatal("weekly control should show weekly statistics")
+	}
+	if !strings.Contains(got.View().Content, "Weekly Focus Statistics") {
+		t.Fatal("weekly statistics screen should render the weekly view")
 	}
 
 	updated, _ = got.Update(tea.KeyPressMsg{Code: tea.KeyEsc})
@@ -105,7 +222,7 @@ func TestStatsScreenUsesActiveProjectAndNavigates(t *testing.T) {
 	updated, _ = got.Update(tea.KeyPressMsg{Text: "s", Code: 's'})
 	got = updated.(model)
 	updated, cmd := got.Update(tea.KeyPressMsg{Text: "q", Code: 'q'})
-	if updated.(model).screen != statsScreen {
+	if updated.(model).screen != statsScreenWeekly {
 		t.Fatal("quit should not change screens")
 	}
 	if cmd == nil {
@@ -117,23 +234,27 @@ func TestStatsScreenUsesActiveProjectAndNavigates(t *testing.T) {
 }
 
 func TestTimerContinuesWhileStatsScreenIsOpen(t *testing.T) {
-	now := time.Now()
-	m := model{
-		screen:       statsScreen,
-		session:      timer.New(timer.Focus, time.Minute, now.Add(-15*time.Second)),
-		progress:     progress.New(progress.WithDefaultBlend()),
-		historyStore: history.NewStore(filepath.Join(t.TempDir(), "sessions.csv")),
-	}
+	for _, screen := range []screen{statsScreenWeekly, statsScreenMonthly} {
+		t.Run(fmt.Sprintf("screen_%d", screen), func(t *testing.T) {
+			now := time.Now()
+			m := model{
+				screen:       screen,
+				session:      timer.New(timer.Focus, time.Minute, now.Add(-15*time.Second)),
+				progress:     progress.New(progress.WithDefaultBlend()),
+				historyStore: history.NewStore(filepath.Join(t.TempDir(), "sessions.csv")),
+			}
 
-	updated, cmd := m.Update(tickType{})
-	got := updated.(model)
-	if got.screen != statsScreen {
-		t.Fatal("timer tick should not close the statistics screen")
-	}
-	if got.session.Remaining() != 45*time.Second {
-		t.Fatalf("got remaining %v, want 45s", got.session.Remaining())
-	}
-	if cmd == nil {
-		t.Fatal("timer should schedule another tick while statistics are open")
+			updated, cmd := m.Update(tickType{})
+			got := updated.(model)
+			if got.screen != screen {
+				t.Fatal("timer tick should not close the statistics screen")
+			}
+			if got.session.Remaining() != 45*time.Second {
+				t.Fatalf("got remaining %v, want 45s", got.session.Remaining())
+			}
+			if cmd == nil {
+				t.Fatal("timer should schedule another tick while statistics are open")
+			}
+		})
 	}
 }

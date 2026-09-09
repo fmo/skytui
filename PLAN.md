@@ -11,20 +11,14 @@ starts, but the current task should stay focused.
 Goal: extend the statistics screen from weekly trends to longer-term monthly
 focus trends for the active project.
 
-### [ ] Aggregate Monthly Focus Statistics
+### [x] Add Monthly Focus Statistics
 
 - Calculate completed focus-session counts and total focus time for the latest
-  twelve calendar months.
+  twelve calendar months, including the current month, newest first.
 - Include months with no completed sessions so gaps remain visible.
+- Group calendar-month boundaries using the current system timezone.
 - Scope monthly statistics to the active project independently of the
   dashboard history filter.
-- Test month grouping across year boundaries, empty months, active-project
-  filtering, session counts, and focus-time totals.
-
-**Commit:** `feat: aggregate monthly focus statistics`
-
-### [ ] Add Statistics Period Controls
-
 - Keep `s` as the dashboard control that opens the statistics screen.
 - Open the statistics screen in Weekly mode by default.
 - Press `w` within the statistics screen to show Weekly statistics and `m` to
@@ -37,22 +31,27 @@ focus trends for the active project.
 - Press `Esc` to return and `q` to quit while the active timer continues to
   receive ticks behind the statistics screen.
 - Keep both modes readable in narrow terminals.
-- Test the default mode, mode switching, navigation, narrow rendering, and
-  continued timer updates.
+- Test aggregation across year and timezone boundaries, empty months,
+  active-project filtering, session counts, focus-time totals, the default
+  mode, mode switching, navigation, narrow rendering, and continued timer
+  updates.
 
-**Commit:** `feat: add statistics period controls`
+**Commit:** `feat: add monthly focus statistics`
 
-### [ ] Prepare v1.2.0
+### [x] Prepare v1.2.0 Source
 
 - Document weekly and monthly statistics controls and behavior.
 - Add all user-visible v1.2.0 changes to `CHANGELOG.md`.
 - Run the complete test suite and release checks.
 - Update the CLI version and release links.
+
+### [ ] Publish v1.2.0
+
+- Commit the release-ready source and tag it as `v1.2.0`.
 - Build the final release archives once from the tagged release state.
+- Publish the archives and `checksums.txt` in the GitHub release.
 - Verify the checksums of the exact GitHub release assets before updating the
   Homebrew formula.
-
-**Commit:** `chore: prepare v1.2.0`
 
 **Tag:** `v1.2.0`
 

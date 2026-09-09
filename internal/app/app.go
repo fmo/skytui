@@ -19,7 +19,8 @@ const (
 	dashboardScreen screen = iota
 	projectScreen
 	historyFilterScreen
-	statsScreen
+	statsScreenWeekly
+	statsScreenMonthly
 )
 
 type model struct {
@@ -157,11 +158,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	if m.screen == statsScreen {
+	if m.screen == statsScreenWeekly || m.screen == statsScreenMonthly {
 		if key, ok := msg.(tea.KeyPressMsg); ok {
 			switch key.String() {
 			case "esc":
 				m.screen = dashboardScreen
+				return m, nil
+			case "m":
+				m.screen = statsScreenMonthly
+				return m, nil
+			case "w":
+				m.screen = statsScreenWeekly
 				return m, nil
 			case "q":
 				slog.Info("closing the application")
@@ -191,7 +198,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case "s":
 			m.statsPage = newStatsPage(m.activeProject, m.allSessions, time.Now())
-			m.screen = statsScreen
+			m.screen = statsScreenWeekly
 			return m, nil
 		case "r":
 			m.session.Reset(time.Now())
@@ -278,8 +285,11 @@ func (m model) View() tea.View {
 	if m.screen == historyFilterScreen {
 		return tea.NewView(m.historyFilterPicker.View(m.width, m.session.Kind()))
 	}
-	if m.screen == statsScreen {
-		return tea.NewView(m.statsPage.View(m.width))
+	if m.screen == statsScreenWeekly {
+		return tea.NewView(m.statsPage.ViewWeekly(m.width))
+	}
+	if m.screen == statsScreenMonthly {
+		return tea.NewView(m.statsPage.ViewMonthly(m.width))
 	}
 
 	return m.dashboardView()

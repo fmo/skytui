@@ -10,7 +10,7 @@ import (
 func TestRootCommandVersion(t *testing.T) {
 	cmd := newRootCmd(history.Store{}, nil, nil, 25*time.Minute, 5*time.Minute, true, nil)
 
-	if cmd.Version != "v1.1.0" {
-		t.Fatalf("got version %q, want %q", cmd.Version, "v1.1.0")
+	if cmd.Version != "v1.2.0" {
+		t.Fatalf("got version %q, want %q", cmd.Version, "v1.2.0")
 	}
 }

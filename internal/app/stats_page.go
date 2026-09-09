@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -11,7 +12,10 @@ import (
 	"github.com/fmo/skytui/internal/timer"
 )
 
-const weeklyStatsLimit = 8
+const (
+	weeklyStatsLimit  = 8
+	monthlyStatsLimit = 12
+)
 
 type weeklyStat struct {
 	year      int
@@ -20,16 +24,89 @@ type weeklyStat struct {
 	focusTime time.Duration
 }
 
+type monthlyStat struct {
+	year      int
+	month     int
+	sessions  int
+	focusTime time.Duration
+}
+
 type statsPage struct {
 	activeProject project.Project
 	weeks         []weeklyStat
+	months        []monthlyStat
 }
 
 func newStatsPage(activeProject project.Project, records []history.Record, now time.Time) statsPage {
 	return statsPage{
 		activeProject: activeProject,
 		weeks:         weeklyFocusStats(records, activeProject.ID, now),
+		months:        monthlyFocusStats(records, activeProject.ID, now),
 	}
+}
+
+func monthlyFocusStats(records []history.Record, projectID string, now time.Time) []monthlyStat {
+	months := make(map[string]monthlyStat, monthlyStatsLimit)
+
+	// create buckets for last 12 months
+	current := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	limit := now.AddDate(0, -12, 0)
+	for {
+		monthsKey := fmt.Sprintf("%d-%d", current.Year(), current.Month())
+		months[monthsKey] = monthlyStat{year: current.Year(), month: int(current.Month())}
+		current = current.AddDate(0, -1, 0)
+		if current.Compare(limit) <= 0 {
+			break
+		}
+	}
+
+	for _, record := range records {
+		if now.Compare(record.CompletedAt) < 0 {
+			continue
+		}
+		if record.ProjectID != projectID {
+			continue
+		}
+
+		completedAt := record.CompletedAt.In(now.Location())
+		yearMonth := fmt.Sprintf("%d-%d", completedAt.Year(), completedAt.Month())
+		ms, ok := months[yearMonth]
+		if !ok {
+			continue
+		}
+		ms.focusTime += record.Duration
+		ms.sessions++
+		months[yearMonth] = ms
+	}
+
+	ms := []monthlyStat{}
+	for _, v := range months {
+		ms = append(ms, v)
+	}
+
+	slices.SortFunc(ms, func(x, y monthlyStat) int {
+		xMonth, err := time.Parse("2006-01", fmt.Sprintf("%04d-%02d", x.year, x.month))
+		if err != nil {
+			return 0
+		}
+		yMonth, err := time.Parse("2006-01", fmt.Sprintf("%04d-%02d", y.year, y.month))
+		if err != nil {
+			return 0
+		}
+		return yMonth.Compare(xMonth)
+	})
+
+	return ms
+}
+
+func startOfISOWeek(value time.Time) time.Time {
+	day := time.Date(value.Year(), value.Month(), value.Day(), 0, 0, 0, 0, value.Location())
+	weekday := int(day.Weekday())
+	if weekday == 0 {
+		weekday = 7
+	}
+
+	return day.AddDate(0, 0, 1-weekday)
 }
 
 func weeklyFocusStats(records []history.Record, projectID string, now time.Time) []weeklyStat {
@@ -60,17 +137,7 @@ func weeklyFocusStats(records []history.Record, projectID string, now time.Time)
 	return weeks
 }
 
-func startOfISOWeek(value time.Time) time.Time {
-	day := time.Date(value.Year(), value.Month(), value.Day(), 0, 0, 0, 0, value.Location())
-	weekday := int(day.Weekday())
-	if weekday == 0 {
-		weekday = 7
-	}
-
-	return day.AddDate(0, 0, 1-weekday)
-}
-
-func (s statsPage) View(terminalWidth int) string {
+func (s statsPage) ViewWeekly(terminalWidth int) string {
 	width := dashboardWidth(terminalWidth)
 	contentWidth := dashboardContentWidth(width)
 	rows := []string{
@@ -80,7 +147,28 @@ func (s statsPage) View(terminalWidth int) string {
 		"",
 	}
 	rows = append(rows, weeklyStatsTable(s.weeks, contentWidth)...)
-	rows = append(rows, "", lipgloss.NewStyle().Foreground(mutedColor).Render(truncate("[Esc] Back   [q] Quit", contentWidth)))
+	rows = append(rows, "", lipgloss.NewStyle().Foreground(mutedColor).Render(truncate("[Esc] Back   [m] Monthly   [q] Quit", contentWidth)))
+
+	view := renderPanel(strings.Join(rows, "\n"), width, timer.Focus)
+	if terminalWidth > 0 {
+		view = lipgloss.PlaceHorizontal(terminalWidth, lipgloss.Center, view)
+	}
+
+	return view
+}
+
+func (s statsPage) ViewMonthly(terminalWidth int) string {
+	width := dashboardWidth(terminalWidth)
+	contentWidth := dashboardContentWidth(width)
+
+	rows := []string{
+		lipgloss.NewStyle().Bold(true).Render(truncate("Monthly Focus Statistics", contentWidth)),
+		"",
+		statsProjectLabel(s.activeProject.Name, contentWidth),
+		"",
+	}
+	rows = append(rows, monthlyStatsTable(s.months, contentWidth)...)
+	rows = append(rows, "", lipgloss.NewStyle().Foreground(mutedColor).Render(truncate("[Esc] Back   [w] Weekly   [q] Quit", contentWidth)))
 
 	view := renderPanel(strings.Join(rows, "\n"), width, timer.Focus)
 	if terminalWidth > 0 {
@@ -96,6 +184,34 @@ func statsProjectLabel(name string, availableWidth int) string {
 	}
 	const prefix = "Project: "
 	return truncate(prefix+name, availableWidth)
+}
+
+func monthlyStatsTable(months []monthlyStat, availableWidth int) []string {
+	rows := make([]string, 0, len(months)+1)
+	if availableWidth >= 34 {
+		rows = append(rows, fmt.Sprintf("%-8s  %8s  %10s", "Month", "Sessions", "Focus Time"))
+		for _, month := range months {
+			date := time.Date(month.year, time.Month(month.month), 1, 0, 0, 0, 0, time.UTC)
+
+			rows = append(rows, truncate(fmt.Sprintf(
+				"%04d-%3s  %8d  %10s",
+				month.year,
+				date.Format("Jan"),
+				month.sessions,
+				formatDuration(month.focusTime),
+			), availableWidth))
+		}
+		return rows
+	}
+
+	rows = append(rows, truncate(fmt.Sprintf("%-8s %3s %s", "Month", "#", "Time"), availableWidth))
+	for _, month := range months {
+		date := time.Date(month.year, time.Month(month.month), 1, 0, 0, 0, 0, time.UTC)
+		row := fmt.Sprintf("%04d-%02s %3d %s", month.year, date.Format("Jan"), month.sessions, formatDuration(month.focusTime))
+		rows = append(rows, truncate(row, availableWidth))
+	}
+
+	return rows
 }
 
 func weeklyStatsTable(weeks []weeklyStat, availableWidth int) []string {

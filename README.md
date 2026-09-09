@@ -33,14 +33,14 @@ brew install fmo/tap/skytui
 ### Download a binary
 
 Download the appropriate archive from the
-[GitHub release](https://github.com/fmo/skytui/releases/tag/v1.1.0):
+[GitHub release](https://github.com/fmo/skytui/releases/tag/v1.2.0):
 
-- [macOS Apple Silicon (`arm64`)](https://github.com/fmo/skytui/releases/download/v1.1.0/skytui_1.1.0_darwin_arm64.tar.gz)
-- [macOS Intel (`amd64`)](https://github.com/fmo/skytui/releases/download/v1.1.0/skytui_1.1.0_darwin_amd64.tar.gz)
-- [Linux (`arm64`)](https://github.com/fmo/skytui/releases/download/v1.1.0/skytui_1.1.0_linux_arm64.tar.gz)
-- [Linux (`amd64`)](https://github.com/fmo/skytui/releases/download/v1.1.0/skytui_1.1.0_linux_amd64.tar.gz)
-- [Windows (`amd64`)](https://github.com/fmo/skytui/releases/download/v1.1.0/skytui_1.1.0_windows_amd64.zip)
-- [SHA-256 checksums](https://github.com/fmo/skytui/releases/download/v1.1.0/checksums.txt)
+- [macOS Apple Silicon (`arm64`)](https://github.com/fmo/skytui/releases/download/v1.2.0/skytui_1.2.0_darwin_arm64.tar.gz)
+- [macOS Intel (`amd64`)](https://github.com/fmo/skytui/releases/download/v1.2.0/skytui_1.2.0_darwin_amd64.tar.gz)
+- [Linux (`arm64`)](https://github.com/fmo/skytui/releases/download/v1.2.0/skytui_1.2.0_linux_arm64.tar.gz)
+- [Linux (`amd64`)](https://github.com/fmo/skytui/releases/download/v1.2.0/skytui_1.2.0_linux_amd64.tar.gz)
+- [Windows (`amd64`)](https://github.com/fmo/skytui/releases/download/v1.2.0/skytui_1.2.0_windows_amd64.zip)
+- [SHA-256 checksums](https://github.com/fmo/skytui/releases/download/v1.2.0/checksums.txt)
 
 On macOS or Linux, extract the archive and move `skytui` to a directory in your
 `PATH`, such as `/usr/local/bin`. On Windows, extract `skytui.exe` and add its
@@ -78,7 +78,7 @@ grep linux_amd64 checksums.txt | sha256sum -c -
 Windows PowerShell:
 
 ```powershell
-Get-FileHash .\skytui_1.1.0_windows_amd64.zip -Algorithm SHA256
+Get-FileHash .\skytui_1.2.0_windows_amd64.zip -Algorithm SHA256
 ```
 
 Compare the PowerShell result with the matching entry in `checksums.txt`.
@@ -90,7 +90,7 @@ A valid download reports OK.
 Requires Go 1.25.3 or later.
 
 ```sh
-go install github.com/fmo/skytui@v1.1.0
+go install github.com/fmo/skytui@v1.2.0
 ```
 
 ## Usage
@@ -123,11 +123,13 @@ Press `f` from the dashboard to filter totals and recent sessions by all
 projects, one project, or unassigned legacy sessions. Applying a filter does
 not affect the active timer.
 
-Press `s` from the dashboard to view the latest eight ISO calendar weeks for
-the active project. The statistics screen includes weeks with no completed
-sessions and shows each week's completed focus-session count and total focus
-time. Its project selection is independent of the dashboard history filter,
-and the active timer continues while the screen is open.
+Press `s` from the dashboard to open statistics for the active project in
+Weekly mode. Weekly statistics show the latest eight ISO calendar weeks. Press
+`m` to show the latest twelve calendar months and `w` to return to Weekly mode.
+Both views include periods with no completed sessions and show completed
+focus-session counts and total focus time. Their project selection is
+independent of the dashboard history filter, and the active timer continues
+while the statistics screen is open.
 
 Show installed version:
 
@@ -147,10 +149,11 @@ skytui --help
 - `Enter` selects or creates a project, or applies the highlighted history
   filter.
 - `n` opens project creation from the picker.
-- `Esc` cancels project creation or history filtering, or returns from weekly
+- `Esc` cancels project creation or history filtering, or returns from
   statistics.
 - `f` opens the history filter from the dashboard.
-- `s` opens weekly focus statistics for the active project from the dashboard.
+- `s` opens focus statistics for the active project in Weekly mode.
+- `w` and `m` switch between Weekly and Monthly statistics.
 - `Space` pauses or resumes the session.
 - `r` resets a running or paused session to its full duration. Running sessions
   continue immediately; paused sessions remain paused.
@@ -241,6 +244,12 @@ The weekly statistics screen groups completed focus sessions into the latest
 eight ISO calendar weeks, newest first. It shows the ISO year and week number,
 session count, and total focus time for the active project. Empty weeks remain
 visible so gaps in focus activity are clear.
+
+The monthly statistics screen groups completed focus sessions into the current
+calendar month and previous eleven months, newest first. It shows the year,
+month, session count, and total focus time for the active project. Empty months
+remain visible as well. Calendar-month boundaries follow the current system
+timezone.
 
 Sessions created before `v0.6.0` remain supported. Their existing two-field CSV
 rows are loaded as unassigned sessions and are not rewritten. New focus sessions
