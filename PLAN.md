@@ -6,68 +6,29 @@ This file tracks active and future work. Completed releases are documented in
 `[x]` is complete. `[ ]` is planned. Future tasks can be adjusted before work
 starts, but the current task should stay focused.
 
-## v1.2.0 - Monthly Focus Statistics
+## Next - Statistics Table Refactor
 
-Goal: extend the statistics screen from weekly trends to longer-term monthly
-focus trends for the active project.
+Goal: adopt Bubble Tea's table component for statistics without tying the
+refactor to a release on its own. Keep the CLI version at `v1.2.0` and include
+this work with the next user-facing release.
 
-### [x] Add Monthly Focus Statistics
+### [ ] Render Statistics With A Bubble Tea Table
 
-- Calculate completed focus-session counts and total focus time for the latest
-  twelve calendar months, including the current month, newest first.
-- Include months with no completed sessions so gaps remain visible.
-- Group calendar-month boundaries using the current system timezone.
-- Scope monthly statistics to the active project independently of the
-  dashboard history filter.
-- Keep `s` as the dashboard control that opens the statistics screen.
-- Open the statistics screen in Weekly mode by default.
-- Press `w` within the statistics screen to show Weekly statistics and `m` to
-  show Monthly statistics.
-- Keep the existing latest-eight-weeks view and weekly aggregation behavior.
-- Show the monthly aggregation with the year, month, completed focus-session
-  count, and total focus time.
-- Show the selected Weekly or Monthly mode clearly in the screen heading or
-  controls.
-- Press `Esc` to return and `q` to quit while the active timer continues to
-  receive ticks behind the statistics screen.
-- Keep both modes readable in narrow terminals.
-- Test aggregation across year and timezone boundaries, empty months,
-  active-project filtering, session counts, focus-time totals, the default
-  mode, mode switching, navigation, narrow rendering, and continued timer
-  updates.
+- Replace the manually formatted weekly and monthly rows with a Bubble Tea
+  table component.
+- Preserve the existing weekly and monthly data, ordering, headings, and
+  `w`/`m` period controls.
+- Preserve readable narrow-terminal behavior instead of forcing horizontal
+  overflow.
+- Keep `Esc` and `q` navigation predictable when the table has focus.
+- Keep the active timer receiving ticks while either statistics table is open.
+- Add rendering and interaction coverage before making the table the default.
 
-**Commit:** `feat: add monthly focus statistics`
-
-### [x] Prepare v1.2.0 Source
-
-- Document weekly and monthly statistics controls and behavior.
-- Add all user-visible v1.2.0 changes to `CHANGELOG.md`.
-- Run the complete test suite and release checks.
-- Update the CLI version and release links.
-
-### [ ] Publish v1.2.0
-
-- Commit the release-ready source and tag it as `v1.2.0`.
-- Build the final release archives once from the tagged release state.
-- Publish the archives and `checksums.txt` in the GitHub release.
-- Verify the checksums of the exact GitHub release assets before updating the
-  Homebrew formula.
-
-**Tag:** `v1.2.0`
+**Commit:** `refactor: render statistics with Bubble Tea table`
 
 ## Backlog
 
 Backlog items are ideas, not commitments to a particular release.
-
-### Render Statistics With A Bubble Tea Table
-
-- Replace the manually formatted weekly and monthly rows with a Bubble Tea
-  table component.
-- Preserve readable narrow-terminal behavior instead of forcing horizontal
-  overflow.
-- Keep statistics mode controls and navigation predictable when the table has
-  focus.
-- Add rendering and interaction coverage before making the table the default.
 
 ### Native macOS Notification Helper — On Hold
 
