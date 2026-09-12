@@ -3,9 +3,11 @@ package app
 import (
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
+	"charm.land/bubbles/v2/table"
 	"charm.land/lipgloss/v2"
 	"github.com/fmo/skytui/internal/history"
 	"github.com/fmo/skytui/internal/project"
@@ -146,7 +148,10 @@ func (s statsPage) ViewWeekly(terminalWidth int) string {
 		statsProjectLabel(s.activeProject.Name, contentWidth),
 		"",
 	}
-	rows = append(rows, weeklyStatsTable(s.weeks, contentWidth)...)
+
+	model := weeklyStatsTable(s.weeks, contentWidth)
+
+	rows = append(rows, model.View())
 	rows = append(rows, "", lipgloss.NewStyle().Foreground(mutedColor).Render(truncate("[Esc] Back   [m] Monthly   [q] Quit", contentWidth)))
 
 	view := renderPanel(strings.Join(rows, "\n"), width, timer.Focus)
@@ -214,26 +219,28 @@ func monthlyStatsTable(months []monthlyStat, availableWidth int) []string {
 	return rows
 }
 
-func weeklyStatsTable(weeks []weeklyStat, availableWidth int) []string {
-	rows := make([]string, 0, len(weeks)+1)
-	if availableWidth >= 34 {
-		rows = append(rows, fmt.Sprintf("%-8s  %8s  %10s", "Week", "Sessions", "Focus Time"))
-		for _, week := range weeks {
-			rows = append(rows, truncate(fmt.Sprintf(
-				"%04d-W%02d  %8d  %10s",
-				week.year,
-				week.week,
-				week.sessions,
-				formatDuration(week.focusTime),
-			), availableWidth))
-		}
-		return rows
-	}
+func weeklyStatsTable(weeks []weeklyStat, availableWidth int) table.Model {
+	defaultStyle := table.DefaultStyles()
+	defaultStyle.Selected = lipgloss.NewStyle()
 
-	rows = append(rows, truncate(fmt.Sprintf("%-8s %3s %s", "Week", "#", "Time"), availableWidth))
+	m := table.New()
+	m.SetStyles(defaultStyle)
+	m.SetColumns([]table.Column{{Title: "Week", Width: 8}, {Title: "Sessions", Width: 8}, {Title: "Focus Time", Width: 10}})
+	if availableWidth < 34 {
+		m.SetColumns([]table.Column{{Title: "Week", Width: 8}, {Title: "#", Width: 3}, {Title: "Time", Width: availableWidth - 17}})
+	}
+	m.SetWidth(availableWidth)
+	m.SetHeight(len(weeks) + 1)
+	m.SetRows(weeklyStatsRows(weeks))
+
+	return m
+}
+
+func weeklyStatsRows(weeks []weeklyStat) []table.Row {
+	rows := make([]table.Row, 0, len(weeks))
 	for _, week := range weeks {
-		row := fmt.Sprintf("%04d-W%02d %3d %s", week.year, week.week, week.sessions, formatDuration(week.focusTime))
-		rows = append(rows, truncate(row, availableWidth))
+		weekYear := fmt.Sprintf("%04d-W%02d", week.year, week.week)
+		rows = append(rows, table.Row{weekYear, strconv.Itoa(week.sessions), formatDuration(week.focusTime)})
 	}
 
 	return rows

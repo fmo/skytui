@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"charm.land/bubbles/v2/progress"
+	"charm.land/bubbles/v2/table"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/fmo/skytui/internal/history"
@@ -256,5 +257,128 @@ func TestTimerContinuesWhileStatsScreenIsOpen(t *testing.T) {
 				t.Fatal("timer should schedule another tick while statistics are open")
 			}
 		})
+	}
+}
+
+func TestWeeklyStatsRows(t *testing.T) {
+	rows := weeklyStatsRows([]weeklyStat{
+		{year: 2026, week: 1, sessions: 12, focusTime: 2 * time.Hour},
+		{year: 2025, week: 12, sessions: 3, focusTime: 4 * time.Hour},
+	})
+
+	want := [][]string{
+		{"2026-W01", "12", "2h"},
+		{"2025-W12", "3", "4h"},
+	}
+	if len(rows) != len(want) {
+		t.Fatalf("got %d rows, want %d", len(rows), len(want))
+	}
+
+	for rowIndex, wantRow := range want {
+		if len(rows[rowIndex]) != len(wantRow) {
+			t.Fatalf("row %d has %d cells, want %d", rowIndex, len(rows[rowIndex]), len(wantRow))
+		}
+		for cellIndex, wantCell := range wantRow {
+			if rows[rowIndex][cellIndex] != wantCell {
+				t.Errorf("row %d cell %d = %q, want %q", rowIndex, cellIndex, rows[rowIndex][cellIndex], wantCell)
+			}
+		}
+	}
+}
+
+func TestNewWeeklyStatsTable(t *testing.T) {
+	weeks := []weeklyStat{
+		{year: 2026, week: 1, sessions: 10, focusTime: 10 * time.Hour},
+		{year: 2025, week: 15, sessions: 5, focusTime: 5 * time.Hour},
+	}
+
+	want := []table.Row{
+		{"2026-W01", "10", "10h"},
+		{"2025-W15", "5", "5h"},
+	}
+
+	model := weeklyStatsTable(weeks, 50)
+	rows := model.Rows()
+
+	if len(rows) != len(want) {
+		t.Fatalf("got %d rows, want %d", len(model.Rows()), len(want))
+	}
+
+	for rowIndex, row := range rows {
+		if len(row) != len(want[rowIndex]) {
+			t.Fatalf("row has %d cells, want: %d", len(row), len(want[rowIndex]))
+		}
+
+		for cellIndex, cell := range row {
+			if want[rowIndex][cellIndex] != cell {
+				t.Errorf("row: %d cell %d = %q, want %q", rowIndex, cellIndex, cell, want[rowIndex][cellIndex])
+			}
+		}
+	}
+
+	columns := model.Columns()
+
+	if len(columns) != 3 {
+		t.Fatalf("columns count: %d, want: 3", len(columns))
+	}
+
+	wantColumns := []table.Column{
+		{Title: "Week", Width: 8},
+		{Title: "Sessions", Width: 8},
+		{Title: "Focus Time", Width: 10},
+	}
+
+	for columnIndex, column := range columns {
+		if column.Title != wantColumns[columnIndex].Title {
+			t.Fatalf("want: %s, got: %s", wantColumns[columnIndex].Title, column.Title)
+		}
+		if column.Width != wantColumns[columnIndex].Width {
+			t.Fatalf("want: %d, got: %d", wantColumns[columnIndex].Width, column.Width)
+		}
+	}
+
+	if model.Width() != 50 {
+		t.Errorf("Width expected: 50 but got: %d", model.Width())
+	}
+
+	if model.Height() != len(want) {
+		t.Errorf("Expected height: %d, got: %d", len(want), model.Height())
+	}
+
+	if model.Focused() {
+		t.Errorf("Table should be unfocused")
+	}
+}
+
+func TestNewWeeklyStatsTableUsesCompactColumns(t *testing.T) {
+	stats := []weeklyStat{
+		{year: 2026, week: 1, sessions: 12, focusTime: time.Hour * 3},
+	}
+
+	model := weeklyStatsTable(stats, 26)
+
+	if model.Width() != 26 {
+		t.Errorf("Want: %d, Got: %d", 26, model.Width())
+	}
+
+	wantColumns := []table.Column{
+		{Title: "Week", Width: 8},
+		{Title: "#", Width: 3},
+		{Title: "Time", Width: 9},
+	}
+
+	columns := model.Columns()
+
+	if len(columns) != 3 {
+		t.Fatalf("want: 3, got: %d", len(columns))
+	}
+
+	for columnIndex, column := range columns {
+		if wantColumns[columnIndex].Title != column.Title {
+			t.Errorf("want: %s, got: %s", wantColumns[columnIndex].Title, column.Title)
+		}
+		if wantColumns[columnIndex].Width != column.Width {
+			t.Errorf("want: %d, got: %d", wantColumns[columnIndex].Width, column.Width)
+		}
 	}
 }
