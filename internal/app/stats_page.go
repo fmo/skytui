@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -48,18 +47,14 @@ func newStatsPage(activeProject project.Project, records []history.Record, now t
 }
 
 func monthlyFocusStats(records []history.Record, projectID string, now time.Time) []monthlyStat {
-	months := make(map[string]monthlyStat, monthlyStatsLimit)
-
-	// create buckets for last 12 months
+	months := make([]monthlyStat, monthlyStatsLimit)
+	indices := make(map[[2]int]int, monthlyStatsLimit)
 	current := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
-	limit := now.AddDate(0, -12, 0)
-	for {
-		monthsKey := fmt.Sprintf("%d-%d", current.Year(), current.Month())
-		months[monthsKey] = monthlyStat{year: current.Year(), month: int(current.Month())}
+
+	for index := range months {
+		months[index] = monthlyStat{year: current.Year(), month: int(current.Month())}
+		indices[[2]int{current.Year(), int(current.Month())}] = index
 		current = current.AddDate(0, -1, 0)
-		if current.Compare(limit) <= 0 {
-			break
-		}
 	}
 
 	for _, record := range records {
@@ -71,34 +66,15 @@ func monthlyFocusStats(records []history.Record, projectID string, now time.Time
 		}
 
 		completedAt := record.CompletedAt.In(now.Location())
-		yearMonth := fmt.Sprintf("%d-%d", completedAt.Year(), completedAt.Month())
-		ms, ok := months[yearMonth]
+		index, ok := indices[[2]int{completedAt.Year(), int(completedAt.Month())}]
 		if !ok {
 			continue
 		}
-		ms.focusTime += record.Duration
-		ms.sessions++
-		months[yearMonth] = ms
+		months[index].focusTime += record.Duration
+		months[index].sessions++
 	}
 
-	ms := []monthlyStat{}
-	for _, v := range months {
-		ms = append(ms, v)
-	}
-
-	slices.SortFunc(ms, func(x, y monthlyStat) int {
-		xMonth, err := time.Parse("2006-01", fmt.Sprintf("%04d-%02d", x.year, x.month))
-		if err != nil {
-			return 0
-		}
-		yMonth, err := time.Parse("2006-01", fmt.Sprintf("%04d-%02d", y.year, y.month))
-		if err != nil {
-			return 0
-		}
-		return yMonth.Compare(xMonth)
-	})
-
-	return ms
+	return months
 }
 
 func startOfISOWeek(value time.Time) time.Time {
