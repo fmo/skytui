@@ -260,58 +260,179 @@ func TestTimerContinuesWhileStatsScreenIsOpen(t *testing.T) {
 	}
 }
 
-func TestWeeklyStatsRows(t *testing.T) {
-	rows := weeklyStatsRows([]weeklyStat{
-		{year: 2026, week: 1, sessions: 12, focusTime: 2 * time.Hour},
-		{year: 2025, week: 12, sessions: 3, focusTime: 4 * time.Hour},
+func TestMonthlyStatsTableCompactColumns(t *testing.T) {
+	modelTable := monthlyStatsTable([]monthlyStat{
+		{year: 2026, month: 1, sessions: 23, focusTime: 23 * time.Hour},
+	}, 26)
+
+	if modelTable.Width() != 26 {
+		t.Errorf("Expected: %d, Got: %d", 26, modelTable.Width())
+	}
+
+	expectedColumns := []table.Column{
+		{Title: "Month", Width: 8},
+		{Title: "#", Width: 3},
+		{Title: "Time", Width: 26 - 17},
+	}
+
+	gottenColumns := modelTable.Columns()
+
+	if len(expectedColumns) != len(gottenColumns) {
+		t.Fatalf("expected column count: %d, gotten column count: %d", len(expectedColumns), len(gottenColumns))
+	}
+
+	for cellIndex, cell := range gottenColumns {
+		if cell.Title != expectedColumns[cellIndex].Title {
+			t.Errorf("expected title: %q, gotten title: %q", expectedColumns[cellIndex].Title, cell.Title)
+		}
+		if cell.Width != expectedColumns[cellIndex].Width {
+			t.Errorf("expected width: %d, gotten width: %d", expectedColumns[cellIndex].Width, cell.Width)
+		}
+	}
+}
+
+func TestMonthlyStatsTable(t *testing.T) {
+	tableModel := monthlyStatsTable([]monthlyStat{
+		{year: 2026, month: 1, sessions: 10, focusTime: 10 * time.Hour},
+		{year: 2025, month: 12, sessions: 5, focusTime: 20 * time.Hour},
+	}, 50)
+
+	expectedRows := []table.Row{
+		{"2026-Jan", "10", "10h"},
+		{"2025-Dec", "5", "20h"},
+	}
+
+	gottenRows := tableModel.Rows()
+
+	if len(expectedRows) != len(gottenRows) {
+		t.Fatalf("expected row count: %d, gotten row count: %d", len(expectedRows), len(gottenRows))
+	}
+
+	for rowIndex, row := range gottenRows {
+		if len(row) != len(expectedRows[rowIndex]) {
+			t.Fatalf("expected cell count: %d, gotten cell count: %d", len(expectedRows[rowIndex]), len(row))
+		}
+
+		for cellIndex, cell := range row {
+			if cell != expectedRows[rowIndex][cellIndex] {
+				t.Errorf("expected cell: %q, cell: %q", expectedRows[rowIndex][cellIndex], cell)
+			}
+		}
+	}
+
+	columns := tableModel.Columns()
+
+	expectedColumns := []table.Column{
+		{Title: "Month", Width: 8},
+		{Title: "Sessions", Width: 8},
+		{Title: "Focus Time", Width: 10},
+	}
+
+	if len(columns) != len(expectedColumns) {
+		t.Fatalf("expected cell count: %d, gotten cell count: %d", len(expectedColumns), len(columns))
+	}
+
+	for cellIndex, cell := range columns {
+		if cell.Title != expectedColumns[cellIndex].Title {
+			t.Errorf("cell: %d, expected title: %s, gotten title: %s", cellIndex, expectedColumns[cellIndex].Title, cell.Title)
+		}
+		if cell.Width != expectedColumns[cellIndex].Width {
+			t.Errorf("cell: %d, expected width: %d, gotten width: %d", cellIndex, expectedColumns[cellIndex].Width, cell.Width)
+		}
+	}
+
+	if tableModel.Width() != 50 {
+		t.Errorf("expected width: %d, gotten: %d", 50, tableModel.Width())
+	}
+
+	if tableModel.Height() != len(expectedRows) {
+		t.Errorf("expected height: %d, gotten: %d", len(expectedRows), tableModel.Height())
+	}
+
+	if tableModel.Focused() {
+		t.Errorf("table should be unfocused")
+	}
+}
+
+func TestMonthlyStatsRows(t *testing.T) {
+	rows := monthlyStatsRows([]monthlyStat{
+		{year: 2026, month: 1, sessions: 10, focusTime: time.Hour * 30},
+		{year: 2025, month: 12, sessions: 13, focusTime: time.Hour * 12},
 	})
 
-	want := [][]string{
-		{"2026-W01", "12", "2h"},
-		{"2025-W12", "3", "4h"},
-	}
-	if len(rows) != len(want) {
-		t.Fatalf("got %d rows, want %d", len(rows), len(want))
+	expected := []table.Row{
+		{"2026-Jan", "10", "30h"},
+		{"2025-Dec", "13", "12h"},
 	}
 
-	for rowIndex, wantRow := range want {
-		if len(rows[rowIndex]) != len(wantRow) {
-			t.Fatalf("row %d has %d cells, want %d", rowIndex, len(rows[rowIndex]), len(wantRow))
+	if len(rows) != len(expected) {
+		t.Fatalf("expected row count: %d, got row count: %d", len(expected), len(rows))
+	}
+
+	for rowIndex, row := range rows {
+		if len(row) != len(expected[rowIndex]) {
+			t.Fatalf("expected cell count: %d, got cell count: %d", len(expected[rowIndex]), len(row))
 		}
-		for cellIndex, wantCell := range wantRow {
-			if rows[rowIndex][cellIndex] != wantCell {
-				t.Errorf("row %d cell %d = %q, want %q", rowIndex, cellIndex, rows[rowIndex][cellIndex], wantCell)
+		for colIndex, cell := range row {
+			if cell != expected[rowIndex][colIndex] {
+				t.Errorf("expected cell: %s, cell: %s", expected[rowIndex][colIndex], cell)
 			}
 		}
 	}
 }
 
-func TestNewWeeklyStatsTable(t *testing.T) {
-	weeks := []weeklyStat{
-		{year: 2026, week: 1, sessions: 10, focusTime: 10 * time.Hour},
-		{year: 2025, week: 15, sessions: 5, focusTime: 5 * time.Hour},
+func TestWeeklyStatsRows(t *testing.T) {
+	gottenRows := weeklyStatsRows([]weeklyStat{
+		{year: 2026, week: 1, sessions: 12, focusTime: 2 * time.Hour},
+		{year: 2025, week: 12, sessions: 3, focusTime: 4 * time.Hour},
+	})
+
+	expectedRows := []table.Row{
+		{"2026-W01", "12", "2h"},
+		{"2025-W12", "3", "4h"},
 	}
 
-	want := []table.Row{
+	if len(gottenRows) != len(expectedRows) {
+		t.Fatalf("got %d rows, want %d", len(gottenRows), len(expectedRows))
+	}
+
+	for rowIndex, expectedRow := range expectedRows {
+		if len(gottenRows[rowIndex]) != len(expectedRow) {
+			t.Fatalf("row %d has %d cells, want %d", rowIndex, len(gottenRows[rowIndex]), len(expectedRow))
+		}
+		for cellIndex, expectedCell := range expectedRow {
+			if gottenRows[rowIndex][cellIndex] != expectedCell {
+				t.Errorf("row %d cell %d = %q, expected = %q", rowIndex, cellIndex, gottenRows[rowIndex][cellIndex], expectedCell)
+			}
+		}
+	}
+}
+
+func TestWeeklyStatsTable(t *testing.T) {
+	model := weeklyStatsTable([]weeklyStat{
+		{year: 2026, week: 1, sessions: 10, focusTime: 10 * time.Hour},
+		{year: 2025, week: 15, sessions: 5, focusTime: 5 * time.Hour},
+	}, 50)
+
+	expected := []table.Row{
 		{"2026-W01", "10", "10h"},
 		{"2025-W15", "5", "5h"},
 	}
 
-	model := weeklyStatsTable(weeks, 50)
 	rows := model.Rows()
 
-	if len(rows) != len(want) {
-		t.Fatalf("got %d rows, want %d", len(model.Rows()), len(want))
+	if len(rows) != len(expected) {
+		t.Fatalf("got %d rows, want: %d", len(model.Rows()), len(expected))
 	}
 
 	for rowIndex, row := range rows {
-		if len(row) != len(want[rowIndex]) {
-			t.Fatalf("row has %d cells, want: %d", len(row), len(want[rowIndex]))
+		if len(row) != len(expected[rowIndex]) {
+			t.Fatalf("row has %d cells, want: %d", len(row), len(expected[rowIndex]))
 		}
 
 		for cellIndex, cell := range row {
-			if want[rowIndex][cellIndex] != cell {
-				t.Errorf("row: %d cell %d = %q, want %q", rowIndex, cellIndex, cell, want[rowIndex][cellIndex])
+			if expected[rowIndex][cellIndex] != cell {
+				t.Errorf("row: %d cell: %d = %q, expected = %q", rowIndex, cellIndex, cell, expected[rowIndex][cellIndex])
 			}
 		}
 	}
@@ -322,18 +443,18 @@ func TestNewWeeklyStatsTable(t *testing.T) {
 		t.Fatalf("columns count: %d, want: 3", len(columns))
 	}
 
-	wantColumns := []table.Column{
+	expectedColumns := []table.Column{
 		{Title: "Week", Width: 8},
 		{Title: "Sessions", Width: 8},
 		{Title: "Focus Time", Width: 10},
 	}
 
 	for columnIndex, column := range columns {
-		if column.Title != wantColumns[columnIndex].Title {
-			t.Fatalf("want: %s, got: %s", wantColumns[columnIndex].Title, column.Title)
+		if column.Title != expectedColumns[columnIndex].Title {
+			t.Fatalf("want: %s, got: %s", expectedColumns[columnIndex].Title, column.Title)
 		}
-		if column.Width != wantColumns[columnIndex].Width {
-			t.Fatalf("want: %d, got: %d", wantColumns[columnIndex].Width, column.Width)
+		if column.Width != expectedColumns[columnIndex].Width {
+			t.Fatalf("want: %d, got: %d", expectedColumns[columnIndex].Width, column.Width)
 		}
 	}
 
@@ -341,8 +462,8 @@ func TestNewWeeklyStatsTable(t *testing.T) {
 		t.Errorf("Width expected: 50 but got: %d", model.Width())
 	}
 
-	if model.Height() != len(want) {
-		t.Errorf("Expected height: %d, got: %d", len(want), model.Height())
+	if model.Height() != len(expected) {
+		t.Errorf("Expected height: %d, got: %d", len(expected), model.Height())
 	}
 
 	if model.Focused() {
@@ -350,35 +471,33 @@ func TestNewWeeklyStatsTable(t *testing.T) {
 	}
 }
 
-func TestNewWeeklyStatsTableUsesCompactColumns(t *testing.T) {
-	stats := []weeklyStat{
+func TestWeeklyStatsTableUsesCompactColumns(t *testing.T) {
+	tableModel := weeklyStatsTable([]weeklyStat{
 		{year: 2026, week: 1, sessions: 12, focusTime: time.Hour * 3},
+	}, 26)
+
+	if tableModel.Width() != 26 {
+		t.Errorf("Want: %d, Got: %d", 26, tableModel.Width())
 	}
 
-	model := weeklyStatsTable(stats, 26)
-
-	if model.Width() != 26 {
-		t.Errorf("Want: %d, Got: %d", 26, model.Width())
-	}
-
-	wantColumns := []table.Column{
+	expectedColumns := []table.Column{
 		{Title: "Week", Width: 8},
 		{Title: "#", Width: 3},
 		{Title: "Time", Width: 9},
 	}
 
-	columns := model.Columns()
+	gottenColumns := tableModel.Columns()
 
-	if len(columns) != 3 {
-		t.Fatalf("want: 3, got: %d", len(columns))
+	if len(gottenColumns) != len(expectedColumns) {
+		t.Fatalf("want: %d, got: %d", len(expectedColumns), len(gottenColumns))
 	}
 
-	for columnIndex, column := range columns {
-		if wantColumns[columnIndex].Title != column.Title {
-			t.Errorf("want: %s, got: %s", wantColumns[columnIndex].Title, column.Title)
+	for columnIndex, column := range gottenColumns {
+		if expectedColumns[columnIndex].Title != column.Title {
+			t.Errorf("want: %s, got: %s", expectedColumns[columnIndex].Title, column.Title)
 		}
-		if wantColumns[columnIndex].Width != column.Width {
-			t.Errorf("want: %d, got: %d", wantColumns[columnIndex].Width, column.Width)
+		if expectedColumns[columnIndex].Width != column.Width {
+			t.Errorf("want: %d, got: %d", expectedColumns[columnIndex].Width, column.Width)
 		}
 	}
 }

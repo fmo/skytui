@@ -148,7 +148,7 @@ func (s statsPage) ViewMonthly(terminalWidth int) string {
 		statsProjectLabel(s.activeProject.Name, contentWidth),
 		"",
 	}
-	rows = append(rows, monthlyStatsTable(s.months, contentWidth)...)
+	rows = append(rows, monthlyStatsTable(s.months, contentWidth).View())
 	rows = append(rows, "", lipgloss.NewStyle().Foreground(mutedColor).Render(truncate("[Esc] Back   [w] Weekly   [q] Quit", contentWidth)))
 
 	view := renderPanel(strings.Join(rows, "\n"), width, timer.Focus)
@@ -167,29 +167,31 @@ func statsProjectLabel(name string, availableWidth int) string {
 	return truncate(prefix+name, availableWidth)
 }
 
-func monthlyStatsTable(months []monthlyStat, availableWidth int) []string {
-	rows := make([]string, 0, len(months)+1)
-	if availableWidth >= 34 {
-		rows = append(rows, fmt.Sprintf("%-8s  %8s  %10s", "Month", "Sessions", "Focus Time"))
-		for _, month := range months {
-			date := time.Date(month.year, time.Month(month.month), 1, 0, 0, 0, 0, time.UTC)
+func monthlyStatsTable(months []monthlyStat, availableWidth int) table.Model {
+	defaultStyle := table.DefaultStyles()
+	defaultStyle.Selected = lipgloss.NewStyle()
 
-			rows = append(rows, truncate(fmt.Sprintf(
-				"%04d-%3s  %8d  %10s",
-				month.year,
-				date.Format("Jan"),
-				month.sessions,
-				formatDuration(month.focusTime),
-			), availableWidth))
-		}
-		return rows
+	model := table.New()
+	model.SetStyles(defaultStyle)
+	columns := []table.Column{{Title: "Month", Width: 8}, {Title: "Sessions", Width: 8}, {Title: "Focus Time", Width: 10}}
+	if availableWidth < 34 {
+		columns = []table.Column{{Title: "Month", Width: 8}, {Title: "#", Width: 3}, {Title: "Time", Width: availableWidth - 17}}
 	}
+	model.SetColumns(columns)
+	model.SetWidth(availableWidth)
+	model.SetHeight(len(months) + 1)
+	model.SetRows(monthlyStatsRows(months))
 
-	rows = append(rows, truncate(fmt.Sprintf("%-8s %3s %s", "Month", "#", "Time"), availableWidth))
+	return model
+}
+
+func monthlyStatsRows(months []monthlyStat) []table.Row {
+	rows := make([]table.Row, 0, len(months))
+
 	for _, month := range months {
 		date := time.Date(month.year, time.Month(month.month), 1, 0, 0, 0, 0, time.UTC)
-		row := fmt.Sprintf("%04d-%02s %3d %s", month.year, date.Format("Jan"), month.sessions, formatDuration(month.focusTime))
-		rows = append(rows, truncate(row, availableWidth))
+		yearAndMonth := fmt.Sprintf("%04d-%s", month.year, date.Format("Jan"))
+		rows = append(rows, table.Row{yearAndMonth, strconv.Itoa(month.sessions), formatDuration(month.focusTime)})
 	}
 
 	return rows

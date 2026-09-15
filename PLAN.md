@@ -12,7 +12,7 @@ Goal: adopt Bubble Tea's table component for statistics without tying the
 refactor to a release on its own. Keep the CLI version at `v1.2.0` and include
 this work with the next user-facing release.
 
-### [ ] Render Statistics With A Bubble Tea Table
+### [x] Render Statistics With A Bubble Tea Table
 
 - Replace the manually formatted weekly and monthly rows with a Bubble Tea
   table component.
@@ -20,7 +20,8 @@ this work with the next user-facing release.
   `w`/`m` period controls.
 - Preserve readable narrow-terminal behavior instead of forcing horizontal
   overflow.
-- Keep `Esc` and `q` navigation predictable when the table has focus.
+- Keep statistics tables read-only and unfocused so `Esc`, `q`, `w`, and `m`
+  remain controlled by the statistics screen.
 - Keep the active timer receiving ticks while either statistics table is open.
 - Add rendering and interaction coverage before making the table the default.
 
