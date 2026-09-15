@@ -2,10 +2,11 @@ package app
 
 import (
 	"fmt"
-	"slices"
+	"strconv"
 	"strings"
 	"time"
 
+	"charm.land/bubbles/v2/table"
 	"charm.land/lipgloss/v2"
 	"github.com/fmo/skytui/internal/history"
 	"github.com/fmo/skytui/internal/project"
@@ -46,18 +47,14 @@ func newStatsPage(activeProject project.Project, records []history.Record, now t
 }
 
 func monthlyFocusStats(records []history.Record, projectID string, now time.Time) []monthlyStat {
-	months := make(map[string]monthlyStat, monthlyStatsLimit)
-
-	// create buckets for last 12 months
+	months := make([]monthlyStat, monthlyStatsLimit)
+	indices := make(map[[2]int]int, monthlyStatsLimit)
 	current := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
-	limit := now.AddDate(0, -12, 0)
-	for {
-		monthsKey := fmt.Sprintf("%d-%d", current.Year(), current.Month())
-		months[monthsKey] = monthlyStat{year: current.Year(), month: int(current.Month())}
+
+	for index := range months {
+		months[index] = monthlyStat{year: current.Year(), month: int(current.Month())}
+		indices[[2]int{current.Year(), int(current.Month())}] = index
 		current = current.AddDate(0, -1, 0)
-		if current.Compare(limit) <= 0 {
-			break
-		}
 	}
 
 	for _, record := range records {
@@ -69,34 +66,15 @@ func monthlyFocusStats(records []history.Record, projectID string, now time.Time
 		}
 
 		completedAt := record.CompletedAt.In(now.Location())
-		yearMonth := fmt.Sprintf("%d-%d", completedAt.Year(), completedAt.Month())
-		ms, ok := months[yearMonth]
+		index, ok := indices[[2]int{completedAt.Year(), int(completedAt.Month())}]
 		if !ok {
 			continue
 		}
-		ms.focusTime += record.Duration
-		ms.sessions++
-		months[yearMonth] = ms
+		months[index].focusTime += record.Duration
+		months[index].sessions++
 	}
 
-	ms := []monthlyStat{}
-	for _, v := range months {
-		ms = append(ms, v)
-	}
-
-	slices.SortFunc(ms, func(x, y monthlyStat) int {
-		xMonth, err := time.Parse("2006-01", fmt.Sprintf("%04d-%02d", x.year, x.month))
-		if err != nil {
-			return 0
-		}
-		yMonth, err := time.Parse("2006-01", fmt.Sprintf("%04d-%02d", y.year, y.month))
-		if err != nil {
-			return 0
-		}
-		return yMonth.Compare(xMonth)
-	})
-
-	return ms
+	return months
 }
 
 func startOfISOWeek(value time.Time) time.Time {
@@ -146,7 +124,10 @@ func (s statsPage) ViewWeekly(terminalWidth int) string {
 		statsProjectLabel(s.activeProject.Name, contentWidth),
 		"",
 	}
-	rows = append(rows, weeklyStatsTable(s.weeks, contentWidth)...)
+
+	model := weeklyStatsTable(s.weeks, contentWidth)
+
+	rows = append(rows, model.View())
 	rows = append(rows, "", lipgloss.NewStyle().Foreground(mutedColor).Render(truncate("[Esc] Back   [m] Monthly   [q] Quit", contentWidth)))
 
 	view := renderPanel(strings.Join(rows, "\n"), width, timer.Focus)
@@ -167,7 +148,7 @@ func (s statsPage) ViewMonthly(terminalWidth int) string {
 		statsProjectLabel(s.activeProject.Name, contentWidth),
 		"",
 	}
-	rows = append(rows, monthlyStatsTable(s.months, contentWidth)...)
+	rows = append(rows, monthlyStatsTable(s.months, contentWidth).View())
 	rows = append(rows, "", lipgloss.NewStyle().Foreground(mutedColor).Render(truncate("[Esc] Back   [w] Weekly   [q] Quit", contentWidth)))
 
 	view := renderPanel(strings.Join(rows, "\n"), width, timer.Focus)
@@ -186,54 +167,58 @@ func statsProjectLabel(name string, availableWidth int) string {
 	return truncate(prefix+name, availableWidth)
 }
 
-func monthlyStatsTable(months []monthlyStat, availableWidth int) []string {
-	rows := make([]string, 0, len(months)+1)
-	if availableWidth >= 34 {
-		rows = append(rows, fmt.Sprintf("%-8s  %8s  %10s", "Month", "Sessions", "Focus Time"))
-		for _, month := range months {
-			date := time.Date(month.year, time.Month(month.month), 1, 0, 0, 0, 0, time.UTC)
+func monthlyStatsTable(months []monthlyStat, availableWidth int) table.Model {
+	defaultStyle := table.DefaultStyles()
+	defaultStyle.Selected = lipgloss.NewStyle()
 
-			rows = append(rows, truncate(fmt.Sprintf(
-				"%04d-%3s  %8d  %10s",
-				month.year,
-				date.Format("Jan"),
-				month.sessions,
-				formatDuration(month.focusTime),
-			), availableWidth))
-		}
-		return rows
+	model := table.New()
+	model.SetStyles(defaultStyle)
+	columns := []table.Column{{Title: "Month", Width: 8}, {Title: "Sessions", Width: 8}, {Title: "Focus Time", Width: 10}}
+	if availableWidth < 34 {
+		columns = []table.Column{{Title: "Month", Width: 8}, {Title: "#", Width: 3}, {Title: "Time", Width: availableWidth - 17}}
 	}
+	model.SetColumns(columns)
+	model.SetWidth(availableWidth)
+	model.SetHeight(len(months) + 1)
+	model.SetRows(monthlyStatsRows(months))
 
-	rows = append(rows, truncate(fmt.Sprintf("%-8s %3s %s", "Month", "#", "Time"), availableWidth))
+	return model
+}
+
+func monthlyStatsRows(months []monthlyStat) []table.Row {
+	rows := make([]table.Row, 0, len(months))
+
 	for _, month := range months {
 		date := time.Date(month.year, time.Month(month.month), 1, 0, 0, 0, 0, time.UTC)
-		row := fmt.Sprintf("%04d-%02s %3d %s", month.year, date.Format("Jan"), month.sessions, formatDuration(month.focusTime))
-		rows = append(rows, truncate(row, availableWidth))
+		yearAndMonth := fmt.Sprintf("%04d-%s", month.year, date.Format("Jan"))
+		rows = append(rows, table.Row{yearAndMonth, strconv.Itoa(month.sessions), formatDuration(month.focusTime)})
 	}
 
 	return rows
 }
 
-func weeklyStatsTable(weeks []weeklyStat, availableWidth int) []string {
-	rows := make([]string, 0, len(weeks)+1)
-	if availableWidth >= 34 {
-		rows = append(rows, fmt.Sprintf("%-8s  %8s  %10s", "Week", "Sessions", "Focus Time"))
-		for _, week := range weeks {
-			rows = append(rows, truncate(fmt.Sprintf(
-				"%04d-W%02d  %8d  %10s",
-				week.year,
-				week.week,
-				week.sessions,
-				formatDuration(week.focusTime),
-			), availableWidth))
-		}
-		return rows
-	}
+func weeklyStatsTable(weeks []weeklyStat, availableWidth int) table.Model {
+	defaultStyle := table.DefaultStyles()
+	defaultStyle.Selected = lipgloss.NewStyle()
 
-	rows = append(rows, truncate(fmt.Sprintf("%-8s %3s %s", "Week", "#", "Time"), availableWidth))
+	m := table.New()
+	m.SetStyles(defaultStyle)
+	m.SetColumns([]table.Column{{Title: "Week", Width: 8}, {Title: "Sessions", Width: 8}, {Title: "Focus Time", Width: 10}})
+	if availableWidth < 34 {
+		m.SetColumns([]table.Column{{Title: "Week", Width: 8}, {Title: "#", Width: 3}, {Title: "Time", Width: availableWidth - 17}})
+	}
+	m.SetWidth(availableWidth)
+	m.SetHeight(len(weeks) + 1)
+	m.SetRows(weeklyStatsRows(weeks))
+
+	return m
+}
+
+func weeklyStatsRows(weeks []weeklyStat) []table.Row {
+	rows := make([]table.Row, 0, len(weeks))
 	for _, week := range weeks {
-		row := fmt.Sprintf("%04d-W%02d %3d %s", week.year, week.week, week.sessions, formatDuration(week.focusTime))
-		rows = append(rows, truncate(row, availableWidth))
+		weekYear := fmt.Sprintf("%04d-W%02d", week.year, week.week)
+		rows = append(rows, table.Row{weekYear, strconv.Itoa(week.sessions), formatDuration(week.focusTime)})
 	}
 
 	return rows
