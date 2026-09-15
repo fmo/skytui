@@ -4,6 +4,11 @@ All notable changes to SkyTUI are documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- Render weekly and monthly statistics with responsive Bubble Tea tables while
+  preserving existing navigation and read-only behavior.
+
 ## [1.2.0] - 2026-09-09
 
 ### Added

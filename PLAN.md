@@ -6,26 +6,28 @@ This file tracks active and future work. Completed releases are documented in
 `[x]` is complete. `[ ]` is planned. Future tasks can be adjusted before work
 starts, but the current task should stay focused.
 
-## Next - Statistics Table Refactor
+## Next - Statistics Project Filter
 
-Goal: adopt Bubble Tea's table component for statistics without tying the
-refactor to a release on its own. Keep the CLI version at `v1.2.0` and include
-this work with the next user-facing release.
+Goal: apply the existing project filter consistently to dashboard history and
+totals as well as weekly and monthly statistics. Target this feature and the
+unreleased statistics table refactor for `v1.3.0`.
 
-### [x] Render Statistics With A Bubble Tea Table
+### [ ] Apply The Project Filter To Statistics
 
-- Replace the manually formatted weekly and monthly rows with a Bubble Tea
-  table component.
-- Preserve the existing weekly and monthly data, ordering, headings, and
-  `w`/`m` period controls.
-- Preserve readable narrow-terminal behavior instead of forcing horizontal
-  overflow.
-- Keep statistics tables read-only and unfocused so `Esc`, `q`, `w`, and `m`
-  remain controlled by the statistics screen.
-- Keep the active timer receiving ticks while either statistics table is open.
-- Add rendering and interaction coverage before making the table the default.
+- Apply the same selection to dashboard history and totals as well as weekly
+  and monthly statistics.
+- Build dashboard totals and statistics from the same filtered record set.
+- Continue offering all projects, individual projects, and unassigned legacy
+  sessions.
+- Preserve the selected filter when moving between the dashboard, weekly
+  statistics, and monthly statistics.
+- Show the selected filter clearly on both statistics views.
+- Keep filtering independent from the project assigned to the active timer.
+- Keep `f` and the filter picker on the dashboard for this first implementation.
+- Cover aggregation, shared filter state, and narrow-terminal
+  rendering with tests.
 
-**Commit:** `refactor: render statistics with Bubble Tea table`
+**Commit:** `feat: filter statistics by project`
 
 ## Backlog
 
@@ -65,6 +67,8 @@ Backlog items are ideas, not commitments to a particular release.
 
 ### Product Ideas
 
+- Open the shared project filter directly from weekly and monthly statistics,
+  then return to the originating statistics view.
 - Project rename, archive, delete, descriptions, goals, and budgets.
 - Long breaks and automatic session starts.
 - Full history editing, charts, and advanced reports.
