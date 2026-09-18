@@ -16,17 +16,16 @@ import (
 	"github.com/fmo/skytui/internal/timer"
 )
 
-func TestWeeklyFocusStatsGroupsISOWeeksAndFiltersProject(t *testing.T) {
+func TestWeeklyFocusStatsGroupsISOWeeks(t *testing.T) {
 	now := time.Date(2026, time.January, 1, 12, 0, 0, 0, time.UTC)
 	records := []history.Record{
-		{CompletedAt: time.Date(2025, time.December, 29, 9, 0, 0, 0, time.UTC), Duration: 25 * time.Minute, ProjectID: "active"},
-		{CompletedAt: time.Date(2026, time.January, 1, 9, 0, 0, 0, time.UTC), Duration: 50 * time.Minute, ProjectID: "active"},
-		{CompletedAt: time.Date(2025, time.December, 25, 9, 0, 0, 0, time.UTC), Duration: 30 * time.Minute, ProjectID: "active"},
-		{CompletedAt: time.Date(2025, time.December, 31, 9, 0, 0, 0, time.UTC), Duration: 2 * time.Hour, ProjectID: "other"},
-		{CompletedAt: time.Date(2025, time.October, 1, 9, 0, 0, 0, time.UTC), Duration: time.Hour, ProjectID: "active"},
+		{CompletedAt: time.Date(2025, time.December, 29, 9, 0, 0, 0, time.UTC), Duration: 25 * time.Minute},
+		{CompletedAt: time.Date(2026, time.January, 1, 9, 0, 0, 0, time.UTC), Duration: 50 * time.Minute},
+		{CompletedAt: time.Date(2025, time.December, 25, 9, 0, 0, 0, time.UTC), Duration: 30 * time.Minute},
+		{CompletedAt: time.Date(2025, time.October, 1, 9, 0, 0, 0, time.UTC), Duration: time.Hour},
 	}
 
-	weeks := weeklyFocusStats(records, "active", now)
+	weeks := weeklyFocusStats(records, now)
 	if len(weeks) != weeklyStatsLimit {
 		t.Fatalf("got %d weeks, want %d", len(weeks), weeklyStatsLimit)
 	}
@@ -49,18 +48,17 @@ func TestWeeklyFocusStatsGroupsISOWeeksAndFiltersProject(t *testing.T) {
 	}
 }
 
-func TestMonthlyFocusStatsGroupsMonthsAndFiltersProject(t *testing.T) {
+func TestMonthlyFocusStatsGroupsMonths(t *testing.T) {
 	now := time.Date(2026, time.January, 15, 12, 0, 0, 0, time.UTC)
 	records := []history.Record{
 		{CompletedAt: time.Date(2026, time.January, 2, 9, 0, 0, 0, time.UTC), Duration: 25 * time.Minute, ProjectID: "active"},
 		{CompletedAt: time.Date(2026, time.January, 14, 9, 0, 0, 0, time.UTC), Duration: 50 * time.Minute, ProjectID: "active"},
 		{CompletedAt: time.Date(2025, time.December, 20, 9, 0, 0, 0, time.UTC), Duration: 30 * time.Minute, ProjectID: "active"},
-		{CompletedAt: time.Date(2026, time.January, 10, 9, 0, 0, 0, time.UTC), Duration: 2 * time.Hour, ProjectID: "other"},
 		{CompletedAt: time.Date(2025, time.January, 31, 9, 0, 0, 0, time.UTC), Duration: time.Hour, ProjectID: "active"},
 		{CompletedAt: time.Date(2026, time.February, 1, 9, 0, 0, 0, time.UTC), Duration: time.Hour, ProjectID: "active"},
 	}
 
-	months := monthlyFocusStats(records, "active", now)
+	months := monthlyFocusStats(records, now)
 	if len(months) != monthlyStatsLimit {
 		t.Fatalf("got %d months, want %d", len(months), monthlyStatsLimit)
 	}
@@ -97,7 +95,7 @@ func TestMonthlyFocusStatsUsesCurrentLocation(t *testing.T) {
 		},
 	}
 
-	months := monthlyFocusStats(records, "active", now)
+	months := monthlyFocusStats(records, now)
 	if months[0].year != 2026 || months[0].month != int(time.October) {
 		t.Fatalf("got latest month %04d-%02d, want 2026-10", months[0].year, months[0].month)
 	}
@@ -112,7 +110,7 @@ func TestMonthlyFocusStatsUsesCurrentLocation(t *testing.T) {
 func TestStatsPageViewsFitTerminal(t *testing.T) {
 	now := time.Date(2026, time.January, 1, 12, 0, 0, 0, time.UTC)
 	page := newStatsPage(
-		project.Project{ID: "active", Name: "SkyTUI"},
+		"SkyTUI",
 		[]history.Record{{CompletedAt: now, Duration: 25 * time.Minute, ProjectID: "active"}},
 		now,
 	)
@@ -126,12 +124,12 @@ func TestStatsPageViewsFitTerminal(t *testing.T) {
 		{
 			name:     "weekly",
 			render:   page.ViewWeekly,
-			expected: []string{"Weekly Focus Statistics", "Project: SkyTUI", "2026-W01", "25m", "[m] Monthly"},
+			expected: []string{"Weekly Focus Statistics", "Filter: SkyTUI", "2026-W01", "25m", "[m] Monthly"},
 		},
 		{
 			name:       "monthly",
 			render:     page.ViewMonthly,
-			expected:   []string{"Monthly Focus Statistics", "Project: SkyTUI", "2026-Jan", "25m", "[w] Weekly"},
+			expected:   []string{"Monthly Focus Statistics", "Filter: SkyTUI", "2026-Jan", "25m", "[w] Weekly"},
 			unexpected: []string{"25m0s"},
 		},
 	}
@@ -160,17 +158,19 @@ func TestStatsPageViewsFitTerminal(t *testing.T) {
 	}
 }
 
-func TestStatsScreenUsesActiveProjectAndNavigates(t *testing.T) {
+func TestStatsScreenUsesSharedFilterAndNavigates(t *testing.T) {
 	now := time.Now()
 	m := model{
 		screen:        dashboardScreen,
 		session:       timer.New(timer.Focus, time.Minute, now),
 		activeProject: project.Project{ID: "active", Name: "SkyTUI"},
+		projectPicker: projectPicker{
+			projects: []project.Project{{ID: "other", Name: "Other"}},
+		},
 		historyFilter: history.Filter{Mode: history.OneProject, ProjectID: "other"},
 		progress:      progress.New(progress.WithDefaultBlend()),
-		allSessions: []history.Record{
-			{CompletedAt: now, Duration: 25 * time.Minute, ProjectID: "active"},
-			{CompletedAt: now, Duration: time.Hour, ProjectID: "other"},
+		sessions: []history.Record{
+			{CompletedAt: now, Duration: 25 * time.Minute, ProjectID: "other"},
 		},
 	}
 
@@ -180,10 +180,16 @@ func TestStatsScreenUsesActiveProjectAndNavigates(t *testing.T) {
 		t.Fatal("stats control should open the statistics screen")
 	}
 	if got.statsPage.weeks[0].sessions != 1 || got.statsPage.weeks[0].focusTime != 25*time.Minute {
-		t.Fatalf("statistics do not contain only the active project: %#v", got.statsPage.weeks[0])
+		t.Fatalf("statistics do not contain only the selected filter: %#v", got.statsPage.weeks[0])
 	}
 	if got.statsPage.months[0].sessions != 1 || got.statsPage.months[0].focusTime != 25*time.Minute {
-		t.Fatalf("monthly statistics do not contain only the active project: %#v", got.statsPage.months[0])
+		t.Fatalf("monthly statistics do not contain only the selected filter: %#v", got.statsPage.months[0])
+	}
+	if !strings.Contains(got.statsPage.ViewWeekly(50), "Filter: Other") {
+		t.Fatalf("statistics should contain Filter label")
+	}
+	if got.activeProject.ID != "active" {
+		t.Fatalf("filtered project label should not change the active project")
 	}
 
 	updated, _ = got.Update(tea.KeyPressMsg{Text: "m", Code: 'm'})

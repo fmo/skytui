@@ -44,7 +44,6 @@ type model struct {
 	shortBreakDuration   time.Duration
 	notificationsEnabled bool
 	sessions             []history.Record
-	allSessions          []history.Record
 	width, height        int
 }
 
@@ -197,7 +196,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			slog.Info("closing the application")
 			return m, tea.Quit
 		case "s":
-			m.statsPage = newStatsPage(m.activeProject, m.allSessions, time.Now())
+			filterLabel := historyFilterLabel(m.historyFilter, m.projectPicker.projects)
+			m.statsPage = newStatsPage(filterLabel, m.sessions, time.Now())
 			m.screen = statsScreenWeekly
 			return m, nil
 		case "r":
@@ -225,9 +225,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if err != nil {
 			slog.Error("cant load sessions", "err", err)
 		}
-		m.allSessions = records
-		m.statsPage = newStatsPage(m.activeProject, records, time.Now())
 		filteredRecords := history.FilterRecords(records, m.historyFilter)
+		filterLabel := historyFilterLabel(m.historyFilter, m.projectPicker.projects)
+		m.statsPage = newStatsPage(filterLabel, filteredRecords, time.Now())
 		m.sessions = filteredRecords
 
 		m.todaysTotal = m.historyStore.TodaysTotal(m.sessions)

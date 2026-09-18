@@ -9,7 +9,6 @@ import (
 	"charm.land/bubbles/v2/table"
 	"charm.land/lipgloss/v2"
 	"github.com/fmo/skytui/internal/history"
-	"github.com/fmo/skytui/internal/project"
 	"github.com/fmo/skytui/internal/timer"
 )
 
@@ -33,20 +32,20 @@ type monthlyStat struct {
 }
 
 type statsPage struct {
-	activeProject project.Project
-	weeks         []weeklyStat
-	months        []monthlyStat
+	filterLabel string
+	weeks       []weeklyStat
+	months      []monthlyStat
 }
 
-func newStatsPage(activeProject project.Project, records []history.Record, now time.Time) statsPage {
+func newStatsPage(filterLabel string, records []history.Record, now time.Time) statsPage {
 	return statsPage{
-		activeProject: activeProject,
-		weeks:         weeklyFocusStats(records, activeProject.ID, now),
-		months:        monthlyFocusStats(records, activeProject.ID, now),
+		filterLabel: filterLabel,
+		weeks:       weeklyFocusStats(records, now),
+		months:      monthlyFocusStats(records, now),
 	}
 }
 
-func monthlyFocusStats(records []history.Record, projectID string, now time.Time) []monthlyStat {
+func monthlyFocusStats(records []history.Record, now time.Time) []monthlyStat {
 	months := make([]monthlyStat, monthlyStatsLimit)
 	indices := make(map[[2]int]int, monthlyStatsLimit)
 	current := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
@@ -59,9 +58,6 @@ func monthlyFocusStats(records []history.Record, projectID string, now time.Time
 
 	for _, record := range records {
 		if now.Compare(record.CompletedAt) < 0 {
-			continue
-		}
-		if record.ProjectID != projectID {
 			continue
 		}
 
@@ -87,7 +83,7 @@ func startOfISOWeek(value time.Time) time.Time {
 	return day.AddDate(0, 0, 1-weekday)
 }
 
-func weeklyFocusStats(records []history.Record, projectID string, now time.Time) []weeklyStat {
+func weeklyFocusStats(records []history.Record, now time.Time) []weeklyStat {
 	weekStart := startOfISOWeek(now)
 	weeks := make([]weeklyStat, weeklyStatsLimit)
 	indices := make(map[[2]int]int, weeklyStatsLimit)
@@ -98,10 +94,6 @@ func weeklyFocusStats(records []history.Record, projectID string, now time.Time)
 	}
 
 	for _, record := range records {
-		if record.ProjectID != projectID {
-			continue
-		}
-
 		year, week := record.CompletedAt.In(now.Location()).ISOWeek()
 		index, ok := indices[[2]int{year, week}]
 		if !ok {
@@ -121,7 +113,7 @@ func (s statsPage) ViewWeekly(terminalWidth int) string {
 	rows := []string{
 		lipgloss.NewStyle().Bold(true).Render(truncate("Weekly Focus Statistics", contentWidth)),
 		"",
-		statsProjectLabel(s.activeProject.Name, contentWidth),
+		statsFilterLabel(s.filterLabel, contentWidth),
 		"",
 	}
 
@@ -145,7 +137,7 @@ func (s statsPage) ViewMonthly(terminalWidth int) string {
 	rows := []string{
 		lipgloss.NewStyle().Bold(true).Render(truncate("Monthly Focus Statistics", contentWidth)),
 		"",
-		statsProjectLabel(s.activeProject.Name, contentWidth),
+		statsFilterLabel(s.filterLabel, contentWidth),
 		"",
 	}
 	rows = append(rows, monthlyStatsTable(s.months, contentWidth).View())
@@ -159,11 +151,11 @@ func (s statsPage) ViewMonthly(terminalWidth int) string {
 	return view
 }
 
-func statsProjectLabel(name string, availableWidth int) string {
+func statsFilterLabel(name string, availableWidth int) string {
 	if name == "" {
-		name = "Unknown project"
+		name = "Unknown filter"
 	}
-	const prefix = "Project: "
+	const prefix = "Filter: "
 	return truncate(prefix+name, availableWidth)
 }
 
