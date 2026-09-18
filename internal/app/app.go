@@ -18,7 +18,7 @@ type screen int
 const (
 	dashboardScreen screen = iota
 	projectScreen
-	historyFilterScreen
+	projectFilterScreen
 	statsScreenWeekly
 	statsScreenMonthly
 )
@@ -30,7 +30,7 @@ type model struct {
 	sessionProjectID     string
 	projectPicker        projectPicker
 	statsPage            statsPage
-	historyFilterPicker  historyFilterPicker
+	projectFilterPicker  projectFilterPicker
 	settings             *config.Config
 	screen               screen
 	todaysTotal          time.Duration
@@ -38,7 +38,7 @@ type model struct {
 	thisMonth            time.Duration
 	allTime              time.Duration
 	historyStore         history.Store
-	historyFilter        history.Filter
+	projectFilter        history.Filter
 	progress             progress.Model
 	focusDuration        time.Duration
 	shortBreakDuration   time.Duration
@@ -66,7 +66,7 @@ func New(
 		settings:             settings,
 		screen:               projectScreen,
 		historyStore:         historyStore,
-		historyFilter:        history.Filter{Mode: history.AllProjects},
+		projectFilter:        history.Filter{Mode: history.AllProjects},
 		progress:             progress.New(progress.WithColors(sessionColor(timer.Focus))),
 		focusDuration:        focusDuration,
 		shortBreakDuration:   shortBreakDuration,
@@ -134,7 +134,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, m.startFocusSession(*selected, time.Now())
 	}
 
-	if m.screen == historyFilterScreen {
+	if m.screen == projectFilterScreen {
 		if key, ok := msg.(tea.KeyPressMsg); ok {
 			switch key.String() {
 			case "esc":
@@ -145,10 +145,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, tea.Quit
 			}
 
-			picker, selected := m.historyFilterPicker.Update(msg)
-			m.historyFilterPicker = picker
+			picker, selected := m.projectFilterPicker.Update(msg)
+			m.projectFilterPicker = picker
 			if selected != nil {
-				m.historyFilter = *selected
+				m.projectFilter = *selected
 				m.screen = dashboardScreen
 				return m, loadSessions()
 			}
@@ -182,8 +182,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "f":
-			m.historyFilterPicker = newHistoryFilterPicker(m.projectPicker.projects, m.historyFilter)
-			m.screen = historyFilterScreen
+			m.projectFilterPicker = newProjectFilterPicker(m.projectPicker.projects, m.projectFilter)
+			m.screen = projectFilterScreen
 			return m, nil
 		case "n":
 			if m.session.Status() != timer.Completed {
@@ -196,7 +196,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			slog.Info("closing the application")
 			return m, tea.Quit
 		case "s":
-			filterLabel := historyFilterLabel(m.historyFilter, m.projectPicker.projects)
+			filterLabel := projectFilterLabel(m.projectFilter, m.projectPicker.projects)
 			m.statsPage = newStatsPage(filterLabel, m.sessions, time.Now())
 			m.screen = statsScreenWeekly
 			return m, nil
@@ -225,8 +225,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if err != nil {
 			slog.Error("cant load sessions", "err", err)
 		}
-		filteredRecords := history.FilterRecords(records, m.historyFilter)
-		filterLabel := historyFilterLabel(m.historyFilter, m.projectPicker.projects)
+		filteredRecords := history.FilterRecords(records, m.projectFilter)
+		filterLabel := projectFilterLabel(m.projectFilter, m.projectPicker.projects)
 		m.statsPage = newStatsPage(filterLabel, filteredRecords, time.Now())
 		m.sessions = filteredRecords
 
@@ -282,8 +282,8 @@ func (m model) View() tea.View {
 	if m.screen == projectScreen {
 		return tea.NewView(m.projectPicker.View(m.width))
 	}
-	if m.screen == historyFilterScreen {
-		return tea.NewView(m.historyFilterPicker.View(m.width, m.session.Kind()))
+	if m.screen == projectFilterScreen {
+		return tea.NewView(m.projectFilterPicker.View(m.width, m.session.Kind()))
 	}
 	if m.screen == statsScreenWeekly {
 		return tea.NewView(m.statsPage.ViewWeekly(m.width))

@@ -10,24 +10,24 @@ import (
 	"github.com/fmo/skytui/internal/timer"
 )
 
-type historyFilterOption struct {
+type projectFilterOption struct {
 	label  string
 	filter history.Filter
 }
 
-type historyFilterPicker struct {
-	options []historyFilterOption
+type projectFilterPicker struct {
+	options []projectFilterOption
 	cursor  int
 }
 
-func newHistoryFilterPicker(projects []project.Project, selected history.Filter) historyFilterPicker {
-	options := make([]historyFilterOption, 0, len(projects)+2)
-	options = append(options, historyFilterOption{
+func newProjectFilterPicker(projects []project.Project, selected history.Filter) projectFilterPicker {
+	options := make([]projectFilterOption, 0, len(projects)+2)
+	options = append(options, projectFilterOption{
 		label:  "All Projects",
 		filter: history.Filter{Mode: history.AllProjects},
 	})
 	for _, project := range projects {
-		options = append(options, historyFilterOption{
+		options = append(options, projectFilterOption{
 			label: project.Name,
 			filter: history.Filter{
 				Mode:      history.OneProject,
@@ -35,7 +35,7 @@ func newHistoryFilterPicker(projects []project.Project, selected history.Filter)
 			},
 		})
 	}
-	options = append(options, historyFilterOption{
+	options = append(options, projectFilterOption{
 		label:  "Unassigned",
 		filter: history.Filter{Mode: history.Unassigned},
 	})
@@ -48,10 +48,10 @@ func newHistoryFilterPicker(projects []project.Project, selected history.Filter)
 		}
 	}
 
-	return historyFilterPicker{options: options, cursor: cursor}
+	return projectFilterPicker{options: options, cursor: cursor}
 }
 
-func (p historyFilterPicker) Update(msg tea.Msg) (historyFilterPicker, *history.Filter) {
+func (p projectFilterPicker) Update(msg tea.Msg) (projectFilterPicker, *history.Filter) {
 	key, ok := msg.(tea.KeyPressMsg)
 	if !ok {
 		return p, nil
@@ -70,10 +70,10 @@ func (p historyFilterPicker) Update(msg tea.Msg) (historyFilterPicker, *history.
 	return p, nil
 }
 
-func (p historyFilterPicker) View(terminalWidth int, kind timer.Kind) string {
+func (p projectFilterPicker) View(terminalWidth int, kind timer.Kind) string {
 	width := dashboardWidth(terminalWidth)
 	contentWidth := dashboardContentWidth(width)
-	rows := []string{lipgloss.NewStyle().Bold(true).Render("Filter History"), ""}
+	rows := []string{lipgloss.NewStyle().Bold(true).Render("Filter Project"), ""}
 	for index, option := range p.options {
 		prefix := "  "
 		style := lipgloss.NewStyle()
@@ -93,7 +93,7 @@ func (p historyFilterPicker) View(terminalWidth int, kind timer.Kind) string {
 	return view
 }
 
-func historyFilterLabel(filter history.Filter, projects []project.Project) string {
+func projectFilterLabel(filter history.Filter, projects []project.Project) string {
 	switch filter.Mode {
 	case history.OneProject:
 		for _, project := range projects {

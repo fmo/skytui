@@ -16,7 +16,7 @@ import (
 	"github.com/fmo/skytui/internal/timer"
 )
 
-func TestHistoryFiltersRecentSessionsAndTotals(t *testing.T) {
+func TestProjectFiltersRecentSessionsAndTotals(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "sessions.csv")
 	now := time.Now()
 	today := time.Date(now.Year(), now.Month(), now.Day(), 12, 0, 0, 0, now.Location())
@@ -66,7 +66,7 @@ func TestHistoryFiltersRecentSessionsAndTotals(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := model{historyStore: store, historyFilter: tt.filter}
+			m := model{historyStore: store, projectFilter: tt.filter}
 			updated, _ := m.Update(loadType{})
 			got := updated.(model)
 
@@ -91,7 +91,7 @@ func TestHistoryFiltersRecentSessionsAndTotals(t *testing.T) {
 	}
 }
 
-func TestSimilarProjectNamesSelectExactHistoryFilter(t *testing.T) {
+func TestSimilarProjectNamesSelectExactProjectFilter(t *testing.T) {
 	activeProject := project.Project{ID: "project-1", Name: "SkyTUI"}
 	otherProject := project.Project{ID: "project-2", Name: "SkyTUI Outreach"}
 	session := timer.New(timer.Focus, time.Minute, time.Now())
@@ -104,7 +104,7 @@ func TestSimilarProjectNamesSelectExactHistoryFilter(t *testing.T) {
 			activeProject,
 			otherProject,
 		}},
-		historyFilter: history.Filter{Mode: history.AllProjects},
+		projectFilter: history.Filter{Mode: history.AllProjects},
 		progress:      progress.New(progress.WithDefaultBlend()),
 	}
 
@@ -118,22 +118,22 @@ func TestSimilarProjectNamesSelectExactHistoryFilter(t *testing.T) {
 	got = updated.(model)
 
 	wantFilter := history.Filter{Mode: history.OneProject, ProjectID: otherProject.ID}
-	if got.historyFilter != wantFilter {
-		t.Fatalf("got filter %#v, want %#v", got.historyFilter, wantFilter)
+	if got.projectFilter != wantFilter {
+		t.Fatalf("got filter %#v, want %#v", got.projectFilter, wantFilter)
 	}
 	if got.activeProject != activeProject || got.sessionProjectID != activeProject.ID || got.session != session {
-		t.Fatal("changing to a similarly named history filter changed the active session")
+		t.Fatal("changing to a similarly named project filter changed the active session")
 	}
 }
 
-func TestHistoryFilterPickerViewFitsNarrowTerminal(t *testing.T) {
-	picker := newHistoryFilterPicker(
+func TestProjectFilterPickerViewFitsNarrowTerminal(t *testing.T) {
+	picker := newProjectFilterPicker(
 		[]project.Project{{ID: "project-1", Name: "A project with a name that is too long for the terminal"}},
 		history.Filter{Mode: history.Unassigned},
 	)
 	view := picker.View(48, timer.Focus)
 
-	for _, value := range []string{"Filter History", "All Projects", "Unassigned", "[Enter] Apply", "[Esc] Cancel", "[q] Quit"} {
+	for _, value := range []string{"Filter Project", "All Projects", "Unassigned", "[Enter] Apply", "[Esc] Cancel", "[q] Quit"} {
 		if !strings.Contains(view, value) {
 			t.Fatalf("filter picker does not contain %q", value)
 		}
@@ -145,7 +145,7 @@ func TestHistoryFilterPickerViewFitsNarrowTerminal(t *testing.T) {
 	}
 }
 
-func TestHistoryFilterPickerAppliesProjectWithoutChangingSession(t *testing.T) {
+func TestProjectFilterPickerAppliesProjectWithoutChangingSession(t *testing.T) {
 	activeProject := project.Project{ID: "project-1", Name: "SkyTUI"}
 	session := timer.New(timer.Focus, time.Minute, time.Now())
 	m := model{
@@ -157,15 +157,15 @@ func TestHistoryFilterPickerAppliesProjectWithoutChangingSession(t *testing.T) {
 			activeProject,
 			{ID: "project-2", Name: "Outreach"},
 		}},
-		historyFilter: history.Filter{Mode: history.AllProjects},
+		projectFilter: history.Filter{Mode: history.AllProjects},
 		historyStore:  history.NewStore(filepath.Join(t.TempDir(), "sessions.csv")),
 		progress:      progress.New(progress.WithDefaultBlend()),
 	}
 
 	updated, _ := m.Update(tea.KeyPressMsg{Text: "f", Code: 'f'})
 	got := updated.(model)
-	if got.screen != historyFilterScreen {
-		t.Fatal("filter control should open the history filter screen")
+	if got.screen != projectFilterScreen {
+		t.Fatal("filter control should open the project filter screen")
 	}
 
 	updated, _ = got.Update(tea.KeyPressMsg{Code: tea.KeyDown})
@@ -174,26 +174,26 @@ func TestHistoryFilterPickerAppliesProjectWithoutChangingSession(t *testing.T) {
 	got = updated.(model)
 
 	wantFilter := history.Filter{Mode: history.OneProject, ProjectID: activeProject.ID}
-	if got.historyFilter != wantFilter {
-		t.Fatalf("got filter %#v, want %#v", got.historyFilter, wantFilter)
+	if got.projectFilter != wantFilter {
+		t.Fatalf("got filter %#v, want %#v", got.projectFilter, wantFilter)
 	}
 	if got.screen != dashboardScreen {
 		t.Fatal("applying a filter should return to the dashboard")
 	}
 	if got.activeProject != activeProject || got.sessionProjectID != activeProject.ID || got.session != session {
-		t.Fatal("applying a history filter changed the active session")
+		t.Fatal("applying a project filter changed the active session")
 	}
 	if cmd == nil {
 		t.Fatal("applying a filter should reload history")
 	}
 }
 
-func TestHistoryFilterPickerCancelPreservesFilter(t *testing.T) {
+func TestProjectFilterPickerCancelPreservesFilter(t *testing.T) {
 	current := history.Filter{Mode: history.Unassigned}
 	m := model{
 		screen:        dashboardScreen,
 		session:       timer.New(timer.Focus, time.Minute, time.Now()),
-		historyFilter: current,
+		projectFilter: current,
 		projectPicker: projectPicker{projects: []project.Project{{ID: "project-1", Name: "SkyTUI"}}},
 		progress:      progress.New(progress.WithDefaultBlend()),
 	}
@@ -206,25 +206,25 @@ func TestHistoryFilterPickerCancelPreservesFilter(t *testing.T) {
 	if got.screen != dashboardScreen {
 		t.Fatal("canceling the filter should return to the dashboard")
 	}
-	if got.historyFilter != current {
-		t.Fatalf("got filter %#v, want unchanged filter %#v", got.historyFilter, current)
+	if got.projectFilter != current {
+		t.Fatalf("got filter %#v, want unchanged filter %#v", got.projectFilter, current)
 	}
 }
 
-func TestTimerContinuesWhileHistoryFilterIsOpen(t *testing.T) {
+func TestTimerContinuesWhileProjectFilterIsOpen(t *testing.T) {
 	now := time.Now()
 	m := model{
-		screen:        historyFilterScreen,
+		screen:        projectFilterScreen,
 		session:       timer.New(timer.Focus, time.Minute, now.Add(-15*time.Second)),
-		historyFilter: history.Filter{Mode: history.AllProjects},
+		projectFilter: history.Filter{Mode: history.AllProjects},
 		progress:      progress.New(progress.WithDefaultBlend()),
 	}
 
 	updated, cmd := m.Update(tickType{})
 	got := updated.(model)
 
-	if got.screen != historyFilterScreen {
-		t.Fatal("timer tick should not close the history filter")
+	if got.screen != projectFilterScreen {
+		t.Fatal("timer tick should not close the project filter")
 	}
 	if got.session.Remaining() != 45*time.Second {
 		t.Fatalf("got remaining %v, want 45s", got.session.Remaining())

@@ -167,7 +167,7 @@ func TestStatsScreenUsesSharedFilterAndNavigates(t *testing.T) {
 		projectPicker: projectPicker{
 			projects: []project.Project{{ID: "other", Name: "Other"}},
 		},
-		historyFilter: history.Filter{Mode: history.OneProject, ProjectID: "other"},
+		projectFilter: history.Filter{Mode: history.OneProject, ProjectID: "other"},
 		progress:      progress.New(progress.WithDefaultBlend()),
 		sessions: []history.Record{
 			{CompletedAt: now, Duration: 25 * time.Minute, ProjectID: "other"},

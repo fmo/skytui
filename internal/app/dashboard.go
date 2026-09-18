@@ -252,7 +252,7 @@ func (m model) dashboardView() tea.View {
 	width := dashboardWidth(m.width)
 	contentWidth := dashboardContentWidth(width)
 	filterLabel := truncate(
-		historyFilterLabel(m.historyFilter, m.projectPicker.projects),
+		projectFilterLabel(m.projectFilter, m.projectPicker.projects),
 		contentWidth,
 	)
 	divider := lipgloss.NewStyle().Foreground(mutedColor).Render(strings.Repeat("─", contentWidth))

@@ -48,14 +48,14 @@ func TestProjectFocusFilterAndSessionCycleWorkflow(t *testing.T) {
 		t.Fatal("completed focus session was not stored for the selected project")
 	}
 
-	got.historyFilter = history.Filter{Mode: history.OneProject, ProjectID: other.ID}
+	got.projectFilter = history.Filter{Mode: history.OneProject, ProjectID: other.ID}
 	updated, _ = got.Update(loadType{})
 	got = updated.(model)
 	if len(got.sessions) != 0 || got.allTime != 0 {
-		t.Fatal("history filter did not exclude the selected project's session")
+		t.Fatal("project filter did not exclude the selected project's session")
 	}
 	if got.activeProject != selected || got.sessionProjectID != selected.ID {
-		t.Fatal("history filter changed the active project")
+		t.Fatal("project filter changed the active project")
 	}
 
 	updated, _ = got.Update(tea.KeyPressMsg{Text: "n", Code: 'n'})
