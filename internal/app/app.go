@@ -138,7 +138,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if key, ok := msg.(tea.KeyPressMsg); ok {
 			switch key.String() {
 			case "esc":
-				m.screen = dashboardScreen
+				m.screen = m.projectFilterPicker.returnScreen
 				return m, nil
 			case "q":
 				slog.Info("closing the application")
@@ -149,7 +149,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.projectFilterPicker = picker
 			if selected != nil {
 				m.projectFilter = *selected
-				m.screen = dashboardScreen
+				m.screen = picker.returnScreen
 				return m, loadSessions()
 			}
 
@@ -165,6 +165,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			case "m":
 				m.screen = statsScreenMonthly
+				return m, nil
+			case "f":
+				m.projectFilterPicker = newProjectFilterPicker(m.projectPicker.projects, m.projectFilter, m.screen)
+				m.screen = projectFilterScreen
 				return m, nil
 			case "w":
 				m.screen = statsScreenWeekly
@@ -182,7 +186,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "f":
-			m.projectFilterPicker = newProjectFilterPicker(m.projectPicker.projects, m.projectFilter)
+			m.projectFilterPicker = newProjectFilterPicker(m.projectPicker.projects, m.projectFilter, m.screen)
 			m.screen = projectFilterScreen
 			return m, nil
 		case "n":

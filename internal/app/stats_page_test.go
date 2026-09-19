@@ -124,12 +124,12 @@ func TestStatsPageViewsFitTerminal(t *testing.T) {
 		{
 			name:     "weekly",
 			render:   page.ViewWeekly,
-			expected: []string{"Weekly Focus Statistics", "Filter: SkyTUI", "2026-W01", "25m", "[m] Monthly"},
+			expected: []string{"Weekly Focus Statistics", "Filter: SkyTUI", "2026-W01", "25m", "[m]", "[f] Filter", "[q]", "[Esc]"},
 		},
 		{
 			name:       "monthly",
 			render:     page.ViewMonthly,
-			expected:   []string{"Monthly Focus Statistics", "Filter: SkyTUI", "2026-Jan", "25m", "[w] Weekly"},
+			expected:   []string{"Monthly Focus Statistics", "Filter: SkyTUI", "2026-Jan", "25m", "[w]", "[f] Filter", "[q]", "[Esc]"},
 			unexpected: []string{"25m0s"},
 		},
 	}

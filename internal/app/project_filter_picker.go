@@ -16,11 +16,12 @@ type projectFilterOption struct {
 }
 
 type projectFilterPicker struct {
-	options []projectFilterOption
-	cursor  int
+	options      []projectFilterOption
+	cursor       int
+	returnScreen screen
 }
 
-func newProjectFilterPicker(projects []project.Project, selected history.Filter) projectFilterPicker {
+func newProjectFilterPicker(projects []project.Project, selected history.Filter, projectFilterReturnScreen screen) projectFilterPicker {
 	options := make([]projectFilterOption, 0, len(projects)+2)
 	options = append(options, projectFilterOption{
 		label:  "All Projects",
@@ -48,7 +49,7 @@ func newProjectFilterPicker(projects []project.Project, selected history.Filter)
 		}
 	}
 
-	return projectFilterPicker{options: options, cursor: cursor}
+	return projectFilterPicker{options: options, cursor: cursor, returnScreen: projectFilterReturnScreen}
 }
 
 func (p projectFilterPicker) Update(msg tea.Msg) (projectFilterPicker, *history.Filter) {

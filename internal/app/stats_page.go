@@ -120,7 +120,12 @@ func (s statsPage) ViewWeekly(terminalWidth int) string {
 	model := weeklyStatsTable(s.weeks, contentWidth)
 
 	rows = append(rows, model.View())
-	rows = append(rows, "", lipgloss.NewStyle().Foreground(mutedColor).Render(truncate("[Esc] Back   [m] Monthly   [q] Quit", contentWidth)))
+	footerNavigation := "[Esc] Back   [f] Filter   [m] Monthly   [q] Quit"
+	if lipgloss.Width(footerNavigation) > contentWidth {
+		footerNavigation = "[Esc] [f] Filter [m] [q]"
+	}
+
+	rows = append(rows, "", lipgloss.NewStyle().Foreground(mutedColor).Render(truncate(footerNavigation, contentWidth)))
 
 	view := renderPanel(strings.Join(rows, "\n"), width, timer.Focus)
 	if terminalWidth > 0 {
@@ -141,7 +146,11 @@ func (s statsPage) ViewMonthly(terminalWidth int) string {
 		"",
 	}
 	rows = append(rows, monthlyStatsTable(s.months, contentWidth).View())
-	rows = append(rows, "", lipgloss.NewStyle().Foreground(mutedColor).Render(truncate("[Esc] Back   [w] Weekly   [q] Quit", contentWidth)))
+	footerNavigation := "[Esc] Back   [f] Filter   [w] Weekly   [q] Quit"
+	if lipgloss.Width(footerNavigation) > contentWidth {
+		footerNavigation = "[Esc] [f] Filter [w] [q]"
+	}
+	rows = append(rows, "", lipgloss.NewStyle().Foreground(mutedColor).Render(truncate(footerNavigation, contentWidth)))
 
 	view := renderPanel(strings.Join(rows, "\n"), width, timer.Focus)
 	if terminalWidth > 0 {

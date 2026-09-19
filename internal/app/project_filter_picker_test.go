@@ -130,6 +130,7 @@ func TestProjectFilterPickerViewFitsNarrowTerminal(t *testing.T) {
 	picker := newProjectFilterPicker(
 		[]project.Project{{ID: "project-1", Name: "A project with a name that is too long for the terminal"}},
 		history.Filter{Mode: history.Unassigned},
+		dashboardScreen,
 	)
 	view := picker.View(48, timer.Focus)
 
@@ -231,5 +232,164 @@ func TestTimerContinuesWhileProjectFilterIsOpen(t *testing.T) {
 	}
 	if cmd == nil {
 		t.Fatal("timer should schedule another tick while the filter is open")
+	}
+}
+
+func TestProjectFilterOpensFromWeeklyStats(t *testing.T) {
+	m := model{
+		screen: statsScreenWeekly,
+		projectPicker: projectPicker{
+			projects: []project.Project{
+				{ID: "skytui", Name: "SkyTUI"},
+			},
+		},
+		projectFilter: history.Filter{
+			Mode: history.AllProjects,
+		},
+	}
+
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'f'})
+
+	got := updated.(model)
+
+	if got.screen != projectFilterScreen {
+		t.Fatal("project filter should open from weekly statistics")
+	}
+
+	if len(got.projectFilterPicker.options) != 3 {
+		t.Fatalf("expected project length: %d, got: %d", 3, len(got.projectFilterPicker.options))
+	}
+}
+
+func TestProjectFilterApplyReturnsToWeeklyStats(t *testing.T) {
+	m := model{
+		screen: statsScreenWeekly,
+		projectPicker: projectPicker{
+			projects: []project.Project{
+				{ID: "skytui", Name: "SkyTUI"},
+			},
+		},
+		projectFilter: history.Filter{Mode: history.AllProjects},
+	}
+
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'f'})
+
+	got := updated.(model)
+
+	updated, _ = got.Update(tea.KeyPressMsg{Code: tea.KeyDown})
+
+	got = updated.(model)
+
+	updated, _ = got.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+
+	got = updated.(model)
+
+	if got.screen != statsScreenWeekly {
+		t.Fatal("applying project filter should return to weekly statistics")
+	}
+}
+
+func TestProjectFilterCancelReturnsToWeeklyStats(t *testing.T) {
+	m := model{
+		screen:        statsScreenWeekly,
+		projectFilter: history.Filter{Mode: history.AllProjects},
+		projectPicker: projectPicker{
+			projects: []project.Project{
+				{ID: "skytui", Name: "SkyTUI"},
+			}},
+	}
+
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'f'})
+
+	got := updated.(model)
+
+	updated, _ = got.Update(tea.KeyPressMsg{Code: tea.KeyDown})
+
+	got = updated.(model)
+
+	updated, _ = got.Update(tea.KeyPressMsg{Code: tea.KeyEsc})
+
+	got = updated.(model)
+
+	if got.screen != statsScreenWeekly {
+		t.Fatalf("escaping filter should go back to weekly stats, but the screen is: %d", got.screen)
+	}
+
+	if got.projectFilter.Mode != history.AllProjects {
+		t.Fatal("filter should be unchanged")
+	}
+}
+
+func TestProjectFilterApplyReturnsToMonthlyStats(t *testing.T) {
+	m := model{
+		screen:        statsScreenMonthly,
+		projectFilter: history.Filter{Mode: history.AllProjects},
+		projectPicker: projectPicker{
+			projects: []project.Project{
+				{ID: "skytui", Name: "SkyTUI"},
+			},
+		},
+	}
+
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'f'})
+	got := updated.(model)
+
+	updated, _ = got.Update(tea.KeyPressMsg{Code: tea.KeyDown})
+	got = updated.(model)
+
+	updated, _ = got.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+	got = updated.(model)
+
+	if got.screen != statsScreenMonthly {
+		t.Fatal("expected screen should be monthly")
+	}
+
+	want := history.Filter{
+		Mode:      history.OneProject,
+		ProjectID: "skytui",
+	}
+
+	if got.projectFilter != want {
+		t.Fatalf("project filter expected: %#v got: %#v", want, got.projectFilter)
+	}
+}
+
+func TestProjectFilterCancelReturnsToMonthlyStats(t *testing.T) {
+	m := model{
+		screen: statsScreenMonthly,
+		projectPicker: projectPicker{
+			projects: []project.Project{
+				{ID: "skytui", Name: "SkyTUI"},
+				{ID: "project-2", Name: "Project 2"},
+			},
+		},
+		projectFilter: history.Filter{
+			Mode:      history.OneProject,
+			ProjectID: "skytui",
+		},
+	}
+
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'f'})
+	got := updated.(model)
+
+	updated, _ = got.Update(tea.KeyPressMsg{Code: tea.KeyDown})
+
+	got = updated.(model)
+
+	updated, _ = got.Update(tea.KeyPressMsg{Code: tea.KeyEsc})
+
+	got = updated.(model)
+
+	if got.screen != statsScreenMonthly {
+		t.Fatalf("expected screen: %v, got: %v", statsScreenMonthly, got.screen)
+	}
+
+	want := history.Filter{
+		Mode:      history.OneProject,
+		ProjectID: "skytui",
+	}
+
+	if got.projectFilter != want {
+		t.Fatalf("expected project: %#v, got: %#v", want, got.projectFilter)
 	}
 }
