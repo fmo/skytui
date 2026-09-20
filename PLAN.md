@@ -6,28 +6,27 @@ This file tracks active and future work. Completed releases are documented in
 `[x]` is complete. `[ ]` is planned. Future tasks can be adjusted before work
 starts, but the current task should stay focused.
 
-## Next - Statistics Project Filter
+## Next - Change Project Between Sessions
 
-Goal: apply the existing project filter consistently to dashboard history and
-totals as well as weekly and monthly statistics. Target this feature and the
-unreleased statistics table refactor for `v1.3.0`.
+Goal: let users select the project for their next focus session without
+restarting SkyTUI or changing the project assigned to an existing focus
+session. Target this feature for `v1.3.0`.
 
-### [ ] Apply The Project Filter To Statistics
+### [ ] Change The Active Project After Session Completion
 
-- Apply the same selection to dashboard history and totals as well as weekly
-  and monthly statistics.
-- Build dashboard totals and statistics from the same filtered record set.
-- Continue offering all projects, individual projects, and unassigned legacy
-  sessions.
-- Preserve the selected filter when moving between the dashboard, weekly
-  statistics, and monthly statistics.
-- Show the selected filter clearly on both statistics views.
-- Keep filtering independent from the project assigned to the active timer.
-- Keep `f` and the filter picker on the dashboard for this first implementation.
-- Cover aggregation, shared filter state, and narrow-terminal
-  rendering with tests.
+- Show a `[p] Project` dashboard control when the current session is complete.
+- Reuse the existing project picker for changing the active project.
+- Return to the completed session after applying or cancelling project
+  selection without starting, resetting, or otherwise changing that session.
+- Save the selected project as the active project so the next focus session
+  uses it, including when a short break occurs first.
+- Allow newly created projects to be selected through the same flow.
+- Keep project switching unavailable while any session is running or paused.
+- Preserve readable wrapped dashboard controls in narrow terminals.
+- Cover navigation, session preservation, settings persistence, and next-focus
+  project assignment with tests.
 
-**Commit:** `feat: filter statistics by project`
+**Commit:** `feat: change project between sessions`
 
 ## Backlog
 
@@ -67,8 +66,8 @@ Backlog items are ideas, not commitments to a particular release.
 
 ### Product Ideas
 
-- Open the shared project filter directly from weekly and monthly statistics,
-  then return to the originating statistics view.
+- Add a contextual help screen with controls for the originating screen while
+  keeping the active timer running.
 - Project rename, archive, delete, descriptions, goals, and budgets.
 - Long breaks and automatic session starts.
 - Full history editing, charts, and advanced reports.

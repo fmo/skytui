@@ -4,10 +4,18 @@ All notable changes to SkyTUI are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Apply the shared project filter to dashboard history and totals as well as
+  weekly and monthly statistics.
+- Open the project filter with `f` from either statistics view and return to
+  the originating view after applying or cancelling.
+
 ### Changed
 
 - Render weekly and monthly statistics with responsive Bubble Tea tables while
   preserving existing navigation and read-only behavior.
+- Show project-filter controls in both standard and narrow statistics layouts.
 
 ## [1.2.0] - 2026-09-09
 
