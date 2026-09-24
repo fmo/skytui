@@ -73,6 +73,26 @@ func TestFooterControls(t *testing.T) {
 	}
 }
 
+func TestCompletedFooterWrapsWithinNarrowWidth(t *testing.T) {
+	content := bottomContent(timer.Completed, 48)
+
+	if lipgloss.Height(content) < 2 {
+		t.Fatalf("wrapping did not happen")
+	}
+
+	lines := strings.Split(content, "\n")
+
+	for _, line := range lines {
+		if lipgloss.Width(line) > 48 {
+			t.Fatalf("wrapping did not work")
+		}
+	}
+
+	if !strings.Contains(content, "[p] Project") {
+		t.Fatalf("project is not there")
+	}
+}
+
 func TestDashboardRendering(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -146,5 +166,13 @@ func TestDashboardRendering(t *testing.T) {
 				t.Errorf("dashboard height is %d, terminal height is %d", height, tt.height)
 			}
 		})
+	}
+}
+
+func TestBottomContentHasProject(t *testing.T) {
+	content := bottomContent(timer.Completed, 20)
+
+	if !strings.Contains(content, "[p] Project") {
+		t.Errorf("Project control is expected")
 	}
 }

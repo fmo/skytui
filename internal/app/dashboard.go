@@ -180,7 +180,7 @@ func bottomContent(status timer.Status, availableWidth int) string {
 		controls[1] = "[Space] Resume"
 	}
 	if status == timer.Completed {
-		controls = []string{"[q] Quit", "[n] Next", "[f] Filter", "[s] Stats"}
+		controls = []string{"[q] Quit", "[n] Next", "[f] Filter", "[s] Stats", "[p] Project"}
 	}
 
 	separator := "   "

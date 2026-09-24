@@ -118,6 +118,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	if m.screen == projectScreen {
+		if key, ok := msg.(tea.KeyPressMsg); ok {
+			switch key.String() {
+			case "esc":
+				if m.session != nil && m.session.Status() == timer.Completed && !m.projectPicker.creating {
+					m.screen = dashboardScreen
+
+					return m, nil
+				}
+			}
+		}
+
 		picker, selected, cmd := m.projectPicker.Update(msg)
 		m.projectPicker = picker
 		if selected == nil {
@@ -129,6 +140,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.projectPicker.err = err
 				return m, nil
 			}
+		}
+
+		if m.session != nil && m.session.Status() == timer.Completed {
+			m.activeProject = *selected
+			m.screen = dashboardScreen
+			return m, nil
 		}
 
 		return m, m.startFocusSession(*selected, time.Now())
@@ -196,6 +213,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			cmd := m.startNextSession(time.Now())
 			return m, cmd
+		case "p":
+			if m.session.Status() != timer.Completed {
+				return m, nil
+			}
+
+			m.screen = projectScreen
 		case "q":
 			slog.Info("closing the application")
 			return m, tea.Quit
@@ -284,7 +307,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() tea.View {
 	if m.screen == projectScreen {
-		return tea.NewView(m.projectPicker.View(m.width))
+		return tea.NewView(m.projectPicker.View(m.width, m.session != nil && m.session.Status() == timer.Completed))
 	}
 	if m.screen == projectFilterScreen {
 		return tea.NewView(m.projectFilterPicker.View(m.width, m.session.Kind()))

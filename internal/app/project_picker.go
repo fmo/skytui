@@ -118,9 +118,9 @@ func (p projectPicker) updateCreation(msg tea.Msg) (projectPicker, *project.Proj
 	return p, nil, cmd
 }
 
-func (p projectPicker) View(terminalWidth int) string {
+func (p projectPicker) View(terminalWidth int, canCancel bool) string {
 	width := dashboardWidth(terminalWidth)
-	content := p.selectionView()
+	content := p.selectionView(canCancel)
 	if p.creating {
 		content = p.creationView()
 	}
@@ -133,7 +133,7 @@ func (p projectPicker) View(terminalWidth int) string {
 	return view
 }
 
-func (p projectPicker) selectionView() string {
+func (p projectPicker) selectionView(canCancel bool) string {
 	rows := []string{lipgloss.NewStyle().Bold(true).Render("Select Project"), ""}
 	if len(p.projects) == 0 {
 		rows = append(rows, lipgloss.NewStyle().Foreground(mutedColor).Render("No projects yet."))
@@ -153,7 +153,12 @@ func (p projectPicker) selectionView() string {
 	if p.err != nil {
 		rows = append(rows, lipgloss.NewStyle().Foreground(errorColor).Render(p.err.Error()), "")
 	}
-	rows = append(rows, lipgloss.NewStyle().Foreground(mutedColor).Render("[n] New   [Enter] Select   [q] Quit"))
+
+	if canCancel {
+		rows = append(rows, lipgloss.NewStyle().Foreground(mutedColor).Render("[n] New   [Enter] Select   [q] Quit   [Esc] Cancel"))
+	} else {
+		rows = append(rows, lipgloss.NewStyle().Foreground(mutedColor).Render("[n] New   [Enter] Select   [q] Quit"))
+	}
 
 	return strings.Join(rows, "\n")
 }

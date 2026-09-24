@@ -8,9 +8,9 @@ starts, but the current task should stay focused.
 
 ## Next - Change Project Between Sessions
 
-Goal: let users select the project for their next focus session without
-restarting SkyTUI or changing the project assigned to an existing focus
-session. Target this feature for `v1.3.0`.
+Goal: after a session completes, let users choose the project for a future
+focus session without restarting SkyTUI. The completed session keeps its
+original project. Target this feature for `v1.3.0`.
 
 ### [ ] Change The Active Project After Session Completion
 
