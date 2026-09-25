@@ -6,13 +6,13 @@ This file tracks active and future work. Completed releases are documented in
 `[x]` is complete. `[ ]` is planned. Future tasks can be adjusted before work
 starts, but the current task should stay focused.
 
-## Next - Change Project Between Sessions
+## v1.3.0 - Change Project Between Sessions
 
 Goal: after a session completes, let users choose the project for a future
 focus session without restarting SkyTUI. The completed session keeps its
 original project. Target this feature for `v1.3.0`.
 
-### [ ] Change The Active Project After Session Completion
+### [x] Change The Active Project After Session Completion
 
 - Show a `[p] Project` dashboard control when the current session is complete.
 - Reuse the existing project picker for changing the active project.
@@ -27,6 +27,22 @@ original project. Target this feature for `v1.3.0`.
   project assignment with tests.
 
 **Commit:** `feat: change project between sessions`
+
+### [x] Prepare v1.3.0 Source
+
+- Document shared statistics filtering and project switching controls.
+- Add all user-visible v1.3.0 changes to `CHANGELOG.md`.
+- Run the complete test suite and release checks.
+- Update the CLI version and release links.
+
+### [ ] Publish v1.3.0
+
+- Push the release-ready source and the `v1.3.0` tag.
+- Publish the final archives and `checksums.txt` in the GitHub release.
+- Verify the checksums of the exact GitHub release assets before updating the
+  Homebrew formula.
+
+**Tag:** `v1.3.0`
 
 ## Backlog
 

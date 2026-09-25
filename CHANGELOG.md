@@ -4,15 +4,21 @@ All notable changes to SkyTUI are documented in this file.
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-09-25
+
 ### Added
 
-- Apply the shared project filter to dashboard history and totals as well as
-  weekly and monthly statistics.
 - Open the project filter with `f` from either statistics view and return to
   the originating view after applying or cancelling.
+- Change the active project with `p` after a session completes without
+  changing the completed session or starting the next one.
+- Persist a project selected between sessions so the next focus session uses
+  it, including when a short break occurs first.
 
 ### Changed
 
+- Apply the shared project filter to dashboard history and totals as well as
+  weekly and monthly statistics.
 - Render weekly and monthly statistics with responsive Bubble Tea tables while
   preserving existing navigation and read-only behavior.
 - Show project-filter controls in both standard and narrow statistics layouts.
@@ -191,7 +197,8 @@ SkyTUI's first public release for macOS.
 - Provide built-in `--help` and `--version` output.
 - Publish archives for Apple Silicon and Intel Macs.
 
-[Unreleased]: https://github.com/fmo/skytui/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/fmo/skytui/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/fmo/skytui/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/fmo/skytui/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/fmo/skytui/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/fmo/skytui/compare/v0.9.0...v1.0.0
