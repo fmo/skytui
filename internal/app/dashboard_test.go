@@ -61,7 +61,7 @@ func TestFooterControls(t *testing.T) {
 	}{
 		{name: "running", status: timer.Running, want: "[q] Quit   [Space] Pause   [r] Reset   [f] Filter   [s] Stats"},
 		{name: "paused", status: timer.Paused, want: "[q] Quit   [Space] Resume   [r] Reset   [f] Filter   [s] Stats"},
-		{name: "completed", status: timer.Completed, want: "[q] Quit   [n] Next   [f] Filter   [s] Stats"},
+		{name: "completed", status: timer.Completed, want: "[q] Quit   [n] Next   [f] Filter   [s] Stats   [p] Project   [d] Duration"},
 	}
 
 	for _, tt := range tests {
@@ -90,6 +90,10 @@ func TestCompletedFooterWrapsWithinNarrowWidth(t *testing.T) {
 
 	if !strings.Contains(content, "[p] Project") {
 		t.Fatalf("project is not there")
+	}
+
+	if !strings.Contains(content, "[d] Duration") {
+		t.Fatalf("duration is not there")
 	}
 }
 
@@ -166,13 +170,5 @@ func TestDashboardRendering(t *testing.T) {
 				t.Errorf("dashboard height is %d, terminal height is %d", height, tt.height)
 			}
 		})
-	}
-}
-
-func TestBottomContentHasProject(t *testing.T) {
-	content := bottomContent(timer.Completed, 20)
-
-	if !strings.Contains(content, "[p] Project") {
-		t.Errorf("Project control is expected")
 	}
 }

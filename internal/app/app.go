@@ -21,30 +21,32 @@ const (
 	projectFilterScreen
 	statsScreenWeekly
 	statsScreenMonthly
+	durationEditorScreen
 )
 
 type model struct {
+	settings             *config.Config
 	notifier             notifier.Notifier
+	progress             progress.Model
+	historyStore         history.Store
 	session              *timer.Session
+	notificationsEnabled bool
 	activeProject        project.Project
 	sessionProjectID     string
-	projectPicker        projectPicker
-	statsPage            statsPage
-	projectFilterPicker  projectFilterPicker
-	settings             *config.Config
 	screen               screen
+	width, height        int
+	shortBreakDuration   time.Duration
+	focusDuration        time.Duration
+	sessions             []history.Record
 	todaysTotal          time.Duration
 	thisWeek             time.Duration
 	thisMonth            time.Duration
 	allTime              time.Duration
-	historyStore         history.Store
 	projectFilter        history.Filter
-	progress             progress.Model
-	focusDuration        time.Duration
-	shortBreakDuration   time.Duration
-	notificationsEnabled bool
-	sessions             []history.Record
-	width, height        int
+	projectPicker        projectPicker
+	projectFilterPicker  projectFilterPicker
+	statsPage            statsPage
+	durationEditor       durationEditor
 }
 
 func New(
@@ -151,6 +153,29 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, m.startFocusSession(*selected, time.Now())
 	}
 
+	if m.screen == durationEditorScreen {
+		if key, ok := msg.(tea.KeyPressMsg); ok {
+			switch key.String() {
+			case "esc":
+				m.screen = dashboardScreen
+
+				return m, nil
+			}
+		}
+
+		var cmd tea.Cmd
+		var focusDuration *time.Duration
+
+		m.durationEditor, focusDuration, cmd = m.durationEditor.Update(msg)
+
+		if focusDuration != nil {
+			m.focusDuration = *focusDuration
+			m.screen = dashboardScreen
+		}
+
+		return m, cmd
+	}
+
 	if m.screen == projectFilterScreen {
 		if key, ok := msg.(tea.KeyPressMsg); ok {
 			switch key.String() {
@@ -202,6 +227,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
 		switch msg.String() {
+		case "d":
+			if m.session.Status() != timer.Completed {
+				return m, nil
+			}
+
+			m.screen = durationEditorScreen
+			m.durationEditor = newDurationEditor(m.focusDuration)
+
+			return m, m.durationEditor.input.Focus()
 		case "f":
 			m.projectFilterPicker = newProjectFilterPicker(m.projectPicker.projects, m.projectFilter, m.screen)
 			m.screen = projectFilterScreen
@@ -317,6 +351,9 @@ func (m model) View() tea.View {
 	}
 	if m.screen == statsScreenMonthly {
 		return tea.NewView(m.statsPage.ViewMonthly(m.width))
+	}
+	if m.screen == durationEditorScreen {
+		return tea.NewView(m.durationEditor.View(m.width))
 	}
 
 	return m.dashboardView()
