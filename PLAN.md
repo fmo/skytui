@@ -6,43 +6,37 @@ This file tracks active and future work. Completed releases are documented in
 `[x]` is complete. `[ ]` is planned. Future tasks can be adjusted before work
 starts, but the current task should stay focused.
 
-## v1.3.0 - Change Project Between Sessions
+## Next - Change Focus Duration Between Sessions
 
-Goal: after a session completes, let users choose the project for a future
-focus session without restarting SkyTUI. The completed session keeps its
-original project. Target this feature for `v1.3.0`.
+Goal: after a session completes, let users change the focus duration used by
+future focus sessions without restarting SkyTUI. The completed session keeps
+its original duration. Target this feature for `v1.4.0`.
 
-### [x] Change The Active Project After Session Completion
+### [ ] Change The Focus Duration After Session Completion
 
-- Show a `[p] Project` dashboard control when the current session is complete.
-- Reuse the existing project picker for changing the active project.
-- Return to the completed session after applying or cancelling project
-  selection without starting, resetting, or otherwise changing that session.
-- Save the selected project as the active project so the next focus session
-  uses it, including when a short break occurs first.
-- Allow newly created projects to be selected through the same flow.
-- Keep project switching unavailable while any session is running or paused.
+- Show a `[d] Duration` dashboard control only when the current session is
+  complete.
+- Open a duration input prefilled with the focus duration currently used by
+  the running application.
+- Accept the same Go duration format as `--duration` and require a duration of
+  at least one second with whole-second precision.
+- Show validation errors in the duration view without closing it or changing
+  the current focus duration.
+- Apply the new duration and return to the completed dashboard without
+  starting, resetting, or otherwise changing the completed session.
+- Let `Esc` cancel duration editing and return to the completed dashboard
+  without applying the entered value.
+- Use the selected duration for the next focus session, including when a short
+  break occurs first.
+- Keep the configured short-break duration unchanged.
+- Keep the duration change in memory for the current run only; do not update
+  `config.yaml` or change the behavior of the `--duration` option.
+- Keep duration editing unavailable while a session is running or paused.
 - Preserve readable wrapped dashboard controls in narrow terminals.
-- Cover navigation, session preservation, settings persistence, and next-focus
-  project assignment with tests.
+- Cover navigation, validation, cancellation, completed-session preservation,
+  next-focus duration, short-break behavior, and narrow rendering with tests.
 
-**Commit:** `feat: change project between sessions`
-
-### [x] Prepare v1.3.0 Source
-
-- Document shared statistics filtering and project switching controls.
-- Add all user-visible v1.3.0 changes to `CHANGELOG.md`.
-- Run the complete test suite and release checks.
-- Update the CLI version and release links.
-
-### [ ] Publish v1.3.0
-
-- Push the release-ready source and the `v1.3.0` tag.
-- Publish the final archives and `checksums.txt` in the GitHub release.
-- Verify the checksums of the exact GitHub release assets before updating the
-  Homebrew formula.
-
-**Tag:** `v1.3.0`
+**Commit:** `feat: change focus duration between sessions`
 
 ## Backlog
 
