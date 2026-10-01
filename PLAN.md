@@ -6,37 +6,30 @@ This file tracks active and future work. Completed releases are documented in
 `[x]` is complete. `[ ]` is planned. Future tasks can be adjusted before work
 starts, but the current task should stay focused.
 
-## Next - Change Focus Duration Between Sessions
+## Next - Confirm Runtime Focus Duration Changes
 
-Goal: after a session completes, let users change the focus duration used by
-future focus sessions without restarting SkyTUI. The completed session keeps
-its original duration. Target this feature for `v1.4.0`.
+Goal: after a runtime focus-duration change, confirm the new value visibly and
+then clear the confirmation through the Bubble Tea command and message cycle.
+Target this follow-up for `v1.4.0`.
 
-### [ ] Change The Focus Duration After Session Completion
+### [ ] Show A Temporary Duration Change Confirmation
 
-- Show a `[d] Duration` dashboard control only when the current session is
-  complete.
-- Open a duration input prefilled with the focus duration currently used by
-  the running application.
-- Accept the same Go duration format as `--duration` and require a duration of
-  at least one second with whole-second precision.
-- Show validation errors in the duration view without closing it or changing
-  the current focus duration.
-- Apply the new duration and return to the completed dashboard without
-  starting, resetting, or otherwise changing the completed session.
-- Let `Esc` cancel duration editing and return to the completed dashboard
-  without applying the entered value.
-- Use the selected duration for the next focus session, including when a short
-  break occurs first.
-- Keep the configured short-break duration unchanged.
-- Keep the duration change in memory for the current run only; do not update
-  `config.yaml` or change the behavior of the `--duration` option.
-- Keep duration editing unavailable while a session is running or paused.
-- Preserve readable wrapped dashboard controls in narrow terminals.
-- Cover navigation, validation, cancellation, completed-session preservation,
-  next-focus duration, short-break behavior, and narrow rendering with tests.
+- Show a dashboard confirmation such as `Focus duration changed to 10m` after
+  applying a valid duration.
+- Keep the completed session and its displayed duration unchanged while the
+  confirmation is visible.
+- Return a `tea.Cmd` that uses `tea.Tick` to clear the confirmation after two
+  seconds.
+- Handle the resulting custom message in `app.Update()` so the command follows
+  the `Cmd` to `Msg` to `Update` to `View` flow.
+- Prevent an older clear command from removing a newer confirmation when the
+  duration is changed again before two seconds pass.
+- Keep the confirmation readable without overflowing narrow terminals.
+- Test that applying a duration shows the confirmation, returns a command,
+  clears it when the command result is handled, and ignores stale clear
+  messages.
 
-**Commit:** `feat: change focus duration between sessions`
+**Commit:** `feat: confirm runtime duration changes`
 
 ## Backlog
 

@@ -4,6 +4,16 @@ All notable changes to SkyTUI are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Change the focus duration with `d` after a session completes without
+  restarting SkyTUI, changing the completed session, or updating
+  `config.yaml`.
+- Validate runtime focus durations with the same minimum and whole-second
+  requirements used by the command-line option.
+- Use the changed duration for the next focus session while preserving the
+  configured short-break duration.
+
 ## [1.3.0] - 2026-09-25
 
 ### Added
