@@ -174,6 +174,53 @@ func TestDurationEditorAppliesValidDuration(t *testing.T) {
 	}
 }
 
+func TestDurationChangeConfirmationClears(t *testing.T) {
+	session := completedSession(timer.Focus, time.Minute*5)
+
+	m := model{
+		session:       session,
+		focusDuration: time.Minute * 5,
+		screen:        dashboardScreen,
+	}
+
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'd'})
+
+	got := updated.(model)
+
+	updated, _ = got.Update(tea.KeyPressMsg{Text: "10s"})
+
+	got = updated.(model)
+
+	var cmd tea.Cmd
+
+	updated, cmd = got.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+
+	got = updated.(model)
+
+	if !strings.Contains(got.View().Content, "Focus duration changed to") {
+		t.Fatalf("focus duration changed message not appeared")
+	}
+
+	if cmd == nil {
+		t.Fatalf("cmd should not be empty")
+	}
+
+	msg := cmd()
+
+	clear, ok := msg.(clearMsgType)
+	if !ok {
+		t.Fatalf("clear message type should return")
+	}
+
+	updated, _ = got.Update(clear)
+
+	got = updated.(model)
+
+	if got.successMessage != "" {
+		t.Fatalf("message should be empty")
+	}
+}
+
 func TestDurationEditorRejectsInvalidDuration(t *testing.T) {
 	session := completedSession(timer.Focus, time.Minute)
 

@@ -13,6 +13,8 @@ All notable changes to SkyTUI are documented in this file.
   requirements used by the command-line option.
 - Use the changed duration for the next focus session while preserving the
   configured short-break duration.
+- Show a temporary dashboard confirmation after changing the runtime focus
+  duration and clear it through the Bubble Tea command and message cycle.
 
 ## [1.3.0] - 2026-09-25
 

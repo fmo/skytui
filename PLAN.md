@@ -6,31 +6,6 @@ This file tracks active and future work. Completed releases are documented in
 `[x]` is complete. `[ ]` is planned. Future tasks can be adjusted before work
 starts, but the current task should stay focused.
 
-## Next - Confirm Runtime Focus Duration Changes
-
-Goal: after a runtime focus-duration change, confirm the new value visibly and
-then clear the confirmation through the Bubble Tea command and message cycle.
-Target this follow-up for `v1.4.0`.
-
-### [ ] Show A Temporary Duration Change Confirmation
-
-- Show a dashboard confirmation such as `Focus duration changed to 10m` after
-  applying a valid duration.
-- Keep the completed session and its displayed duration unchanged while the
-  confirmation is visible.
-- Return a `tea.Cmd` that uses `tea.Tick` to clear the confirmation after two
-  seconds.
-- Handle the resulting custom message in `app.Update()` so the command follows
-  the `Cmd` to `Msg` to `Update` to `View` flow.
-- Prevent an older clear command from removing a newer confirmation when the
-  duration is changed again before two seconds pass.
-- Keep the confirmation readable without overflowing narrow terminals.
-- Test that applying a duration shows the confirmation, returns a command,
-  clears it when the command result is handled, and ignores stale clear
-  messages.
-
-**Commit:** `feat: confirm runtime duration changes`
-
 ## Backlog
 
 Backlog items are ideas, not commitments to a particular release.

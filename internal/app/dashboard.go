@@ -25,9 +25,10 @@ const (
 )
 
 var (
-	focusColor = lipgloss.Color("#4FB6A6")
-	breakColor = lipgloss.Color("#D6A14A")
-	mutedColor = lipgloss.Color("#7C8791")
+	focusColor   = lipgloss.Color("#4FB6A6")
+	breakColor   = lipgloss.Color("#D6A14A")
+	mutedColor   = lipgloss.Color("#7C8791")
+	successColor = lipgloss.Color("#0DFF00")
 )
 
 func dashboardWidth(terminalWidth int) int {
@@ -255,16 +256,26 @@ func (m model) dashboardView() tea.View {
 		projectFilterLabel(m.projectFilter, m.projectPicker.projects),
 		contentWidth,
 	)
-	divider := lipgloss.NewStyle().Foreground(mutedColor).Render(strings.Repeat("─", contentWidth))
-	content := lipgloss.JoinVertical(
-		lipgloss.Left,
+
+	var contentRows []string
+
+	if m.successMessage != "" {
+		contentRows = append(contentRows, lipgloss.NewStyle().Foreground(successColor).Render(truncate(m.successMessage, contentWidth)), "")
+	}
+
+	contentRows = append(contentRows,
 		topContent(
 			m.activeProject.Name,
 			m.session.Duration(),
 			m.session.Remaining(),
 			m.progress,
 			m.session.Kind(),
-		),
+		))
+
+	divider := lipgloss.NewStyle().Foreground(mutedColor).Render(strings.Repeat("─", contentWidth))
+	content := lipgloss.JoinVertical(
+		lipgloss.Left,
+		strings.Join(contentRows, "\n"),
 		"",
 		divider,
 		"",

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -37,6 +38,7 @@ type model struct {
 	width, height        int
 	shortBreakDuration   time.Duration
 	focusDuration        time.Duration
+	successMessage       string
 	sessions             []history.Record
 	todaysTotal          time.Duration
 	thisWeek             time.Duration
@@ -171,6 +173,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if focusDuration != nil {
 			m.focusDuration = *focusDuration
 			m.screen = dashboardScreen
+			m.successMessage = fmt.Sprintf("Focus duration changed to %s", formatDuration(m.focusDuration))
+			cmd = tea.Tick(time.Second*2, func(t time.Time) tea.Msg {
+				return clearMsg()
+			})
 		}
 
 		return m, cmd
@@ -299,6 +305,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.err != nil {
 			slog.Error("cant notify", "err", msg.err)
 		}
+	case clearMsgType:
+		m.successMessage = ""
 	case tickType:
 		if m.session.Status() == timer.Completed {
 			return m, nil
@@ -359,9 +367,15 @@ func (m model) View() tea.View {
 	return m.dashboardView()
 }
 
+type clearMsgType struct{}
+
 type tickType struct{}
 
 type loadType struct{}
+
+func clearMsg() tea.Msg {
+	return clearMsgType(struct{}{})
+}
 
 func tickTime() tea.Cmd {
 	return tea.Tick(time.Second, func(t time.Time) tea.Msg {
