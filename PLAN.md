@@ -6,6 +6,40 @@ This file tracks active and future work. Completed releases are documented in
 `[x]` is complete. `[ ]` is planned. Future tasks can be adjusted before work
 starts, but the current task should stay focused.
 
+## Next Task: Browse, Back Up, And Delete History
+
+Goal: let users review every stored session and safely remove an incorrect
+record without editing the history CSV by hand.
+
+- Add a History screen that opens from the dashboard with `h`.
+- Show all stored records in a scrollable, responsive table with completion
+  time, project, and focus duration, ordered newest first.
+- Keep the active timer running while History is open and support predictable
+  `Esc` and `q` navigation.
+- Allow users to create a timestamped backup of the history CSV with `b`.
+- Allow users to select a record and request deletion with `d`, then require an
+  explicit confirmation before changing the file.
+- Perform backup and deletion through a Bubble Tea command. Create the backup
+  first, and do not delete anything if the backup fails.
+- Return a success or error message to `Update`, refresh the in-memory sessions
+  and History table after success, and leave both unchanged after failure.
+- Preserve the original CSV row index while building the newest-first table so
+  the selected occurrence can be deleted even when duplicate records exist.
+- Before rewriting the file, verify that the indexed row still matches the
+  selected record; fail safely if the history changed in the meantime.
+- Rewrite history safely through a temporary file and replacement rather than
+  modifying the existing CSV in place.
+- Test table ordering and responsiveness, manual backup, confirmation and
+  cancellation, successful deletion, backup failure, duplicate rows, stale
+  selections, and command-result routing.
+
+History records currently contain `CompletedAt`, `Duration`, and `ProjectID`.
+They do not have persistent record IDs; the ID stored in the third CSV column
+belongs to the project. Adding persistent history IDs and migrating the CSV
+format is intentionally deferred. The first version identifies a selected
+record by its original row index plus an equality check immediately before
+deletion.
+
 ## Backlog
 
 Backlog items are ideas, not commitments to a particular release.
