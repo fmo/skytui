@@ -23,13 +23,14 @@ const (
 	statsScreenWeekly
 	statsScreenMonthly
 	durationEditorScreen
+	historyScreen
 )
 
 type model struct {
 	settings             *config.Config
 	notifier             notifier.Notifier
 	progress             progress.Model
-	historyStore         history.Store
+	historyStore         *history.Store
 	session              *timer.Session
 	notificationsEnabled bool
 	activeProject        project.Project
@@ -49,10 +50,11 @@ type model struct {
 	projectFilterPicker  projectFilterPicker
 	statsPage            statsPage
 	durationEditor       durationEditor
+	historyPage          historyPage
 }
 
 func New(
-	historyStore history.Store,
+	historyStore *history.Store,
 	projectStore *project.Store,
 	settings *config.Config,
 	focusDuration,
@@ -119,6 +121,37 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = size.Width
 		contentWidth := dashboardContentWidth(dashboardWidth(m.width))
 		m.progress.SetWidth(min(max(1, contentWidth-progressLabelWidth), maxProgressWidth))
+	}
+
+	if m.screen == historyScreen {
+		switch msg := msg.(type) {
+		case deleteRecord:
+			err := m.historyStore.Delete(msg.deleteRecord)
+			if err != nil {
+				slog.Error("cant delete", "error", err, "delete record", msg.deleteRecord)
+			}
+			m.successMessage = "record has deleted"
+			m.screen = dashboardScreen
+			return m, tea.Batch(tea.Tick(time.Second*2, func(t time.Time) tea.Msg {
+				return clearMsg()
+			}), loadSessions())
+		case tea.WindowSizeMsg:
+			var cmd tea.Cmd
+			m.historyPage, cmd = m.historyPage.Update(msg)
+			return m, cmd
+		case tea.KeyPressMsg:
+			switch msg.String() {
+			case "esc":
+				if m.historyPage.subpage == mainHistoryPage {
+					m.screen = dashboardScreen
+					return m, nil
+				}
+			}
+			var cmd tea.Cmd
+			m.historyPage, cmd = m.historyPage.Update(msg)
+
+			return m, cmd
+		}
 	}
 
 	if m.screen == projectScreen {
@@ -233,6 +266,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
 		switch msg.String() {
+		case "h":
+			m.screen = historyScreen
+			m.historyPage = NewHistoryPage(m.sessions, m.width)
 		case "d":
 			if m.session.Status() != timer.Completed {
 				return m, nil
@@ -362,6 +398,9 @@ func (m model) View() tea.View {
 	}
 	if m.screen == durationEditorScreen {
 		return tea.NewView(m.durationEditor.View(m.width))
+	}
+	if m.screen == historyScreen {
+		return tea.NewView(m.historyPage.View(m.width))
 	}
 
 	return m.dashboardView()

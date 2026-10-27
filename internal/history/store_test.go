@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -220,5 +221,173 @@ func TestAllTime(t *testing.T) {
 	want := time.Hour
 	if got := store.AllTime(records); got != want {
 		t.Errorf("all-time total is incorrect: got %v, want %v", got, want)
+	}
+}
+
+func TestDeleteRecordDoesNotExist(t *testing.T) {
+	now := time.Now()
+	store := NewStore(filepath.Join(t.TempDir(), "sessions.csv"))
+	store.Append(now, time.Minute, "project")
+	records, err := store.Load()
+	if err != nil {
+		t.Errorf("cant get records: %v", err)
+	}
+	if len(records) != 1 {
+		t.Errorf("records should be nil")
+	}
+
+	err = store.Delete(10)
+	if err == nil || !strings.Contains(err.Error(), "delete record does not exist") {
+		t.Error("error should be there")
+	}
+}
+
+func TestDeleteCreatesBackupOfOriginalFile(t *testing.T) {
+	now := time.Now()
+
+	dir := t.TempDir()
+
+	store := NewStore(filepath.Join(dir, "sessions.csv"))
+
+	store.Append(now, time.Minute, "project")
+	store.Append(now.Add(-1*time.Minute), time.Minute*10, "project")
+	store.Append(now.Add(-1*time.Hour), time.Hour*2, "project")
+	store.Append(now.Add(-3*time.Minute), time.Minute*1, "project")
+
+	err := store.Delete(0)
+	if err != nil {
+		t.Errorf("error occurred: %v", err)
+	}
+
+	dirs, err := os.ReadDir(dir)
+	if err != nil {
+		t.Error("cant read the directory")
+	}
+
+	var tmpFile os.DirEntry
+	for _, d := range dirs {
+		if d.Name() == "sessions.csv" {
+			continue
+		}
+		tmpFile = d
+	}
+
+	tf, err := os.Open(filepath.Join(dir, tmpFile.Name()))
+	if err != nil {
+		t.Error("cant open tmp file")
+	}
+
+	csvReader := csv.NewReader(tf)
+	records, err := csvReader.ReadAll()
+	tf.Close()
+	if err != nil {
+		t.Error("cant read records")
+	}
+
+	if len(records) != 4 {
+		t.Errorf("there has to be two records but there is %d", len(records))
+	}
+
+	if records[0][0] != now.Format(time.RFC3339Nano) {
+		t.Errorf("order is not expected, record: %v, got: %v", records[0][0], now.Format(time.RFC3339Nano))
+	}
+
+	if records[1][1] != (time.Minute * 10).String() {
+		t.Errorf("order is not expected, record: %v, got: %v", records[0][1], (time.Minute * 10).String())
+	}
+
+	if records[3][0] != now.Add(-3*time.Minute).Format(time.RFC3339Nano) {
+		t.Errorf("order is not expected, records: %v", records)
+	}
+
+}
+
+func TestReplaceFile(t *testing.T) {
+	dir := t.TempDir()
+
+	record1Time := time.Now()
+
+	store := NewStore(filepath.Join(dir, "sessions.csv"))
+	store.Append(record1Time, time.Minute, "project-1")
+	store.Append(time.Now().Add(-5*time.Minute), time.Minute, "project-2")
+
+	err := store.Delete(0)
+	if err != nil {
+		t.Errorf("cant delete the record: %v", err)
+	}
+
+	records, err := store.Load()
+	if err != nil {
+		t.Errorf("cant load records: %v", err)
+	}
+
+	if len(records) != 1 {
+		t.Errorf("there should be one record but there are %d", len(records))
+	}
+}
+
+func TestDeleteWithMissingField(t *testing.T) {
+	dir := t.TempDir()
+
+	projectTime := time.Now().Add(-time.Minute * 2)
+
+	row := time.Now().Format(time.RFC3339Nano) + ",20m\n"
+	row += time.Now().Add(-time.Minute*2).Format(time.RFC3339Nano) + ",20m\n"
+	row += projectTime.Format(time.RFC3339Nano) + ",30m0s,project-1\n"
+
+	err := os.WriteFile(filepath.Join(dir, "sessions.csv"), []byte(row), 0o600)
+	if err != nil {
+		t.Error("cant create the file")
+	}
+
+	store := NewStore(filepath.Join(dir, "sessions.csv"))
+	records, err := store.Load()
+	if err != nil {
+		t.Error("cant load the records")
+	}
+	if len(records) != 3 {
+		t.Errorf("expected records: 3, got: %d", len(records))
+	}
+	if err := store.Delete(2); err != nil {
+		t.Errorf("cant delete the project-1: %v", err)
+	}
+	records, err = store.Load()
+	if err != nil {
+		t.Errorf("cant load records")
+	}
+	if len(records) != 2 {
+		t.Errorf("there has to be two records but there is %d", len(records))
+	}
+}
+
+func TestDeleteOrder(t *testing.T) {
+	dir := t.TempDir()
+	f := filepath.Join(dir, "sessions.csv")
+	now := time.Now().Format(time.RFC3339Nano)
+
+	row := now + ",25m,p1\n"
+	row += now + ",10m,p1\n"
+	row += now + ",5m,p1\n"
+	row += now + ",6m10s,p1\n"
+
+	if err := os.WriteFile(f, []byte(row), 0o600); err != nil {
+		t.Errorf("cant write to file: %v", err)
+	}
+
+	store := NewStore(f)
+	if err := store.Delete(2); err != nil {
+		t.Errorf("cant delete records due to: %v", err)
+	}
+	records, err := store.Load()
+	if err != nil {
+		t.Errorf("cant load records: %v", err)
+	}
+
+	if records[0].Duration.String() != "25m0s" {
+		t.Errorf("expected: %v, got: %v", "25m0s", records[0].Duration.String())
+	}
+
+	if records[2].Duration.String() != "6m10s" {
+		t.Errorf("expected: %v, got: %v", "6m10s", records[0].Duration.String())
 	}
 }
