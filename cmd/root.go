@@ -14,7 +14,7 @@ import (
 )
 
 func newRootCmd(
-	historyStore history.Store,
+	historyStore *history.Store,
 	projectStore *project.Store,
 	settings *config.Config,
 	defaultFocusDuration,
@@ -52,7 +52,7 @@ func newRootCmd(
 }
 
 func Exec(
-	historyStore history.Store,
+	historyStore *history.Store,
 	projectStore *project.Store,
 	settings *config.Config,
 	defaultFocusDuration,
@@ -60,7 +60,14 @@ func Exec(
 	notificationsEnabled bool,
 	notifier notifier.Notifier,
 ) error {
-	if err := newRootCmd(historyStore, projectStore, settings, defaultFocusDuration, shortBreakDuration, notificationsEnabled, notifier).Execute(); err != nil {
+	if err := newRootCmd(
+		historyStore,
+		projectStore,
+		settings,
+		defaultFocusDuration,
+		shortBreakDuration,
+		notificationsEnabled,
+		notifier).Execute(); err != nil {
 		return err
 	}
 
