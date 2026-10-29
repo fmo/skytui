@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"uuid"
 )
 
 type Store struct {
@@ -36,8 +37,10 @@ func (s *Store) Append(completedAt time.Time, duration time.Duration, projectID 
 	}
 	defer file.Close()
 
+	recordID := uuid.New()
+
 	csvWriter := csv.NewWriter(file)
-	if err := csvWriter.Write([]string{completedAt.Format(time.RFC3339Nano), duration.String(), projectID}); err != nil {
+	if err := csvWriter.Write([]string{completedAt.Format(time.RFC3339Nano), duration.String(), projectID, recordID.String()}); err != nil {
 		return err
 	}
 	csvWriter.Flush()
@@ -66,32 +69,104 @@ func (s *Store) Load() ([]Record, error) {
 		return []Record{}, err
 	}
 
+	if err := migrate(rows, s.path); err != nil {
+		return []Record{}, err
+	}
+
 	records := make([]Record, 0, len(rows))
 	for index, row := range rows {
-		if len(row) != 2 && len(row) != 3 {
-			return []Record{}, fmt.Errorf("read session row %d: expected 2 or 3 fields, got %d", index+1, len(row))
+		if len(row) != 4 {
+			return []Record{}, fmt.Errorf("read session row %d: expected 4 fields, got %d", index+1, len(row))
 		}
+
 		completedAt, err := time.Parse(time.RFC3339Nano, row[0])
 		if err != nil {
 			return []Record{}, fmt.Errorf("read session row %d completion time: %w", index+1, err)
 		}
+
 		duration, err := time.ParseDuration(row[1])
 		if err != nil {
 			return []Record{}, fmt.Errorf("read session row %d duration: %w", index+1, err)
 		}
 
 		projectID := ""
-		if len(row) == 3 {
-			projectID = strings.TrimSpace(row[2])
-			if projectID == "" {
-				return []Record{}, fmt.Errorf("read session row %d: project ID is required", index+1)
-			}
+		projectID = strings.TrimSpace(row[2])
+		if projectID == "" {
+			return []Record{}, fmt.Errorf("read session row %d: project ID is required", index+1)
 		}
 
-		records = append(records, Record{CompletedAt: completedAt, Duration: duration, ProjectID: projectID})
+		recordID, err := uuid.Parse(row[3])
+		if err != nil {
+			return []Record{}, fmt.Errorf("cant parse record id: %v", err)
+		}
+
+		records = append(records, Record{CompletedAt: completedAt, Duration: duration, ProjectID: projectID, RecordID: recordID})
 	}
 
 	return records, nil
+}
+
+func migrate(rows [][]string, path string) error {
+	clonedRows := slices.Clone(rows)
+
+	migrated := false
+
+	for ind, row := range rows {
+		switch len(row) {
+		case 2:
+			rows[ind] = []string{row[0], row[1], "Unassigned", uuid.New().String()}
+			migrated = true
+		case 3:
+			rows[ind] = []string{row[0], row[1], row[2], uuid.New().String()}
+			migrated = true
+		}
+	}
+
+	if !migrated {
+		return nil
+	}
+
+	dir, _ := filepath.Split(path)
+
+	// create backup migrate-bup-2006-01-02-15-04-05.000.csv
+	filename := fmt.Sprintf("migrate-bup-%s.csv", time.Now().Format("2006-01-02-15-04-05.000"))
+	file, err := os.OpenFile(filepath.Join(dir, filename), os.O_CREATE|os.O_RDWR, 0o600)
+	if err != nil {
+		return fmt.Errorf("cant open the file: %v", err)
+	}
+
+	writer := csv.NewWriter(file)
+	writer.WriteAll(clonedRows)
+	writer.Flush()
+
+	file.Close()
+
+	if writer.Error() != nil {
+		return fmt.Errorf("cant flush the backup: %w", writer.Error())
+	}
+
+	// create tmp
+	tmpfile, err := os.CreateTemp(dir, "migrate-tmp-*.csv")
+	if err != nil {
+		return fmt.Errorf("cant open file: %s", err)
+	}
+
+	writer = csv.NewWriter(tmpfile)
+	writer.WriteAll(rows)
+	writer.Flush()
+
+	tmpfile.Close()
+
+	if err != nil {
+		return fmt.Errorf("cant flush the tmp: %v", err)
+	}
+
+	// replace original with tmp
+	if err := os.Rename(tmpfile.Name(), path); err != nil {
+		return fmt.Errorf("cant over write tmp file: %w", err)
+	}
+
+	return nil
 }
 
 func (s *Store) Delete(record int) error {

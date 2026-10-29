@@ -11,6 +11,7 @@ import (
 
 func TestAppend(t *testing.T) {
 	testFile := filepath.Join(t.TempDir(), "sessions.csv")
+
 	store := NewStore(testFile)
 	if err := store.Append(time.Now(), time.Second*10, "project-1"); err != nil {
 		t.Fatalf("cant append the row: %v", err)
@@ -35,7 +36,8 @@ func TestAppend(t *testing.T) {
 	if rows[0][1] != (time.Second * 10).String() {
 		t.Error("append does not work")
 	}
-	if len(rows[0]) != 3 || rows[0][2] != "project-1" {
+
+	if len(rows[0]) != 4 || rows[0][2] != "project-1" {
 		t.Fatalf("got row %#v, want project ID as third field", rows[0])
 	}
 }
@@ -83,6 +85,7 @@ func TestLoad(t *testing.T) {
 
 func TestLoadLegacyRecordWithoutProject(t *testing.T) {
 	testFile := filepath.Join(t.TempDir(), "sessions.csv")
+
 	completedAt := time.Date(2026, time.August, 20, 12, 0, 0, 0, time.UTC)
 	row := completedAt.Format(time.RFC3339Nano) + ",25m0s\n"
 	if err := os.WriteFile(testFile, []byte(row), 0o600); err != nil {
@@ -96,8 +99,8 @@ func TestLoadLegacyRecordWithoutProject(t *testing.T) {
 	if len(records) != 1 {
 		t.Fatalf("got %d records, want 1", len(records))
 	}
-	if records[0].ProjectID != "" {
-		t.Fatalf("got project ID %q, want empty", records[0].ProjectID)
+	if records[0].ProjectID != "Unassigned" {
+		t.Fatalf("got project ID %q, want Unassigned", records[0].ProjectID)
 	}
 }
 
@@ -130,8 +133,8 @@ func TestLoadMixedLegacyAndProjectRecords(t *testing.T) {
 	if len(records) != 2 {
 		t.Fatalf("got %d records, want 2", len(records))
 	}
-	if records[0].ProjectID != "" {
-		t.Fatalf("legacy record has project ID %q, want empty", records[0].ProjectID)
+	if records[0].ProjectID != "Unassigned" {
+		t.Fatalf("legacy record has project ID %q, want Unassigned", records[0].ProjectID)
 	}
 	if records[1].ProjectID != "project-1" {
 		t.Fatalf("project-aware record has project ID %q, want %q", records[1].ProjectID, "project-1")
@@ -264,22 +267,22 @@ func TestDeleteCreatesBackupOfOriginalFile(t *testing.T) {
 		t.Error("cant read the directory")
 	}
 
-	var tmpFile os.DirEntry
+	var bupFile os.DirEntry
 	for _, d := range dirs {
 		if d.Name() == "sessions.csv" {
 			continue
 		}
-		tmpFile = d
+		bupFile = d
 	}
 
-	tf, err := os.Open(filepath.Join(dir, tmpFile.Name()))
+	buf, err := os.Open(filepath.Join(dir, bupFile.Name()))
 	if err != nil {
 		t.Error("cant open tmp file")
 	}
 
-	csvReader := csv.NewReader(tf)
+	csvReader := csv.NewReader(buf)
 	records, err := csvReader.ReadAll()
-	tf.Close()
+	buf.Close()
 	if err != nil {
 		t.Error("cant read records")
 	}

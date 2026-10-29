@@ -29,7 +29,7 @@ func FilterRecords(records []Record, filter Filter) []Record {
 				filtered = append(filtered, record)
 			}
 		case Unassigned:
-			if record.ProjectID == "" {
+			if record.ProjectID == "Unassigned" {
 				filtered = append(filtered, record)
 			}
 		}

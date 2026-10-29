@@ -7,7 +7,7 @@ import (
 
 func TestFilterRecords(t *testing.T) {
 	records := []Record{
-		{Duration: 10 * time.Minute, ProjectID: ""},
+		{Duration: 10 * time.Minute, ProjectID: "Unassigned"},
 		{Duration: 20 * time.Minute, ProjectID: "project-1"},
 		{Duration: 30 * time.Minute, ProjectID: "project-10"},
 	}
@@ -20,7 +20,7 @@ func TestFilterRecords(t *testing.T) {
 		{
 			name:    "all projects",
 			filter:  Filter{Mode: AllProjects},
-			wantIDs: []string{"", "project-1", "project-10"},
+			wantIDs: []string{"Unassigned", "project-1", "project-10"},
 		},
 		{
 			name:    "one exact project",
@@ -30,7 +30,7 @@ func TestFilterRecords(t *testing.T) {
 		{
 			name:    "unassigned",
 			filter:  Filter{Mode: Unassigned},
-			wantIDs: []string{""},
+			wantIDs: []string{"Unassigned"},
 		},
 		{
 			name:    "project without records",
