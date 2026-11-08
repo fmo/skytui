@@ -50,7 +50,7 @@ func (s *Store) Append(completedAt time.Time, duration time.Duration, projectID 
 		return err
 	}
 
-	return nil
+	return file.Close()
 }
 
 func (s *Store) Load() ([]Record, error) {
@@ -70,7 +70,9 @@ func (s *Store) Load() ([]Record, error) {
 		return []Record{}, err
 	}
 
-	file.Close()
+	if err := file.Close(); err != nil {
+		return []Record{}, err
+	}
 
 	if err := migrate(rows, s.path); err != nil {
 		return []Record{}, err
@@ -137,24 +139,30 @@ func migrate(rows [][]string, path string) error {
 	if err != nil {
 		return fmt.Errorf("cant open the file: %v", err)
 	}
+	defer file.Close()
 
 	if err := writeCsv(clonedRows, file); err != nil {
 		return err
 	}
 
-	file.Close()
+	if err := file.Close(); err != nil {
+		return fmt.Errorf("cant close file: %v", err)
+	}
 
 	// create tmp
 	tmpfile, err := os.CreateTemp(dir, "migrate-tmp-*.csv")
 	if err != nil {
 		return fmt.Errorf("cant open file: %s", err)
 	}
+	defer tmpfile.Close()
 
 	if err := writeCsv(rows, tmpfile); err != nil {
 		return err
 	}
 
-	tmpfile.Close()
+	if err := tmpfile.Close(); err != nil {
+		return fmt.Errorf("cant close tmpfile: %v", err)
+	}
 
 	// replace original with tmp
 	if err := os.Rename(tmpfile.Name(), path); err != nil {
@@ -181,6 +189,7 @@ func (s *Store) Delete(record string) error {
 	if err != nil {
 		return fmt.Errorf("cant open the file: %v", err)
 	}
+	defer file.Close()
 
 	csvReader := csv.NewReader(file)
 	csvReader.FieldsPerRecord = -1
@@ -189,7 +198,9 @@ func (s *Store) Delete(record string) error {
 		return fmt.Errorf("cant read the sessions: %w", err)
 	}
 
-	file.Close()
+	if err := file.Close(); err != nil {
+		return fmt.Errorf("cant close file: %v", err)
+	}
 
 	newRecords, err := deleteRecord(record, records)
 	if err != nil {
@@ -254,6 +265,10 @@ func createTmpWithDeletedRecords(path string, records [][]string) (string, error
 		return "", fmt.Errorf("cant write to tmp file: %w", err)
 	}
 
+	if err := tmpFile.Close(); err != nil {
+		return "", fmt.Errorf("cant close the file: %v", err)
+	}
+
 	return tmpFile.Name(), nil
 }
 
@@ -271,7 +286,7 @@ func createBackup(path string, records [][]string) error {
 		return err
 	}
 
-	return nil
+	return file.Close()
 }
 
 func (s *Store) TodaysTotal(records []Record) time.Duration {
