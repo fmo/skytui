@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"slices"
@@ -68,6 +69,8 @@ func (s *Store) Load() ([]Record, error) {
 	if err != nil {
 		return []Record{}, err
 	}
+
+	file.Close()
 
 	if err := migrate(rows, s.path); err != nil {
 		return []Record{}, err
@@ -135,15 +138,11 @@ func migrate(rows [][]string, path string) error {
 		return fmt.Errorf("cant open the file: %v", err)
 	}
 
-	writer := csv.NewWriter(file)
-	writer.WriteAll(clonedRows)
-	writer.Flush()
+	if err := writeCsv(clonedRows, file); err != nil {
+		return err
+	}
 
 	file.Close()
-
-	if writer.Error() != nil {
-		return fmt.Errorf("cant flush the backup: %w", writer.Error())
-	}
 
 	// create tmp
 	tmpfile, err := os.CreateTemp(dir, "migrate-tmp-*.csv")
@@ -151,15 +150,11 @@ func migrate(rows [][]string, path string) error {
 		return fmt.Errorf("cant open file: %s", err)
 	}
 
-	writer = csv.NewWriter(tmpfile)
-	writer.WriteAll(rows)
-	writer.Flush()
+	if err := writeCsv(rows, tmpfile); err != nil {
+		return err
+	}
 
 	tmpfile.Close()
-
-	if err != nil {
-		return fmt.Errorf("cant flush the tmp: %v", err)
-	}
 
 	// replace original with tmp
 	if err := os.Rename(tmpfile.Name(), path); err != nil {
@@ -169,7 +164,16 @@ func migrate(rows [][]string, path string) error {
 	return nil
 }
 
-func (s *Store) Delete(record int) error {
+func writeCsv(rows [][]string, path io.Writer) error {
+	writer := csv.NewWriter(path)
+	if err := writer.WriteAll(rows); err != nil {
+		return fmt.Errorf("cant write: %v", err)
+	}
+
+	return nil
+}
+
+func (s *Store) Delete(record string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -204,7 +208,7 @@ func (s *Store) Delete(record int) error {
 	}
 
 	// write tmp file over sessions.csv
-	err = os.Rename(tmpFileName, filepath.Join(fp, "sessions.csv"))
+	err = os.Rename(tmpFileName, s.path)
 	if err != nil {
 		return fmt.Errorf("cant do renaming: %w", err)
 	}
@@ -212,15 +216,15 @@ func (s *Store) Delete(record int) error {
 	return nil
 }
 
-func deleteRecord(deleteRecord int, records [][]string) ([][]string, error) {
+func deleteRecord(deleteRecord string, records [][]string) ([][]string, error) {
 	reversedRecords := slices.Clone(records)
 
 	slices.Reverse(reversedRecords)
 
 	newRecords := [][]string{}
 	deleteRecordExists := false
-	for ind, r := range reversedRecords {
-		if ind == deleteRecord {
+	for _, r := range reversedRecords {
+		if r[3] == deleteRecord {
 			deleteRecordExists = true
 			continue
 		}
@@ -246,15 +250,8 @@ func createTmpWithDeletedRecords(path string, records [][]string) (string, error
 	}
 	defer tmpFile.Close()
 
-	csvWriter := csv.NewWriter(tmpFile)
-	err = csvWriter.WriteAll(reverseRecords)
-	if err != nil {
+	if err := writeCsv(reverseRecords, tmpFile); err != nil {
 		return "", fmt.Errorf("cant write to tmp file: %w", err)
-	}
-	csvWriter.Flush()
-
-	if csvWriter.Error() != nil {
-		return "", fmt.Errorf("cant write tmp file: %v", err)
 	}
 
 	return tmpFile.Name(), nil
@@ -270,14 +267,8 @@ func createBackup(path string, records [][]string) error {
 	}
 	defer file.Close()
 
-	csvWriter := csv.NewWriter(file)
-	if err := csvWriter.WriteAll(records); err != nil {
-		return fmt.Errorf("cant write to tmp file: %w", err)
-	}
-	csvWriter.Flush()
-
-	if csvWriter.Error() != nil {
-		return fmt.Errorf("cant write backup: %v", err)
+	if err := writeCsv(records, file); err != nil {
+		return err
 	}
 
 	return nil

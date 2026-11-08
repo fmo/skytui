@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-	"log/slog"
 	"slices"
 	"strings"
 
@@ -16,7 +15,7 @@ import (
 type historySubPage int
 type buttons int
 
-const tableWidth = 41
+const tableWidth = 53
 const (
 	mainHistoryPage historySubPage = iota
 	confirmHistoryPage
@@ -25,17 +24,30 @@ const (
 	deleteButton buttons = iota
 	escButton
 )
+const (
+	createdAtIndex int = iota
+	durationIndex
+	projectIDIndex
+	recordIDIndex
+)
+const (
+	createdAtFullLabel string = "Created At"
+	durationFullLabel  string = "Duration"
+	projectIDFullLabel string = "Project ID"
+	recordIDFullLabel  string = "Record ID"
+)
 
 type deleteRecord struct {
-	deleteRecord int
+	deleteRecord string
 }
 
 type historyPage struct {
-	deleteRecord   int
+	deleteRecord   string
 	table          table.Model
 	records        []history.Record
 	subpage        historySubPage
 	selectedButton buttons
+	deletionError  string
 }
 
 func NewHistoryPage(records []history.Record, width int) historyPage {
@@ -44,9 +56,10 @@ func NewHistoryPage(records []history.Record, width int) historyPage {
 	slices.Reverse(clonedRecords)
 
 	columns := []table.Column{
-		{Title: "Created At", Width: 15},
-		{Title: "Duration", Width: 10},
-		{Title: "Project", Width: 10},
+		{Title: createdAtFullLabel, Width: 15},
+		{Title: durationFullLabel, Width: 10},
+		{Title: projectIDFullLabel, Width: 10},
+		{Title: recordIDFullLabel, Width: 10},
 	}
 
 	createdAtFormat := "2006 02 Jan"
@@ -60,9 +73,10 @@ func NewHistoryPage(records []history.Record, width int) historyPage {
 			{Title: "Cre.", Width: 8},
 			{Title: "Dur.", Width: 8},
 			{Title: "Pro.", Width: 5},
+			{Title: "RID", Width: 8},
 		}
 		createdAtFormat = "02/Jan"
-		tableWidth = 27
+		tableWidth = 37
 	}
 
 	rows := []table.Row{}
@@ -72,6 +86,7 @@ func NewHistoryPage(records []history.Record, width int) historyPage {
 			record.CompletedAt.Format(createdAtFormat),
 			formatDuration(record.Duration),
 			record.ProjectID,
+			record.RecordID.String(),
 		})
 	}
 
@@ -94,8 +109,6 @@ func NewHistoryPage(records []history.Record, width int) historyPage {
 	t.SetStyles(s)
 	t.Focus()
 
-	slog.Debug("Esc button is selected as default for deleting history")
-
 	return historyPage{records: clonedRecords, table: t, subpage: mainHistoryPage, selectedButton: escButton}
 }
 
@@ -105,38 +118,36 @@ func (h historyPage) Update(msg tea.Msg) (historyPage, tea.Cmd) {
 		panelWidth := dashboardWidth(msg.Width)
 		contentWidth := dashboardContentWidth(panelWidth)
 
-		t := h.table
-
 		columns := []table.Column{
-			{Title: "Created At", Width: 15},
-			{Title: "Duration", Width: 10},
-			{Title: "Project", Width: 10},
+			{Title: createdAtFullLabel, Width: 15},
+			{Title: durationFullLabel, Width: 10},
+			{Title: projectIDFullLabel, Width: 10},
+			{Title: recordIDFullLabel, Width: 10},
 		}
 
 		rows := []table.Row{}
 		for _, record := range h.records {
-			rows = append(rows, table.Row{record.CompletedAt.Format("2006 02 Jan"), record.Duration.String(), record.ProjectID})
+			rows = append(rows, table.Row{record.CompletedAt.Format("2006 02 Jan"), record.Duration.String(), record.ProjectID, record.RecordID.String()})
 		}
-		slog.Info("all widths", "panel width", panelWidth, "content width", contentWidth, "table width", tableWidth)
-		t.SetWidth(41)
+		h.table.SetWidth(tableWidth)
 
 		if contentWidth < tableWidth {
 			columns = []table.Column{
 				{Title: "Cre.", Width: 10},
 				{Title: "Dur.", Width: 8},
 				{Title: "Pro.", Width: 8},
+				{Title: "RID", Width: 8},
 			}
 			rows = rows[:0]
 			for _, record := range h.records {
-				rows = append(rows, table.Row{record.CompletedAt.Format("02/Jan"), record.Duration.String(), record.ProjectID})
+				rows = append(rows, table.Row{record.CompletedAt.Format("02/Jan"), record.Duration.String(), record.ProjectID, record.RecordID.String()})
 			}
 
-			t.SetWidth(32)
+			h.table.SetWidth(42)
 		}
 
-		t.SetRows(rows)
-		t.SetColumns(columns)
-		h.table = t
+		h.table.SetRows(rows)
+		h.table.SetColumns(columns)
 
 		return h, nil
 	case tea.KeyPressMsg:
@@ -145,16 +156,25 @@ func (h historyPage) Update(msg tea.Msg) (historyPage, tea.Cmd) {
 			if h.subpage == confirmHistoryPage {
 				h.subpage = mainHistoryPage
 			}
+			h.deletionError = ""
 			return h, nil
 		case "d":
+			if h.table.SelectedRow() == nil {
+				return h, nil
+			}
+
 			h.subpage = confirmHistoryPage
 			h.selectedButton = escButton
 
-			h.deleteRecord = h.table.Cursor()
+			h.deleteRecord = h.table.SelectedRow()[recordIDIndex]
+
 			return h, nil
 		case "q":
 			return h, tea.Quit
 		case "right", "left":
+			if h.subpage != confirmHistoryPage {
+				return h, nil
+			}
 			if h.selectedButton == escButton {
 				h.selectedButton = deleteButton
 			} else {
@@ -162,16 +182,28 @@ func (h historyPage) Update(msg tea.Msg) (historyPage, tea.Cmd) {
 			}
 			return h, nil
 		case "enter":
+			if h.subpage != confirmHistoryPage {
+				return h, nil
+			}
+
 			if h.selectedButton == escButton {
 				h.subpage = mainHistoryPage
 				return h, nil
 			}
 
+			if h.table.SelectedRow() == nil {
+				return h, nil
+			}
+
 			return h, func() tea.Msg {
 				return deleteRecord{
-					deleteRecord: h.table.Cursor(),
+					deleteRecord: h.deleteRecord,
 				}
 			}
+		}
+
+		if h.subpage == confirmHistoryPage {
+			return h, nil
 		}
 
 		var cmd tea.Cmd
@@ -218,16 +250,24 @@ func (h historyPage) View(terminalWidth int) string {
 			deleteButtonStyle.Render("Delete"), escButtonStyle.Render("Esc"),
 		)
 
-		var r history.Record
-		for ind, rr := range h.records {
-			if ind == h.deleteRecord {
-				r = rr
+		var record *history.Record
+		for _, r := range h.records {
+			if r.RecordID.String() == h.deleteRecord {
+				record = &r
 			}
 		}
-		slog.Info("history", "record", r, "index", h.deleteRecord)
-		record := fmt.Sprintf("created at: %v\nduration: %v\nproject: %v", r.CompletedAt.String(), r.Duration.String(), r.ProjectID)
-		rows = append(rows, "do you want to delete the record \n\n"+record)
-		rows = append(rows, buttonSet)
+		if record != nil {
+			recordDetails := fmt.Sprintf("created at: %v\nduration: %v\nproject: %v", record.CompletedAt.String(), record.Duration.String(), record.ProjectID)
+			rows = append(rows, "do you want to delete the record \n\n"+recordDetails)
+			rows = append(rows, buttonSet)
+		} else {
+			rows = append(rows, "record cant found\n")
+		}
+
+		if h.deletionError != "" {
+			rows = rows[:0]
+			rows = append(rows, h.deletionError+"\n\n")
+		}
 
 		view = strings.Join(rows, "\n")
 	}

@@ -2,6 +2,7 @@ package history
 
 import (
 	"encoding/csv"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -239,7 +240,12 @@ func TestDeleteRecordDoesNotExist(t *testing.T) {
 		t.Errorf("records should be nil")
 	}
 
-	err = store.Delete(10)
+	records, err = store.Load()
+	if err != nil {
+		t.Errorf("cant load records")
+	}
+
+	err = store.Delete("notexistingrecord")
 	if err == nil || !strings.Contains(err.Error(), "delete record does not exist") {
 		t.Error("error should be there")
 	}
@@ -257,7 +263,12 @@ func TestDeleteCreatesBackupOfOriginalFile(t *testing.T) {
 	store.Append(now.Add(-1*time.Hour), time.Hour*2, "project")
 	store.Append(now.Add(-3*time.Minute), time.Minute*1, "project")
 
-	err := store.Delete(0)
+	records, err := store.Load()
+	if err != nil {
+		t.Errorf("cant load records: %v", err)
+	}
+
+	err = store.Delete(records[0].RecordID.String())
 	if err != nil {
 		t.Errorf("error occurred: %v", err)
 	}
@@ -281,25 +292,25 @@ func TestDeleteCreatesBackupOfOriginalFile(t *testing.T) {
 	}
 
 	csvReader := csv.NewReader(buf)
-	records, err := csvReader.ReadAll()
+	rows, err := csvReader.ReadAll()
 	buf.Close()
 	if err != nil {
 		t.Error("cant read records")
 	}
 
-	if len(records) != 4 {
-		t.Errorf("there has to be two records but there is %d", len(records))
+	if len(rows) != 4 {
+		t.Errorf("there has to be two records but there is %d", len(rows))
 	}
 
-	if records[0][0] != now.Format(time.RFC3339Nano) {
-		t.Errorf("order is not expected, record: %v, got: %v", records[0][0], now.Format(time.RFC3339Nano))
+	if rows[0][0] != now.Format(time.RFC3339Nano) {
+		t.Errorf("order is not expected, record: %v, got: %v", rows[0][0], now.Format(time.RFC3339Nano))
 	}
 
-	if records[1][1] != (time.Minute * 10).String() {
-		t.Errorf("order is not expected, record: %v, got: %v", records[0][1], (time.Minute * 10).String())
+	if rows[1][1] != (time.Minute * 10).String() {
+		t.Errorf("order is not expected, record: %v, got: %v", rows[0][1], (time.Minute * 10).String())
 	}
 
-	if records[3][0] != now.Add(-3*time.Minute).Format(time.RFC3339Nano) {
+	if rows[3][0] != now.Add(-3*time.Minute).Format(time.RFC3339Nano) {
 		t.Errorf("order is not expected, records: %v", records)
 	}
 
@@ -314,12 +325,17 @@ func TestReplaceFile(t *testing.T) {
 	store.Append(record1Time, time.Minute, "project-1")
 	store.Append(time.Now().Add(-5*time.Minute), time.Minute, "project-2")
 
-	err := store.Delete(0)
+	records, err := store.Load()
+	if err != nil {
+		t.Errorf("cant load records: %v", err)
+	}
+
+	err = store.Delete(records[0].RecordID.String())
 	if err != nil {
 		t.Errorf("cant delete the record: %v", err)
 	}
 
-	records, err := store.Load()
+	records, err = store.Load()
 	if err != nil {
 		t.Errorf("cant load records: %v", err)
 	}
@@ -351,7 +367,7 @@ func TestDeleteWithMissingField(t *testing.T) {
 	if len(records) != 3 {
 		t.Errorf("expected records: 3, got: %d", len(records))
 	}
-	if err := store.Delete(2); err != nil {
+	if err := store.Delete(records[2].RecordID.String()); err != nil {
 		t.Errorf("cant delete the project-1: %v", err)
 	}
 	records, err = store.Load()
@@ -378,10 +394,16 @@ func TestDeleteOrder(t *testing.T) {
 	}
 
 	store := NewStore(f)
-	if err := store.Delete(2); err != nil {
+
+	records, err := store.Load()
+	if err != nil {
+		t.Errorf("cant load records")
+	}
+
+	if err := store.Delete(records[2].RecordID.String()); err != nil {
 		t.Errorf("cant delete records due to: %v", err)
 	}
-	records, err := store.Load()
+	records, err = store.Load()
 	if err != nil {
 		t.Errorf("cant load records: %v", err)
 	}
@@ -393,4 +415,18 @@ func TestDeleteOrder(t *testing.T) {
 	if records[2].Duration.String() != "6m10s" {
 		t.Errorf("expected: %v, got: %v", "6m10s", records[0].Duration.String())
 	}
+}
+
+func TestWriteCsvFail(t *testing.T) {
+	w := &Writer{}
+	err := writeCsv([][]string{[]string{"", "22m0s", "project", ""}}, w)
+	if err == nil {
+		t.Errorf("it should fail")
+	}
+}
+
+type Writer struct{}
+
+func (w *Writer) Write(p []byte) (int, error) {
+	return 0, fmt.Errorf("disk is full")
 }

@@ -129,12 +129,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			err := m.historyStore.Delete(msg.deleteRecord)
 			if err != nil {
 				slog.Error("cant delete", "error", err, "delete record", msg.deleteRecord)
+				m.historyPage.deletionError = "cant delete, try later"
+				return m, nil
 			}
 			m.successMessage = "record has deleted"
 			m.screen = dashboardScreen
-			return m, tea.Batch(tea.Tick(time.Second*2, func(t time.Time) tea.Msg {
+			return m, tea.Batch(loadSessions(), tea.Tick(time.Second*2, func(t time.Time) tea.Msg {
 				return clearMsg()
-			}), loadSessions())
+			}))
 		case tea.WindowSizeMsg:
 			var cmd tea.Cmd
 			m.historyPage, cmd = m.historyPage.Update(msg)

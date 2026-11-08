@@ -139,6 +139,7 @@ func TestCompletedControls(t *testing.T) {
 
 func TestCompletedStoresOnce(t *testing.T) {
 	storePath := filepath.Join(t.TempDir(), "sessions.csv")
+
 	historyStore := history.NewStore(storePath)
 	m := model{
 		session:          timer.New(timer.Focus, 20*time.Second, time.Now().Add(-21*time.Second)),
