@@ -2,7 +2,6 @@ package history
 
 import (
 	"encoding/csv"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -413,20 +412,23 @@ func TestDeleteOrder(t *testing.T) {
 	}
 
 	if records[2].Duration.String() != "6m10s" {
-		t.Errorf("expected: %v, got: %v", "6m10s", records[0].Duration.String())
+		t.Errorf("expected: %v, got: %v", "6m10s", records[2].Duration.String())
 	}
 }
 
 func TestWriteCsvFail(t *testing.T) {
-	w := &Writer{}
-	err := writeCsv([][]string{[]string{"", "22m0s", "project", ""}}, w)
+	tempDir := t.TempDir()
+	filename := filepath.Join(tempDir, "sessions.csv")
+
+	file, err := os.OpenFile(filename, os.O_CREATE|os.O_APPEND, 0o600)
+	if err != nil {
+		t.Errorf("cant open file: %v", err)
+	}
+
+	err = writeCsv(file, [][]string{[]string{"", "22m0s", "project", ""}})
 	if err == nil {
 		t.Errorf("it should fail")
 	}
-}
 
-type Writer struct{}
-
-func (w *Writer) Write(p []byte) (int, error) {
-	return 0, fmt.Errorf("disk is full")
+	file.Close()
 }
