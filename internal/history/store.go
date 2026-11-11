@@ -127,6 +127,28 @@ func migrate(path string, rows [][]string) error {
 		return nil
 	}
 
+	for _, row := range rows {
+		if len(row) != 4 {
+			return errors.New("migration failed due to missing fields.")
+		}
+
+		if _, err := time.Parse(time.RFC3339Nano, row[0]); err != nil {
+			return fmt.Errorf("created at parsing failed: %w", err)
+		}
+
+		if _, err := time.ParseDuration(row[1]); err != nil {
+			return fmt.Errorf("duration cant be parsed: %w", err)
+		}
+
+		if strings.TrimSpace(row[2]) == "" {
+			return errors.New("project should be set")
+		}
+
+		if _, err := uuid.Parse(row[3]); err != nil {
+			return fmt.Errorf("uuid cant be parsed: %w", err)
+		}
+	}
+
 	sessionsDir, _ := filepath.Split(path)
 
 	if err := createBackup("sessions-migration", sessionsDir, clonedRows); err != nil {
@@ -259,7 +281,7 @@ func createBackup(prefix, path string, records [][]string) error {
 		fmt.Sprintf("%s-%s.csv", prefix, time.Now().Format("2006-01-02-15-04-05.000")),
 	)
 
-	file, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR, 0o600)
+	file, err := os.OpenFile(filename, os.O_CREATE|os.O_EXCL|os.O_RDWR, 0o600)
 	if err != nil {
 		return err
 	}

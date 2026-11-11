@@ -432,3 +432,74 @@ func TestWriteCsvFail(t *testing.T) {
 
 	file.Close()
 }
+
+func TestInvalidCsvFail(t *testing.T) {
+	const validLegacyRow = "2026-11-11T12:00:00Z,22m0s,project1\n"
+	tests := []struct {
+		name    string
+		rows    string
+		wantErr string
+	}{
+		{
+			name:    "two-field timestamp",
+			rows:    "invalid-date,22m0s\n",
+			wantErr: "created at parsing failed",
+		},
+		{
+			name:    "three-field timestamp",
+			rows:    "invalid-date,22m0s,project1\n",
+			wantErr: "created at parsing failed",
+		},
+		{
+			name:    "duration",
+			rows:    "2026-11-11T12:00:00Z,invalid-duration,project1\n",
+			wantErr: "duration cant be parsed",
+		},
+		{
+			name:    "blank project",
+			rows:    "2026-11-11T12:00:00Z,22m0s,   \n",
+			wantErr: "project should be set",
+		},
+		{
+			name:    "invalid UUID after valid legacy row",
+			rows:    validLegacyRow + "2026-11-11T13:00:00Z,25m0s,project1,invalid-uuid\n",
+			wantErr: "uuid cant be parsed",
+		},
+		{
+			name:    "unsupported field count after valid legacy row",
+			rows:    validLegacyRow + "2026-11-11T13:00:00Z,25m0s,project1,extra,field\n",
+			wantErr: "missing fields",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			filename := filepath.Join(dir, "sessions.csv")
+			if err := os.WriteFile(filename, []byte(tt.rows), 0o600); err != nil {
+				t.Fatalf("write original history: %v", err)
+			}
+
+			_, err := NewStore(filename).Load()
+			if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+				t.Fatalf("Load error = %v, want error containing %q", err, tt.wantErr)
+			}
+
+			contents, err := os.ReadFile(filename)
+			if err != nil {
+				t.Fatalf("read original history: %v", err)
+			}
+			if string(contents) != tt.rows {
+				t.Errorf("invalid history was modified: got %q, want %q", contents, tt.rows)
+			}
+
+			entries, err := os.ReadDir(dir)
+			if err != nil {
+				t.Fatalf("list history directory: %v", err)
+			}
+			if len(entries) != 1 || entries[0].Name() != "sessions.csv" {
+				t.Errorf("validation failure created extra files: %v", entries)
+			}
+		})
+	}
+}
