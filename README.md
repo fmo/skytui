@@ -19,7 +19,7 @@ Supported release targets:
 | Windows | `amd64` | `.zip` | Yes |
 
 The core timer has no additional runtime dependencies. Linux desktop
-notifications require `notify-send`. Installing from source requires Go 1.25.3
+notifications require `notify-send`. Installing from source requires Go 1.27.3
 or later.
 
 ### Install with Homebrew
@@ -33,14 +33,14 @@ brew install fmo/tap/skytui
 ### Download a binary
 
 Download the appropriate archive from the
-[GitHub release](https://github.com/fmo/skytui/releases/tag/v1.3.0):
+[GitHub release](https://github.com/fmo/skytui/releases/tag/v1.4.0):
 
-- [macOS Apple Silicon (`arm64`)](https://github.com/fmo/skytui/releases/download/v1.3.0/skytui_1.3.0_darwin_arm64.tar.gz)
-- [macOS Intel (`amd64`)](https://github.com/fmo/skytui/releases/download/v1.3.0/skytui_1.3.0_darwin_amd64.tar.gz)
-- [Linux (`arm64`)](https://github.com/fmo/skytui/releases/download/v1.3.0/skytui_1.3.0_linux_arm64.tar.gz)
-- [Linux (`amd64`)](https://github.com/fmo/skytui/releases/download/v1.3.0/skytui_1.3.0_linux_amd64.tar.gz)
-- [Windows (`amd64`)](https://github.com/fmo/skytui/releases/download/v1.3.0/skytui_1.3.0_windows_amd64.zip)
-- [SHA-256 checksums](https://github.com/fmo/skytui/releases/download/v1.3.0/checksums.txt)
+- [macOS Apple Silicon (`arm64`)](https://github.com/fmo/skytui/releases/download/v1.4.0/skytui_1.4.0_darwin_arm64.tar.gz)
+- [macOS Intel (`amd64`)](https://github.com/fmo/skytui/releases/download/v1.4.0/skytui_1.4.0_darwin_amd64.tar.gz)
+- [Linux (`arm64`)](https://github.com/fmo/skytui/releases/download/v1.4.0/skytui_1.4.0_linux_arm64.tar.gz)
+- [Linux (`amd64`)](https://github.com/fmo/skytui/releases/download/v1.4.0/skytui_1.4.0_linux_amd64.tar.gz)
+- [Windows (`amd64`)](https://github.com/fmo/skytui/releases/download/v1.4.0/skytui_1.4.0_windows_amd64.zip)
+- [SHA-256 checksums](https://github.com/fmo/skytui/releases/download/v1.4.0/checksums.txt)
 
 On macOS or Linux, extract the archive and move `skytui` to a directory in your
 `PATH`, such as `/usr/local/bin`. On Windows, extract `skytui.exe` and add its
@@ -78,7 +78,7 @@ grep linux_amd64 checksums.txt | sha256sum -c -
 Windows PowerShell:
 
 ```powershell
-Get-FileHash .\skytui_1.3.0_windows_amd64.zip -Algorithm SHA256
+Get-FileHash .\skytui_1.4.0_windows_amd64.zip -Algorithm SHA256
 ```
 
 Compare the PowerShell result with the matching entry in `checksums.txt`.
@@ -87,10 +87,10 @@ A valid download reports OK.
 
 ### Install with Go
 
-Requires Go 1.25.3 or later.
+Requires Go 1.27.3 or later.
 
 ```sh
-go install github.com/fmo/skytui@v1.3.0
+go install github.com/fmo/skytui@v1.4.0
 ```
 
 ## Usage
@@ -121,6 +121,11 @@ session never starts automatically. Press `p` after any session completes to
 choose the project for a future focus session without changing the completed
 session or starting a new one.
 
+Press `d` from the dashboard after a session completes to edit the focus
+duration for future sessions. Press `Enter` to apply a valid duration or `Esc`
+to cancel. This changes neither the completed session nor the short-break
+duration, and is not saved to `config.yaml`.
+
 Press `f` from the dashboard or either statistics view to filter dashboard
 totals, recent sessions, and statistics by all projects, one project, or
 unassigned legacy sessions. Applying a filter does not affect the active
@@ -132,6 +137,14 @@ Press `m` to show the latest twelve calendar months and `w` to return to Weekly
 mode. Both views include periods with no completed sessions and show completed
 focus-session counts and total focus time. The active timer continues while
 the statistics screen is open.
+
+Press `h` from the dashboard to browse all saved focus sessions matching the
+current project filter in a scrollable table. Select a row with the arrow keys
+or `j`/`k`, then press `d` to request deletion. Confirmation defaults to Cancel
+(shown as `Esc`); use Left/Right to select Delete, then `Enter` to confirm.
+Press `Esc` to cancel confirmation or return from History. The timer keeps
+running while History is open. Each deletion first creates a backup of the
+complete history CSV, including records outside the current filter.
 
 Show installed version:
 
@@ -147,15 +160,20 @@ skytui --help
 
 ## Controls
 
-- `Up`/`Down` or `k`/`j` moves through project and history-filter options.
+- `Up`/`Down` or `k`/`j` moves through project/filter options and History rows.
 - `Enter` selects or creates a project, or applies the highlighted history
   filter.
 - `n` opens project creation from the picker.
-- `Esc` cancels project creation, project selection, or project filtering, or
-  returns from statistics.
+- `Esc` cancels project creation, project selection, project filtering, duration
+  editing, or deletion confirmation, or returns from statistics or History.
 - `f` opens the shared project filter from the dashboard or statistics.
 - `s` opens focus statistics for the current project filter in Weekly mode.
 - `w` and `m` switch between Weekly and Monthly statistics.
+- `h` opens History for the current project filter from the dashboard.
+- `d` edits the focus duration after completion on the dashboard; in History,
+  it opens deletion confirmation for the selected record.
+- `Left`/`Right` selects Delete or Cancel in deletion confirmation; `Enter`
+  activates the selected action. Enter on the History table does not delete.
 - `Space` pauses or resumes the session.
 - `r` resets a running or paused session to its full duration. Running sessions
   continue immediately; paused sessions remain paused.
@@ -203,8 +221,9 @@ The project and session files are named `projects.csv` and `sessions.csv`.
 SkyTUI creates missing directories and a default configuration on first run.
 
 Completed focus sessions survive restarts. A running or paused timer is held
-only in memory, so reopening SkyTUI starts a new focus session. Legacy
-two-field session rows remain supported and are loaded without being rewritten.
+only in memory, so reopening SkyTUI starts a new focus session. Legacy session
+files are backed up and migrated automatically; see
+[History format and backups](#history-format-and-backups).
 
 ## Notifications
 
@@ -255,9 +274,41 @@ month, session count, and total focus time for the current project filter.
 Empty months remain visible as well. Calendar-month boundaries follow the
 current system timezone.
 
-Sessions created before `v0.6.0` remain supported. Their existing two-field CSV
-rows are loaded as unassigned sessions and are not rewritten. New focus sessions
-include their project ID as a third field.
+### History format and backups
+
+Starting with v1.4.0, each session row has four fields and no header:
+
+```text
+timestamp,duration,projectID,recordID
+```
+
+The timestamp uses RFC3339 with optional fractional seconds, duration uses Go
+duration syntax such as `25m0s`, and `recordID` is a persistent UUID. Deletion
+uses the UUID rather than the table position or formatted date.
+
+Two-field rows (`timestamp,duration`) and three-field rows
+(`timestamp,duration,projectID`) are validated and migrated when loaded. Missing
+project IDs in two-field rows become `Unassigned`; existing project IDs are
+preserved. Generated record UUIDs are saved once and retained on later loads.
+Invalid input stops migration before the original file is replaced.
+
+Backups are stored beside `sessions.csv`:
+
+- `sessions-migration-<timestamp>.csv`: original history before format migration.
+- `sessions-delete-<timestamp>.csv`: complete history before a deletion.
+
+Backup names include milliseconds, and an existing backup is never overwritten.
+If backup creation or replacement fails, the operation returns an error.
+Completed backups are retained; failed temporary replacement files are cleaned
+up when possible. Backups are not pruned automatically. A manual backup action
+is not included in this release.
+
+Older SkyTUI versions cannot read the four-field format. To restore an old-format
+backup, first stop all running SkyTUI instances, keep a copy of the current
+history, and restore the backup as `sessions.csv`. A pre-migration backup does
+not contain sessions created afterward. Do not run old and new versions against
+the same history file. When testing development builds, use a disposable copy
+of your data rather than your everyday history.
 
 ## Logs
 
