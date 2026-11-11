@@ -41,7 +41,7 @@ func TestProjectFiltersRecentSessionsAndTotals(t *testing.T) {
 		{
 			name:         "all projects",
 			filter:       history.Filter{Mode: history.AllProjects},
-			wantIDs:      []string{"", "project-1", "project-10"},
+			wantIDs:      []string{"Unassigned", "project-1", "project-10"},
 			wantDuration: time.Hour,
 		},
 		{
@@ -53,7 +53,7 @@ func TestProjectFiltersRecentSessionsAndTotals(t *testing.T) {
 		{
 			name:         "unassigned",
 			filter:       history.Filter{Mode: history.Unassigned},
-			wantIDs:      []string{""},
+			wantIDs:      []string{"Unassigned"},
 			wantDuration: 10 * time.Minute,
 		},
 		{

@@ -4,6 +4,8 @@ All notable changes to SkyTUI are documented in this file.
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-11-11
+
 ### Added
 
 - Change the focus duration with `d` after a session completes without
@@ -15,6 +17,35 @@ All notable changes to SkyTUI are documented in this file.
   configured short-break duration.
 - Show a temporary dashboard confirmation after changing the runtime focus
   duration and clear it through the Bubble Tea command and message cycle.
+- Browse history for the current project filter in a scrollable table with `h`.
+- Delete a selected history record with `d` after explicitly confirming it.
+- Create an automatic backup before deleting history or migrating its format.
+- Give each history record a persistent UUID so deletion identifies the
+  selected session independently of filtering and table position.
+
+### Changed
+
+- Migrate legacy two- and three-field session CSV rows to the four-field format
+  `timestamp,duration,projectID,recordID`. Validate records before migration
+  writes the replacement file and retain a backup of the original history.
+- Require Go 1.27.3 or later when building from source.
+
+### Fixed
+
+- Keep the countdown running while browsing history and scope deletion keys to
+  the confirmation screen.
+- Preserve record IDs when resizing the history table and ignore deletion when
+  no record is selected.
+- Report deletion failures without displaying a success confirmation.
+- Check file writing and closing errors, clean up incomplete replacement files,
+  and refuse to overwrite an existing backup.
+
+### Upgrade notes
+
+- History migration happens automatically when legacy history is loaded.
+  Older SkyTUI releases cannot read the new format. Keep the pre-migration
+  backup if you may need to downgrade; restoring it will not include sessions
+  recorded after migration.
 
 ## [1.3.0] - 2026-09-25
 
@@ -209,7 +240,8 @@ SkyTUI's first public release for macOS.
 - Provide built-in `--help` and `--version` output.
 - Publish archives for Apple Silicon and Intel Macs.
 
-[Unreleased]: https://github.com/fmo/skytui/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/fmo/skytui/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/fmo/skytui/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/fmo/skytui/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/fmo/skytui/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/fmo/skytui/compare/v1.0.0...v1.1.0

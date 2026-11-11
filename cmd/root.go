@@ -14,7 +14,7 @@ import (
 )
 
 func newRootCmd(
-	historyStore history.Store,
+	historyStore *history.Store,
 	projectStore *project.Store,
 	settings *config.Config,
 	defaultFocusDuration,
@@ -25,7 +25,7 @@ func newRootCmd(
 	rootCmd := &cobra.Command{
 		Use:     "skytui",
 		Short:   "Execute SkyTUI Dashboard",
-		Version: "v1.3.0",
+		Version: "v1.4.0",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			focusDuration, err := cmd.Flags().GetDuration("duration")
 			if err != nil {
@@ -52,7 +52,7 @@ func newRootCmd(
 }
 
 func Exec(
-	historyStore history.Store,
+	historyStore *history.Store,
 	projectStore *project.Store,
 	settings *config.Config,
 	defaultFocusDuration,
@@ -60,7 +60,14 @@ func Exec(
 	notificationsEnabled bool,
 	notifier notifier.Notifier,
 ) error {
-	if err := newRootCmd(historyStore, projectStore, settings, defaultFocusDuration, shortBreakDuration, notificationsEnabled, notifier).Execute(); err != nil {
+	if err := newRootCmd(
+		historyStore,
+		projectStore,
+		settings,
+		defaultFocusDuration,
+		shortBreakDuration,
+		notificationsEnabled,
+		notifier).Execute(); err != nil {
 		return err
 	}
 

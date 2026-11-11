@@ -170,18 +170,19 @@ func statsContent(
 		"",
 		summaryRow("Today's", formatDuration(todaysTotal)),
 		summaryRow("This week", formatDuration(thisWeek)),
+
 		summaryRow("This month", formatDuration(thisMonth)),
 		summaryRow("Total", formatDuration(allTime)),
 	)
 }
 
 func bottomContent(status timer.Status, availableWidth int) string {
-	controls := []string{"[q] Quit", "[Space] Pause", "[r] Reset", "[f] Filter", "[s] Stats"}
+	controls := []string{"[q] Quit", "[Space] Pause", "[r] Reset", "[f] Filter", "[s] Stats", "[h] History"}
 	if status == timer.Paused {
 		controls[1] = "[Space] Resume"
 	}
 	if status == timer.Completed {
-		controls = []string{"[q] Quit", "[n] Next", "[f] Filter", "[s] Stats", "[p] Project", "[d] Duration"}
+		controls = []string{"[q] Quit", "[n] Next", "[f] Filter", "[s] Stats", "[p] Project", "[d] Duration", "[h] History"}
 	}
 
 	separator := "   "
@@ -286,9 +287,7 @@ func (m model) dashboardView() tea.View {
 
 	footer := bottomContent(m.session.Status(), width)
 	dashboardRows := []string{renderPanel(content, width, m.session.Kind())}
-	if lipgloss.Height(footer) == 1 {
-		dashboardRows = append(dashboardRows, "")
-	}
+	dashboardRows = append(dashboardRows, "")
 	dashboardRows = append(dashboardRows, footer)
 	dashboard := lipgloss.JoinVertical(lipgloss.Left, dashboardRows...)
 
