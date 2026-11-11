@@ -420,17 +420,21 @@ func TestWriteCsvFail(t *testing.T) {
 	tempDir := t.TempDir()
 	filename := filepath.Join(tempDir, "sessions.csv")
 
-	file, err := os.OpenFile(filename, os.O_CREATE|os.O_APPEND, 0o600)
+	if err := os.WriteFile(filename, nil, 0o600); err != nil {
+		t.Fatalf("create test file: %v", err)
+	}
+
+	// Open provides a read-only handle on every supported platform.
+	file, err := os.Open(filename)
 	if err != nil {
-		t.Errorf("cant open file: %v", err)
+		t.Fatalf("open read-only test file: %v", err)
 	}
+	defer file.Close()
 
-	err = writeCsv(file, [][]string{[]string{"", "22m0s", "project", ""}})
+	err = writeCsv(file, [][]string{{"", "22m0s", "project", ""}})
 	if err == nil {
-		t.Errorf("it should fail")
+		t.Error("writeCsv succeeded with a read-only file; want a write error")
 	}
-
-	file.Close()
 }
 
 func TestInvalidCsvFail(t *testing.T) {
