@@ -151,7 +151,7 @@ func migrate(path string, rows [][]string) error {
 
 	sessionsDir, _ := filepath.Split(path)
 
-	if err := createBackup("sessions-migration", sessionsDir, clonedRows); err != nil {
+	if _, err := createBackup("sessions-migration", sessionsDir, clonedRows); err != nil {
 		return fmt.Errorf("cant create sessions backup: %w", err)
 	}
 
@@ -214,7 +214,7 @@ func (s *Store) Delete(record string) error {
 
 	sessionsDir, _ := filepath.Split(s.path)
 
-	if err := createBackup("sessions-delete", sessionsDir, records); err != nil {
+	if _, err := createBackup("sessions-delete", sessionsDir, records); err != nil {
 		return fmt.Errorf("cant create sessions backup: %w", err)
 	}
 
@@ -275,7 +275,7 @@ func createTemp(prefix, path string, records [][]string) (*os.File, error) {
 	return file, nil
 }
 
-func createBackup(prefix, path string, records [][]string) error {
+func createBackup(prefix, path string, records [][]string) (string, error) {
 	filename := filepath.Join(
 		path,
 		fmt.Sprintf("%s-%s.csv", prefix, time.Now().Format("2006-01-02-15-04-05.000")),
@@ -283,21 +283,21 @@ func createBackup(prefix, path string, records [][]string) error {
 
 	file, err := os.OpenFile(filename, os.O_CREATE|os.O_EXCL|os.O_RDWR, 0o600)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer file.Close()
 
 	if err := writeCsv(file, records); err != nil {
 		cleanupFile(file)
-		return err
+		return "", err
 	}
 
 	if err := file.Close(); err != nil {
 		cleanupFile(file)
-		return err
+		return "", err
 	}
 
-	return nil
+	return filename, nil
 }
 
 func (s *Store) TodaysTotal(records []Record) time.Duration {

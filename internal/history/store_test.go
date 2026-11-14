@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -413,6 +414,39 @@ func TestDeleteOrder(t *testing.T) {
 
 	if records[2].Duration.String() != "6m10s" {
 		t.Errorf("expected: %v, got: %v", "6m10s", records[2].Duration.String())
+	}
+}
+
+func TestCreateBackupReturnsSavedPath(t *testing.T) {
+	dir := t.TempDir()
+	want := [][]string{
+		{"2026-11-12T10:00:00Z", "25m0s", "project-1", "550e8400-e29b-41d4-a716-446655440000"},
+		{"2026-11-12T11:00:00Z", "10m0s", "project-2", "550e8400-e29b-41d4-a716-446655440001"},
+	}
+
+	path, err := createBackup("sessions-manual", dir, want)
+	if err != nil {
+		t.Fatalf("create backup: %v", err)
+	}
+	if path == "" {
+		t.Fatal("createBackup returned an empty path")
+	}
+	if filepath.Dir(path) != filepath.Clean(dir) {
+		t.Fatalf("backup directory = %q, want %q", filepath.Dir(path), dir)
+	}
+
+	file, err := os.Open(path)
+	if err != nil {
+		t.Fatalf("open returned backup path %q: %v", path, err)
+	}
+	defer file.Close()
+
+	got, err := csv.NewReader(file).ReadAll()
+	if err != nil {
+		t.Fatalf("read backup: %v", err)
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("backup records = %#v, want %#v", got, want)
 	}
 }
 
