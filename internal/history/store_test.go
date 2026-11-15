@@ -417,6 +417,46 @@ func TestDeleteOrder(t *testing.T) {
 	}
 }
 
+func TestManualBackupPreservesHistory(t *testing.T) {
+	dir := t.TempDir()
+	sourcePath := filepath.Join(dir, "sessions.csv")
+	const original = "2026-11-12T10:00:00Z,25m0s,project-1,550e8400-e29b-41d4-a716-446655440000\n" +
+		"2026-11-12T11:00:00Z,10m0s,project-2,550e8400-e29b-41d4-a716-446655440001\n"
+	if err := os.WriteFile(sourcePath, []byte(original), 0o600); err != nil {
+		t.Fatalf("write original history: %v", err)
+	}
+
+	backupPath, err := NewStore(sourcePath).Backup()
+	if err != nil {
+		t.Fatalf("back up history: %v", err)
+	}
+	if backupPath == "" || filepath.Clean(backupPath) == sourcePath {
+		t.Fatalf("backup path = %q, want a separate backup file", backupPath)
+	}
+	if filepath.Dir(backupPath) != dir {
+		t.Fatalf("backup directory = %q, want %q", filepath.Dir(backupPath), dir)
+	}
+	if !strings.HasPrefix(filepath.Base(backupPath), "sessions-manual-") {
+		t.Errorf("backup filename = %q, want sessions-manual- prefix", filepath.Base(backupPath))
+	}
+
+	backup, err := os.ReadFile(backupPath)
+	if err != nil {
+		t.Fatalf("read backup: %v", err)
+	}
+	if string(backup) != original {
+		t.Errorf("backup contents = %q, want both original records in order: %q", backup, original)
+	}
+
+	source, err := os.ReadFile(sourcePath)
+	if err != nil {
+		t.Fatalf("read original history: %v", err)
+	}
+	if string(source) != original {
+		t.Errorf("original history changed: got %q, want %q", source, original)
+	}
+}
+
 func TestCreateBackupReturnsSavedPath(t *testing.T) {
 	dir := t.TempDir()
 	want := [][]string{

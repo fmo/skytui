@@ -149,7 +149,7 @@ func migrate(path string, rows [][]string) error {
 		}
 	}
 
-	sessionsDir, _ := filepath.Split(path)
+	sessionsDir := filepath.Dir(path)
 
 	if _, err := createBackup("sessions-migration", sessionsDir, clonedRows); err != nil {
 		return fmt.Errorf("cant create sessions backup: %w", err)
@@ -198,6 +198,19 @@ func readAllCsv(path string) ([][]string, error) {
 	return records, nil
 }
 
+// Backup creates a recovery copy of the complete stored history and returns its path.
+func (s *Store) Backup() (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	records, err := readAllCsv(s.path)
+	if err != nil {
+		return "", err
+	}
+
+	return createBackup("sessions-manual", filepath.Dir(s.path), records)
+}
+
 func (s *Store) Delete(record string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -212,7 +225,7 @@ func (s *Store) Delete(record string) error {
 		return err
 	}
 
-	sessionsDir, _ := filepath.Split(s.path)
+	sessionsDir := filepath.Dir(s.path)
 
 	if _, err := createBackup("sessions-delete", sessionsDir, records); err != nil {
 		return fmt.Errorf("cant create sessions backup: %w", err)
