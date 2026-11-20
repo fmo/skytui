@@ -2,6 +2,7 @@ package history
 
 import (
 	"encoding/csv"
+	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -510,6 +511,40 @@ func TestManualBackupWithoutHistory(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestManualBackupReturnsReadError(t *testing.T) {
+	dir := t.TempDir()
+	sourcePath := filepath.Join(dir, "sessions.csv")
+	const original = "2026-11-12T10:00:00Z,25m0s,project-1,550e8400-e29b-41d4-a716-446655440000\n" +
+		"\"unterminated field"
+	if err := os.WriteFile(sourcePath, []byte(original), 0o600); err != nil {
+		t.Fatalf("write malformed history: %v", err)
+	}
+
+	backupPath, err := NewStore(sourcePath).Backup()
+	if !errors.Is(err, csv.ErrQuote) {
+		t.Errorf("Backup error = %v, want CSV quoting error", err)
+	}
+	if backupPath != "" {
+		t.Errorf("backup path = %q, want empty on read failure", backupPath)
+	}
+
+	source, err := os.ReadFile(sourcePath)
+	if err != nil {
+		t.Fatalf("read original history: %v", err)
+	}
+	if string(source) != original {
+		t.Errorf("original history changed: got %q, want %q", source, original)
+	}
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatalf("list history directory: %v", err)
+	}
+	if len(entries) != 1 || entries[0].Name() != "sessions.csv" {
+		t.Errorf("read failure created extra files: %v", entries)
 	}
 }
 
