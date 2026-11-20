@@ -457,6 +457,62 @@ func TestManualBackupPreservesHistory(t *testing.T) {
 	}
 }
 
+func TestManualBackupWithoutHistory(t *testing.T) {
+	tests := []struct {
+		name         string
+		createSource bool
+	}{
+		{name: "missing file"},
+		{name: "empty file", createSource: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			sourcePath := filepath.Join(dir, "sessions.csv")
+			if tt.createSource {
+				if err := os.WriteFile(sourcePath, nil, 0o600); err != nil {
+					t.Fatalf("create empty history: %v", err)
+				}
+			}
+
+			backupPath, err := NewStore(sourcePath).Backup()
+			if err != nil {
+				t.Errorf("Backup error = %v, want nil for history without records", err)
+			}
+			if backupPath != "" {
+				t.Errorf("backup path = %q, want empty", backupPath)
+			}
+
+			entries, err := os.ReadDir(dir)
+			if err != nil {
+				t.Fatalf("list history directory: %v", err)
+			}
+			var wantNames []string
+			if tt.createSource {
+				wantNames = []string{"sessions.csv"}
+			}
+			var gotNames []string
+			for _, entry := range entries {
+				gotNames = append(gotNames, entry.Name())
+			}
+			if !reflect.DeepEqual(gotNames, wantNames) {
+				t.Errorf("files after backup = %v, want %v", gotNames, wantNames)
+			}
+
+			if tt.createSource {
+				contents, err := os.ReadFile(sourcePath)
+				if err != nil {
+					t.Fatalf("read original history: %v", err)
+				}
+				if len(contents) != 0 {
+					t.Errorf("empty history changed: got %q", contents)
+				}
+			}
+		})
+	}
+}
+
 func TestCreateBackupReturnsSavedPath(t *testing.T) {
 	dir := t.TempDir()
 	want := [][]string{

@@ -160,13 +160,20 @@ func migrate(path string, rows [][]string) error {
 }
 
 // Backup creates a recovery copy of the complete stored history and returns its path.
+// Missing or empty history returns an empty path without creating a backup.
 func (s *Store) Backup() (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	records, err := readAllCsv(s.path)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return "", nil
+		}
 		return "", err
+	}
+	if len(records) == 0 {
+		return "", nil
 	}
 
 	return createBackup("sessions-manual", filepath.Dir(s.path), records)
