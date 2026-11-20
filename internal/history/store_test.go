@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"testing/synctest"
 	"time"
 )
 
@@ -603,6 +604,51 @@ func TestCreateBackupReturnsCreationError(t *testing.T) {
 	if len(entries) != 0 {
 		t.Errorf("creation failure left files or directories behind: %v", entries)
 	}
+}
+
+func TestCreateBackupDoesNotOverwriteExistingFile(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		dir := t.TempDir()
+		originalRecords := [][]string{
+			{"2026-11-12T10:00:00Z", "25m0s", "project-1", "550e8400-e29b-41d4-a716-446655440000"},
+			{"2026-11-12T11:00:00Z", "10m0s", "project-2", "550e8400-e29b-41d4-a716-446655440001"},
+		}
+		originalPath, err := createBackup("sessions-manual", dir, originalRecords)
+		if err != nil {
+			t.Fatalf("create original backup: %v", err)
+		}
+		original, err := os.ReadFile(originalPath)
+		if err != nil {
+			t.Fatalf("read original backup: %v", err)
+		}
+
+		// The bubble's clock stays fixed, so both requests use the same filename.
+		replacementRecords := [][]string{
+			{"2026-11-12T12:00:00Z", "5m0s", "project-3", "550e8400-e29b-41d4-a716-446655440002"},
+		}
+		backupPath, err := createBackup("sessions-manual", dir, replacementRecords)
+		if !errors.Is(err, os.ErrExist) {
+			t.Errorf("createBackup error = %v, want existing-file error", err)
+		}
+		if backupPath != "" {
+			t.Errorf("backup path = %q, want empty on collision", backupPath)
+		}
+
+		contents, err := os.ReadFile(originalPath)
+		if err != nil {
+			t.Fatalf("read backup after collision: %v", err)
+		}
+		if string(contents) != string(original) {
+			t.Errorf("collision changed existing backup: got %q, want %q", contents, original)
+		}
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			t.Fatalf("list backup directory: %v", err)
+		}
+		if len(entries) != 1 || entries[0].Name() != filepath.Base(originalPath) {
+			t.Errorf("collision changed directory contents: %v", entries)
+		}
+	})
 }
 
 func TestWriteCsvFail(t *testing.T) {
