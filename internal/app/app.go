@@ -51,6 +51,7 @@ type model struct {
 	statsPage            statsPage
 	durationEditor       durationEditor
 	historyPage          historyPage
+	backupStatus         backupStatus
 }
 
 func New(
@@ -143,6 +144,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, cmd
 		case tea.KeyPressMsg:
 			switch msg.String() {
+			case "b":
+				if m.historyPage.subpage != mainHistoryPage || m.backupStatus == backupPending {
+					return m, nil
+				}
+				m.backupStatus = backupPending
+				return m, backupHistory(m.historyStore)
 			case "esc":
 				if m.historyPage.subpage == mainHistoryPage {
 					m.screen = dashboardScreen
