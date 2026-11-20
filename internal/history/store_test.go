@@ -581,6 +581,30 @@ func TestCreateBackupReturnsSavedPath(t *testing.T) {
 	}
 }
 
+func TestCreateBackupReturnsCreationError(t *testing.T) {
+	dir := t.TempDir()
+	missingDir := filepath.Join(dir, "missing")
+	records := [][]string{
+		{"2026-11-12T10:00:00Z", "25m0s", "project-1", "550e8400-e29b-41d4-a716-446655440000"},
+	}
+
+	backupPath, err := createBackup("sessions-manual", missingDir, records)
+	if !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("createBackup error = %v, want missing-directory error", err)
+	}
+	if backupPath != "" {
+		t.Errorf("backup path = %q, want empty on creation failure", backupPath)
+	}
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatalf("list parent directory: %v", err)
+	}
+	if len(entries) != 0 {
+		t.Errorf("creation failure left files or directories behind: %v", entries)
+	}
+}
+
 func TestWriteCsvFail(t *testing.T) {
 	tempDir := t.TempDir()
 	filename := filepath.Join(tempDir, "sessions.csv")
