@@ -76,3 +76,62 @@ func TestManualBackupStartsAsCommand(t *testing.T) {
 		t.Errorf("backup contents = %q, want %q", backup, original)
 	}
 }
+
+func TestManualBackupResultHandledAfterLeavingHistory(t *testing.T) {
+	dir := t.TempDir()
+	sourcePath := filepath.Join(dir, "sessions.csv")
+	const original = "2026-11-12T10:00:00Z,25m0s,project-1,550e8400-e29b-41d4-a716-446655440000\n"
+	if err := os.WriteFile(sourcePath, []byte(original), 0o600); err != nil {
+		t.Fatalf("write original history: %v", err)
+	}
+	store := history.NewStore(sourcePath)
+	records, err := store.Load()
+	if err != nil {
+		t.Fatalf("load history: %v", err)
+	}
+	m := model{
+		screen:       historyScreen,
+		historyStore: store,
+		historyPage:  NewHistoryPage(records, 80),
+		sessions:     records,
+		session:      timer.New(timer.Focus, 25*time.Minute, time.Now()),
+		width:        80,
+	}
+
+	updated, backupCmd := m.Update(tea.KeyPressMsg{Code: 'b'})
+	got := updated.(model)
+	if backupCmd == nil || got.backupStatus != backupPending {
+		t.Fatal("backup should be pending with a command to execute")
+	}
+
+	updated, _ = got.Update(tea.KeyPressMsg{Code: tea.KeyEsc})
+	got = updated.(model)
+	if got.screen != dashboardScreen {
+		t.Fatalf("Esc left screen = %v, want dashboard", got.screen)
+	}
+	if got.backupStatus != backupPending {
+		t.Fatal("leaving History should not clear the pending backup")
+	}
+
+	// Finish the command only after leaving History, making the order explicit.
+	msg := backupCmd()
+	result, ok := msg.(historyBackupResult)
+	if !ok {
+		t.Fatalf("command returned %T, want historyBackupResult", msg)
+	}
+	if result.err != nil || result.path == "" {
+		t.Fatalf("backup command returned path %q and error %v, want success", result.path, result.err)
+	}
+	updated, _ = got.Update(result)
+	got = updated.(model)
+
+	if got.backupStatus != backupSucceeded {
+		t.Error("successful result should mark the backup as succeeded after leaving History")
+	}
+	if got.backupPath != result.path {
+		t.Errorf("saved backup path = %q, want %q", got.backupPath, result.path)
+	}
+	if got.screen != dashboardScreen {
+		t.Errorf("backup completion changed screen to %v, want dashboard", got.screen)
+	}
+}
