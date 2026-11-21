@@ -2,10 +2,13 @@ package history
 
 import (
 	"encoding/csv"
+	"errors"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
+	"testing/synctest"
 	"time"
 )
 
@@ -414,6 +417,238 @@ func TestDeleteOrder(t *testing.T) {
 	if records[2].Duration.String() != "6m10s" {
 		t.Errorf("expected: %v, got: %v", "6m10s", records[2].Duration.String())
 	}
+}
+
+func TestManualBackupPreservesHistory(t *testing.T) {
+	dir := t.TempDir()
+	sourcePath := filepath.Join(dir, "sessions.csv")
+	const original = "2026-11-12T10:00:00Z,25m0s,project-1,550e8400-e29b-41d4-a716-446655440000\n" +
+		"2026-11-12T11:00:00Z,10m0s,project-2,550e8400-e29b-41d4-a716-446655440001\n"
+	if err := os.WriteFile(sourcePath, []byte(original), 0o600); err != nil {
+		t.Fatalf("write original history: %v", err)
+	}
+
+	backupPath, err := NewStore(sourcePath).Backup()
+	if err != nil {
+		t.Fatalf("back up history: %v", err)
+	}
+	if backupPath == "" || filepath.Clean(backupPath) == sourcePath {
+		t.Fatalf("backup path = %q, want a separate backup file", backupPath)
+	}
+	if filepath.Dir(backupPath) != dir {
+		t.Fatalf("backup directory = %q, want %q", filepath.Dir(backupPath), dir)
+	}
+	if !strings.HasPrefix(filepath.Base(backupPath), "sessions-manual-") {
+		t.Errorf("backup filename = %q, want sessions-manual- prefix", filepath.Base(backupPath))
+	}
+
+	backup, err := os.ReadFile(backupPath)
+	if err != nil {
+		t.Fatalf("read backup: %v", err)
+	}
+	if string(backup) != original {
+		t.Errorf("backup contents = %q, want both original records in order: %q", backup, original)
+	}
+
+	source, err := os.ReadFile(sourcePath)
+	if err != nil {
+		t.Fatalf("read original history: %v", err)
+	}
+	if string(source) != original {
+		t.Errorf("original history changed: got %q, want %q", source, original)
+	}
+}
+
+func TestManualBackupWithoutHistory(t *testing.T) {
+	tests := []struct {
+		name         string
+		createSource bool
+	}{
+		{name: "missing file"},
+		{name: "empty file", createSource: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			sourcePath := filepath.Join(dir, "sessions.csv")
+			if tt.createSource {
+				if err := os.WriteFile(sourcePath, nil, 0o600); err != nil {
+					t.Fatalf("create empty history: %v", err)
+				}
+			}
+
+			backupPath, err := NewStore(sourcePath).Backup()
+			if err != nil {
+				t.Errorf("Backup error = %v, want nil for history without records", err)
+			}
+			if backupPath != "" {
+				t.Errorf("backup path = %q, want empty", backupPath)
+			}
+
+			entries, err := os.ReadDir(dir)
+			if err != nil {
+				t.Fatalf("list history directory: %v", err)
+			}
+			var wantNames []string
+			if tt.createSource {
+				wantNames = []string{"sessions.csv"}
+			}
+			var gotNames []string
+			for _, entry := range entries {
+				gotNames = append(gotNames, entry.Name())
+			}
+			if !reflect.DeepEqual(gotNames, wantNames) {
+				t.Errorf("files after backup = %v, want %v", gotNames, wantNames)
+			}
+
+			if tt.createSource {
+				contents, err := os.ReadFile(sourcePath)
+				if err != nil {
+					t.Fatalf("read original history: %v", err)
+				}
+				if len(contents) != 0 {
+					t.Errorf("empty history changed: got %q", contents)
+				}
+			}
+		})
+	}
+}
+
+func TestManualBackupReturnsReadError(t *testing.T) {
+	dir := t.TempDir()
+	sourcePath := filepath.Join(dir, "sessions.csv")
+	const original = "2026-11-12T10:00:00Z,25m0s,project-1,550e8400-e29b-41d4-a716-446655440000\n" +
+		"\"unterminated field"
+	if err := os.WriteFile(sourcePath, []byte(original), 0o600); err != nil {
+		t.Fatalf("write malformed history: %v", err)
+	}
+
+	backupPath, err := NewStore(sourcePath).Backup()
+	if !errors.Is(err, csv.ErrQuote) {
+		t.Errorf("Backup error = %v, want CSV quoting error", err)
+	}
+	if backupPath != "" {
+		t.Errorf("backup path = %q, want empty on read failure", backupPath)
+	}
+
+	source, err := os.ReadFile(sourcePath)
+	if err != nil {
+		t.Fatalf("read original history: %v", err)
+	}
+	if string(source) != original {
+		t.Errorf("original history changed: got %q, want %q", source, original)
+	}
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatalf("list history directory: %v", err)
+	}
+	if len(entries) != 1 || entries[0].Name() != "sessions.csv" {
+		t.Errorf("read failure created extra files: %v", entries)
+	}
+}
+
+func TestCreateBackupReturnsSavedPath(t *testing.T) {
+	dir := t.TempDir()
+	want := [][]string{
+		{"2026-11-12T10:00:00Z", "25m0s", "project-1", "550e8400-e29b-41d4-a716-446655440000"},
+		{"2026-11-12T11:00:00Z", "10m0s", "project-2", "550e8400-e29b-41d4-a716-446655440001"},
+	}
+
+	path, err := createBackup("sessions-manual", dir, want)
+	if err != nil {
+		t.Fatalf("create backup: %v", err)
+	}
+	if path == "" {
+		t.Fatal("createBackup returned an empty path")
+	}
+	if filepath.Dir(path) != filepath.Clean(dir) {
+		t.Fatalf("backup directory = %q, want %q", filepath.Dir(path), dir)
+	}
+
+	file, err := os.Open(path)
+	if err != nil {
+		t.Fatalf("open returned backup path %q: %v", path, err)
+	}
+	defer file.Close()
+
+	got, err := csv.NewReader(file).ReadAll()
+	if err != nil {
+		t.Fatalf("read backup: %v", err)
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("backup records = %#v, want %#v", got, want)
+	}
+}
+
+func TestCreateBackupReturnsCreationError(t *testing.T) {
+	dir := t.TempDir()
+	missingDir := filepath.Join(dir, "missing")
+	records := [][]string{
+		{"2026-11-12T10:00:00Z", "25m0s", "project-1", "550e8400-e29b-41d4-a716-446655440000"},
+	}
+
+	backupPath, err := createBackup("sessions-manual", missingDir, records)
+	if !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("createBackup error = %v, want missing-directory error", err)
+	}
+	if backupPath != "" {
+		t.Errorf("backup path = %q, want empty on creation failure", backupPath)
+	}
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatalf("list parent directory: %v", err)
+	}
+	if len(entries) != 0 {
+		t.Errorf("creation failure left files or directories behind: %v", entries)
+	}
+}
+
+func TestCreateBackupDoesNotOverwriteExistingFile(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		dir := t.TempDir()
+		originalRecords := [][]string{
+			{"2026-11-12T10:00:00Z", "25m0s", "project-1", "550e8400-e29b-41d4-a716-446655440000"},
+			{"2026-11-12T11:00:00Z", "10m0s", "project-2", "550e8400-e29b-41d4-a716-446655440001"},
+		}
+		originalPath, err := createBackup("sessions-manual", dir, originalRecords)
+		if err != nil {
+			t.Fatalf("create original backup: %v", err)
+		}
+		original, err := os.ReadFile(originalPath)
+		if err != nil {
+			t.Fatalf("read original backup: %v", err)
+		}
+
+		// The bubble's clock stays fixed, so both requests use the same filename.
+		replacementRecords := [][]string{
+			{"2026-11-12T12:00:00Z", "5m0s", "project-3", "550e8400-e29b-41d4-a716-446655440002"},
+		}
+		backupPath, err := createBackup("sessions-manual", dir, replacementRecords)
+		if !errors.Is(err, os.ErrExist) {
+			t.Errorf("createBackup error = %v, want existing-file error", err)
+		}
+		if backupPath != "" {
+			t.Errorf("backup path = %q, want empty on collision", backupPath)
+		}
+
+		contents, err := os.ReadFile(originalPath)
+		if err != nil {
+			t.Fatalf("read backup after collision: %v", err)
+		}
+		if string(contents) != string(original) {
+			t.Errorf("collision changed existing backup: got %q, want %q", contents, original)
+		}
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			t.Fatalf("list backup directory: %v", err)
+		}
+		if len(entries) != 1 || entries[0].Name() != filepath.Base(originalPath) {
+			t.Errorf("collision changed directory contents: %v", entries)
+		}
+	})
 }
 
 func TestWriteCsvFail(t *testing.T) {
