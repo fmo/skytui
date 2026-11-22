@@ -12,6 +12,7 @@ const (
 	backupPending
 	backupSucceeded
 	backupFailed
+	backupEmpty
 )
 
 type historyBackupResult struct {

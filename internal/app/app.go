@@ -128,6 +128,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.backupStatus = backupSucceeded
 			m.backupPath = result.path
 			m.backupError = nil
+		} else {
+			m.backupStatus = backupEmpty
+			m.backupPath = ""
+			m.backupError = nil
 		}
 		return m, nil
 	}

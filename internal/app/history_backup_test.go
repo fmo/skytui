@@ -174,3 +174,34 @@ func TestManualBackupFailureClearsPending(t *testing.T) {
 		t.Errorf("retry should clear the previous backup error, got %v", got.backupError)
 	}
 }
+
+func TestManualBackupEmptyResultClearsPending(t *testing.T) {
+	m := model{
+		screen:       historyScreen,
+		historyStore: history.NewStore(filepath.Join(t.TempDir(), "sessions.csv")),
+		historyPage:  NewHistoryPage(nil, 80),
+		session:      timer.New(timer.Focus, 25*time.Minute, time.Now()),
+		backupStatus: backupPending,
+	}
+
+	updated, cmd := m.Update(historyBackupResult{})
+	got := updated.(model)
+	if got.backupStatus != backupEmpty {
+		t.Error("empty result should change backup status from pending to empty")
+	}
+	if got.backupPath != "" || got.backupError != nil {
+		t.Errorf("empty result stored path %q and error %v, want neither", got.backupPath, got.backupError)
+	}
+	if got.screen != historyScreen {
+		t.Errorf("empty result changed screen to %v, want History", got.screen)
+	}
+	if cmd != nil {
+		t.Error("handling empty history should not start another command")
+	}
+
+	updated, retryCmd := got.Update(tea.KeyPressMsg{Code: 'b'})
+	got = updated.(model)
+	if retryCmd == nil || got.backupStatus != backupPending {
+		t.Error("pressing b after an empty result should start a new pending backup")
+	}
+}
