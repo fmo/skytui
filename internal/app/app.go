@@ -434,7 +434,7 @@ func (m model) View() tea.View {
 		return tea.NewView(m.durationEditor.View(m.width))
 	}
 	if m.screen == historyScreen {
-		return tea.NewView(m.historyPage.View(m.width))
+		return tea.NewView(m.historyPage.View(m.width, m.manualBackupMessage()))
 	}
 
 	return m.dashboardView()
