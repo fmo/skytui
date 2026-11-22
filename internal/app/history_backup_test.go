@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -133,5 +134,43 @@ func TestManualBackupResultHandledAfterLeavingHistory(t *testing.T) {
 	}
 	if got.screen != dashboardScreen {
 		t.Errorf("backup completion changed screen to %v, want dashboard", got.screen)
+	}
+}
+
+func TestManualBackupFailureClearsPending(t *testing.T) {
+	failure := errors.New("backup write failed")
+	m := model{
+		screen:       historyScreen,
+		historyStore: history.NewStore(filepath.Join(t.TempDir(), "sessions.csv")),
+		historyPage:  NewHistoryPage(nil, 80),
+		session:      timer.New(timer.Focus, 25*time.Minute, time.Now()),
+		backupStatus: backupPending,
+	}
+
+	updated, cmd := m.Update(historyBackupResult{err: failure})
+	got := updated.(model)
+	if got.backupStatus != backupFailed {
+		t.Error("failed result should change backup status from pending to failed")
+	}
+	if !errors.Is(got.backupError, failure) {
+		t.Errorf("stored backup error = %v, want %v", got.backupError, failure)
+	}
+	if got.backupPath != "" {
+		t.Errorf("backup path = %q, want empty after failure", got.backupPath)
+	}
+	if got.screen != historyScreen {
+		t.Errorf("failed result changed screen to %v, want History", got.screen)
+	}
+	if cmd != nil {
+		t.Error("handling failure should not start another command")
+	}
+
+	updated, retryCmd := got.Update(tea.KeyPressMsg{Code: 'b'})
+	got = updated.(model)
+	if retryCmd == nil || got.backupStatus != backupPending {
+		t.Error("pressing b after failure should start a new pending backup")
+	}
+	if got.backupError != nil {
+		t.Errorf("retry should clear the previous backup error, got %v", got.backupError)
 	}
 }

@@ -53,6 +53,7 @@ type model struct {
 	historyPage          historyPage
 	backupStatus         backupStatus
 	backupPath           string
+	backupError          error
 }
 
 func New(
@@ -119,9 +120,14 @@ func (m model) Init() tea.Cmd {
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if result, ok := msg.(historyBackupResult); ok {
-		if result.err == nil && result.path != "" {
+		if result.err != nil {
+			m.backupStatus = backupFailed
+			m.backupPath = ""
+			m.backupError = result.err
+		} else if result.path != "" {
 			m.backupStatus = backupSucceeded
 			m.backupPath = result.path
+			m.backupError = nil
 		}
 		return m, nil
 	}
@@ -159,6 +165,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				m.backupStatus = backupPending
 				m.backupPath = ""
+				m.backupError = nil
 				return m, backupHistory(m.historyStore)
 			case "esc":
 				if m.historyPage.subpage == mainHistoryPage {

@@ -11,6 +11,7 @@ const (
 	backupIdle backupStatus = iota
 	backupPending
 	backupSucceeded
+	backupFailed
 )
 
 type historyBackupResult struct {
