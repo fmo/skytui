@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"charm.land/bubbles/v2/progress"
 	tea "charm.land/bubbletea/v2"
 	"github.com/fmo/skytui/internal/history"
 	"github.com/fmo/skytui/internal/timer"
@@ -203,5 +204,67 @@ func TestManualBackupEmptyResultClearsPending(t *testing.T) {
 	got = updated.(model)
 	if retryCmd == nil || got.backupStatus != backupPending {
 		t.Error("pressing b after an empty result should start a new pending backup")
+	}
+}
+
+func TestManualBackupPendingBlocksConflictingActions(t *testing.T) {
+	tests := []struct {
+		name string
+		key  rune
+	}{
+		{name: "duplicate backup", key: 'b'},
+		{name: "delete", key: 'd'},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			now := time.Now()
+			// A nonempty table ensures the deletion guard, not an empty selection,
+			// prevents confirmation from opening.
+			records := []history.Record{{CompletedAt: now, Duration: 25 * time.Minute, ProjectID: "project-1"}}
+			m := model{
+				screen:       historyScreen,
+				historyStore: history.NewStore(filepath.Join(t.TempDir(), "sessions.csv")),
+				historyPage:  NewHistoryPage(records, 80),
+				sessions:     records,
+				session:      timer.New(timer.Focus, time.Hour, now),
+				backupStatus: backupPending,
+			}
+
+			updated, cmd := m.Update(tea.KeyPressMsg{Code: tt.key})
+			got := updated.(model)
+			if cmd != nil {
+				t.Error("conflicting input should not start another command while backup is pending")
+			}
+			if got.backupStatus != backupPending {
+				t.Error("conflicting input should preserve the pending backup")
+			}
+			if got.screen != historyScreen || got.historyPage.subpage != mainHistoryPage {
+				t.Error("conflicting input should leave the main History table open")
+			}
+		})
+	}
+}
+
+func TestManualBackupPendingAllowsTimerTicks(t *testing.T) {
+	now := time.Now()
+	m := model{
+		screen:       historyScreen,
+		historyPage:  NewHistoryPage(nil, 80),
+		session:      timer.New(timer.Focus, time.Hour, now.Add(-10*time.Minute)),
+		progress:     progress.New(),
+		backupStatus: backupPending,
+	}
+	remaining := m.session.Remaining()
+
+	updated, cmd := m.Update(tickType{})
+	got := updated.(model)
+	if got.session.Remaining() >= remaining {
+		t.Error("timer tick should advance the countdown while backup is pending")
+	}
+	if cmd == nil {
+		t.Error("a running countdown should continue scheduling commands")
+	}
+	if got.backupStatus != backupPending || got.screen != historyScreen {
+		t.Error("timer tick should preserve the pending backup and current screen")
 	}
 }

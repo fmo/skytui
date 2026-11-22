@@ -171,6 +171,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.backupPath = ""
 				m.backupError = nil
 				return m, backupHistory(m.historyStore)
+			case "d":
+				if m.backupStatus == backupPending {
+					return m, nil
+				}
 			case "esc":
 				if m.historyPage.subpage == mainHistoryPage {
 					m.screen = dashboardScreen
