@@ -146,6 +146,9 @@ Press `Esc` to cancel confirmation or return from History. The timer keeps
 running while History is open. Each deletion first creates a backup of the
 complete history CSV, including records outside the current filter.
 
+Development builds also support manual backups with `b` from the main History
+table; see [Manual backups](#manual-backups-unreleased).
+
 Show installed version:
 
 ```sh
@@ -170,6 +173,7 @@ skytui --help
 - `s` opens focus statistics for the current project filter in Weekly mode.
 - `w` and `m` switch between Weekly and Monthly statistics.
 - `h` opens History for the current project filter from the dashboard.
+- `b` creates a manual backup from the main History table (Unreleased).
 - `d` edits the focus duration after completion on the dashboard; in History,
   it opens deletion confirmation for the selected record.
 - `Left`/`Right` selects Delete or Cancel in deletion confirmation; `Enter`
@@ -274,6 +278,23 @@ month, session count, and total focus time for the current project filter.
 Empty months remain visible as well. Calendar-month boundaries follow the
 current system timezone.
 
+### Manual backups (Unreleased)
+
+Press `b` from the main History table to back up the complete stored history,
+including sessions hidden by the current project filter. No deletion or
+confirmation is required. The original history, record UUIDs and CSV order are
+preserved.
+
+History displays progress, the saved path on success, or an error on failure.
+Missing or empty history displays `No history to back up` without creating a
+file. Results remain visible until the next backup request and are preserved
+when you leave and reopen History.
+
+While a backup is pending, repeated `b` presses are ignored and `d` does not
+open deletion confirmation. The timer and History navigation continue to work.
+Quitting may interrupt pending work; wait for the success message before
+treating the backup as complete. Failed attempts can be retried with `b`.
+
 ### History format and backups
 
 Starting with v1.4.0, each session row has four fields and no header:
@@ -296,12 +317,14 @@ Backups are stored beside `sessions.csv`:
 
 - `sessions-migration-<timestamp>.csv`: original history before format migration.
 - `sessions-delete-<timestamp>.csv`: complete history before a deletion.
+- `sessions-manual-<timestamp>.csv`: complete history requested with `b`
+  (Unreleased).
 
 Backup names include milliseconds, and an existing backup is never overwritten.
 If backup creation or replacement fails, the operation returns an error.
 Completed backups are retained; failed temporary replacement files are cleaned
-up when possible. Backups are not pruned automatically. A manual backup action
-is not included in this release.
+up when possible. Backups are not pruned automatically. Filename collisions
+return an error rather than overwriting an existing backup.
 
 Older SkyTUI versions cannot read the four-field format. To restore an old-format
 backup, first stop all running SkyTUI instances, keep a copy of the current
