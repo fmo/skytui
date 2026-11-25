@@ -4,6 +4,8 @@ All notable changes to SkyTUI are documented in this file.
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-11-25
+
 ### Added
 
 - Create a manual history backup with `b` from the main History table. Back up
@@ -251,7 +253,8 @@ SkyTUI's first public release for macOS.
 - Provide built-in `--help` and `--version` output.
 - Publish archives for Apple Silicon and Intel Macs.
 
-[Unreleased]: https://github.com/fmo/skytui/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/fmo/skytui/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/fmo/skytui/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/fmo/skytui/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/fmo/skytui/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/fmo/skytui/compare/v1.1.0...v1.2.0

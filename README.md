@@ -33,14 +33,14 @@ brew install fmo/tap/skytui
 ### Download a binary
 
 Download the appropriate archive from the
-[GitHub release](https://github.com/fmo/skytui/releases/tag/v1.4.0):
+[GitHub release](https://github.com/fmo/skytui/releases/tag/v1.5.0):
 
-- [macOS Apple Silicon (`arm64`)](https://github.com/fmo/skytui/releases/download/v1.4.0/skytui_1.4.0_darwin_arm64.tar.gz)
-- [macOS Intel (`amd64`)](https://github.com/fmo/skytui/releases/download/v1.4.0/skytui_1.4.0_darwin_amd64.tar.gz)
-- [Linux (`arm64`)](https://github.com/fmo/skytui/releases/download/v1.4.0/skytui_1.4.0_linux_arm64.tar.gz)
-- [Linux (`amd64`)](https://github.com/fmo/skytui/releases/download/v1.4.0/skytui_1.4.0_linux_amd64.tar.gz)
-- [Windows (`amd64`)](https://github.com/fmo/skytui/releases/download/v1.4.0/skytui_1.4.0_windows_amd64.zip)
-- [SHA-256 checksums](https://github.com/fmo/skytui/releases/download/v1.4.0/checksums.txt)
+- [macOS Apple Silicon (`arm64`)](https://github.com/fmo/skytui/releases/download/v1.5.0/skytui_1.5.0_darwin_arm64.tar.gz)
+- [macOS Intel (`amd64`)](https://github.com/fmo/skytui/releases/download/v1.5.0/skytui_1.5.0_darwin_amd64.tar.gz)
+- [Linux (`arm64`)](https://github.com/fmo/skytui/releases/download/v1.5.0/skytui_1.5.0_linux_arm64.tar.gz)
+- [Linux (`amd64`)](https://github.com/fmo/skytui/releases/download/v1.5.0/skytui_1.5.0_linux_amd64.tar.gz)
+- [Windows (`amd64`)](https://github.com/fmo/skytui/releases/download/v1.5.0/skytui_1.5.0_windows_amd64.zip)
+- [SHA-256 checksums](https://github.com/fmo/skytui/releases/download/v1.5.0/checksums.txt)
 
 On macOS or Linux, extract the archive and move `skytui` to a directory in your
 `PATH`, such as `/usr/local/bin`. On Windows, extract `skytui.exe` and add its
@@ -78,7 +78,7 @@ grep linux_amd64 checksums.txt | sha256sum -c -
 Windows PowerShell:
 
 ```powershell
-Get-FileHash .\skytui_1.4.0_windows_amd64.zip -Algorithm SHA256
+Get-FileHash .\skytui_1.5.0_windows_amd64.zip -Algorithm SHA256
 ```
 
 Compare the PowerShell result with the matching entry in `checksums.txt`.
@@ -90,7 +90,7 @@ A valid download reports OK.
 Requires Go 1.27.3 or later.
 
 ```sh
-go install github.com/fmo/skytui@v1.4.0
+go install github.com/fmo/skytui@v1.5.0
 ```
 
 ## Usage
@@ -147,7 +147,7 @@ running while History is open. Each deletion first creates a backup of the
 complete history CSV, including records outside the current filter.
 
 Development builds also support manual backups with `b` from the main History
-table; see [Manual backups](#manual-backups-unreleased).
+table; see [Manual backups](#manual-backups).
 
 Show installed version:
 
@@ -173,7 +173,7 @@ skytui --help
 - `s` opens focus statistics for the current project filter in Weekly mode.
 - `w` and `m` switch between Weekly and Monthly statistics.
 - `h` opens History for the current project filter from the dashboard.
-- `b` creates a manual backup from the main History table (Unreleased).
+- `b` creates a manual backup from the main History table.
 - `d` edits the focus duration after completion on the dashboard; in History,
   it opens deletion confirmation for the selected record.
 - `Left`/`Right` selects Delete or Cancel in deletion confirmation; `Enter`
@@ -278,7 +278,7 @@ month, session count, and total focus time for the current project filter.
 Empty months remain visible as well. Calendar-month boundaries follow the
 current system timezone.
 
-### Manual backups (Unreleased)
+### Manual backups
 
 Press `b` from the main History table to back up the complete stored history,
 including sessions hidden by the current project filter. No deletion or
@@ -317,8 +317,7 @@ Backups are stored beside `sessions.csv`:
 
 - `sessions-migration-<timestamp>.csv`: original history before format migration.
 - `sessions-delete-<timestamp>.csv`: complete history before a deletion.
-- `sessions-manual-<timestamp>.csv`: complete history requested with `b`
-  (Unreleased).
+- `sessions-manual-<timestamp>.csv`: complete history requested with `b`.
 
 Backup names include milliseconds, and an existing backup is never overwritten.
 If backup creation or replacement fails, the operation returns an error.
