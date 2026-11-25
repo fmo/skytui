@@ -4,6 +4,17 @@ All notable changes to SkyTUI are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Create a manual history backup with `b` from the main History table. Back up
+  the complete stored CSV regardless of the current project filter and display
+  the saved location.
+- Show pending, success, empty-history and error feedback without resetting the
+  History table. Preserve backup results across screen navigation and allow
+  retry after completion or failure.
+- Keep timer updates active during manual backup, ignore duplicate requests,
+  and prevent opening deletion confirmation while a backup is pending.
+
 ## [1.4.0] - 2026-11-11
 
 ### Added

@@ -215,7 +215,7 @@ func (h historyPage) Update(msg tea.Msg) (historyPage, tea.Cmd) {
 	return h, nil
 }
 
-func (h historyPage) View(terminalWidth int) string {
+func (h historyPage) View(terminalWidth int, backupMessage string) string {
 	width := dashboardWidth(terminalWidth)
 
 	view := h.table.View()
@@ -272,18 +272,22 @@ func (h historyPage) View(terminalWidth int) string {
 		view = strings.Join(rows, "\n")
 	}
 
+	if h.subpage == mainHistoryPage && backupMessage != "" {
+		view = lipgloss.JoinVertical(lipgloss.Left, view, "", backupMessage)
+	}
+
 	view = renderPanel(view, width, timer.Focus)
 
 	navList := []string{"[Esc] Back"}
 
 	if h.subpage == mainHistoryPage {
-		navList = append(navList, "[d] Delete")
+		navList = append(navList, "[d] Delete", "[b] Backup")
 	}
 
 	nav := lipgloss.
 		NewStyle().
 		Foreground(mutedColor).
-		Render(strings.Join(navList, "   "))
+		Render(wrapControls(navList, width))
 
 	view = lipgloss.JoinVertical(lipgloss.Left, view, "", nav)
 

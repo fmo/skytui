@@ -51,6 +51,9 @@ type model struct {
 	statsPage            statsPage
 	durationEditor       durationEditor
 	historyPage          historyPage
+	backupStatus         backupStatus
+	backupPath           string
+	backupError          error
 }
 
 func New(
@@ -116,6 +119,23 @@ func (m model) Init() tea.Cmd {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if result, ok := msg.(historyBackupResult); ok {
+		if result.err != nil {
+			m.backupStatus = backupFailed
+			m.backupPath = ""
+			m.backupError = result.err
+		} else if result.path != "" {
+			m.backupStatus = backupSucceeded
+			m.backupPath = result.path
+			m.backupError = nil
+		} else {
+			m.backupStatus = backupEmpty
+			m.backupPath = ""
+			m.backupError = nil
+		}
+		return m, nil
+	}
+
 	if size, ok := msg.(tea.WindowSizeMsg); ok {
 		m.height = size.Height
 		m.width = size.Width
@@ -143,6 +163,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, cmd
 		case tea.KeyPressMsg:
 			switch msg.String() {
+			case "b":
+				if m.historyPage.subpage != mainHistoryPage || m.backupStatus == backupPending {
+					return m, nil
+				}
+				m.backupStatus = backupPending
+				m.backupPath = ""
+				m.backupError = nil
+				return m, backupHistory(m.historyStore)
+			case "d":
+				if m.backupStatus == backupPending {
+					return m, nil
+				}
 			case "esc":
 				if m.historyPage.subpage == mainHistoryPage {
 					m.screen = dashboardScreen
@@ -402,7 +434,7 @@ func (m model) View() tea.View {
 		return tea.NewView(m.durationEditor.View(m.width))
 	}
 	if m.screen == historyScreen {
-		return tea.NewView(m.historyPage.View(m.width))
+		return tea.NewView(m.historyPage.View(m.width, m.manualBackupMessage()))
 	}
 
 	return m.dashboardView()
