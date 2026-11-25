@@ -1,0 +1,54 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version without v (for example 1.5.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate release version
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate version and tag
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "$GITHUB_REF" != "refs/heads/$DEFAULT_BRANCH" ]]; then
+            echo "::error::Run this workflow from the default branch."
+            exit 1
+          fi
+
+          if [[ ! "$RELEASE_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::Enter a version such as 1.5.0, without the v prefix."
+            exit 1
+          fi
+
+          app_version=$(sed -nE 's/^[[:space:]]*Version: "v([0-9]+\.[0-9]+\.[0-9]+)",$/\1/p' cmd/root.go)
+          if [[ "$app_version" != "$RELEASE_VERSION" ]]; then
+            echo "::error::Requested version $RELEASE_VERSION does not match cmd/root.go ($app_version)."
+            exit 1
+          fi
+
+          # A failed remote lookup must fail validation, rather than imply an unused tag.
+          existing_tag=$(git ls-remote --tags origin "refs/tags/v$RELEASE_VERSION")
+          if [[ -n "$existing_tag" ]]; then
+            echo "::error::Tag v$RELEASE_VERSION already exists."
+            exit 1
+          fi
+
+          echo "Version v$RELEASE_VERSION matches the app and its tag is available."
+          echo "Validated v$RELEASE_VERSION. No build, tag or release was created." >> "$GITHUB_STEP_SUMMARY"
