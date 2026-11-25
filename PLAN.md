@@ -127,5 +127,5 @@ manual-backup integration tests.
 
 ### Next action
 
-Review the feature PR after the latest branch commit passes macOS/Linux/Windows
-CI. Release versioning and tagging are separate from this feature task.
+The manual backup feature is merged. Review and merge the v1.5.0 release
+preparation PR after CI passes, then build, tag and publish the release.
