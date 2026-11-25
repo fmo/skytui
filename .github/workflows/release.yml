@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   validate:
-    name: Validate release version
+    name: Validate and build release
     runs-on: ubuntu-latest
     env:
       RELEASE_VERSION: ${{ inputs.version }}
@@ -51,4 +51,36 @@ jobs:
           fi
 
           echo "Version v$RELEASE_VERSION matches the app and its tag is available."
-          echo "Validated v$RELEASE_VERSION. No build, tag or release was created." >> "$GITHUB_STEP_SUMMARY"
+          echo "Validated v$RELEASE_VERSION." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build release archives and checksums
+        run: make release VERSION="$RELEASE_VERSION"
+
+      - name: Verify archive checksums
+        working-directory: dist/v${{ inputs.version }}
+        run: shasum -a 256 -c checksums.txt
+
+      - name: Upload release files
+        uses: actions/upload-artifact@v6
+        with:
+          name: skytui-v${{ inputs.version }}
+          if-no-files-found: error
+          compression-level: 0
+          path: |
+            dist/v${{ inputs.version }}/skytui_${{ inputs.version }}_darwin_arm64.tar.gz
+            dist/v${{ inputs.version }}/skytui_${{ inputs.version }}_darwin_amd64.tar.gz
+            dist/v${{ inputs.version }}/skytui_${{ inputs.version }}_linux_arm64.tar.gz
+            dist/v${{ inputs.version }}/skytui_${{ inputs.version }}_linux_amd64.tar.gz
+            dist/v${{ inputs.version }}/skytui_${{ inputs.version }}_windows_amd64.zip
+            dist/v${{ inputs.version }}/checksums.txt
+
+      - name: Summarize build
+        run: |
+          echo "Download skytui-v$RELEASE_VERSION from this run's Artifacts section for the five archives and checksums.txt." >> "$GITHUB_STEP_SUMMARY"
+          echo "No tag or GitHub release was created." >> "$GITHUB_STEP_SUMMARY"
