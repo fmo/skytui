@@ -336,3 +336,21 @@ of your data rather than your everyday history.
 
 SkyTUI writes application logs to the platform-specific log file listed under
 [Data Locations](#data-locations).
+
+## Release workflow
+
+Prepare and merge the app version, version test, dated changelog entry and README
+installation links manually. Then open **Actions → Release → Run workflow** on
+the default branch and enter the version without `v`, for example `1.5.0`.
+
+The workflow validates the version and unused tag, reads notes from that
+version's changelog entry, and runs `make release`. After verifying checksums,
+it uploads the five platform archives and `checksums.txt` as a workflow artifact
+and attaches those same files to a draft GitHub release targeting the built
+commit. It needs the repository's workflow token to have contents write access.
+
+Review the draft under **Releases**, then publish it manually. Update Homebrew
+after publication using the published archives and their matching checksums.
+If a draft or tag already exists, inspect it before retrying; the workflow does
+not overwrite existing releases or assets. If an upload fails partway through,
+the draft may contain only some files; verify all six are present before publishing.
