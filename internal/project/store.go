@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -21,6 +22,7 @@ var (
 )
 
 type Store struct {
+	mu       sync.RWMutex
 	path     string
 	projects []Project
 }
@@ -35,6 +37,9 @@ func NewStore(path string) (*Store, error) {
 }
 
 func (s *Store) Create(name string) (Project, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	name = strings.TrimSpace(name)
 	if name == "" {
 		return Project{}, ErrNameRequired
@@ -69,6 +74,16 @@ func (s *Store) Create(name string) (Project, error) {
 }
 
 func (s *Store) Delete(projectID string) error {
+	return s.DeleteAfterBackup(projectID, nil)
+}
+
+// DeleteAfterBackup runs prepare after backing up projects, but before removing
+// the project. If prepare fails, the project file and list remain unchanged.
+// The callback runs with the store locked and must not call this store's methods.
+func (s *Store) DeleteAfterBackup(projectID string, prepare func() error) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	projects, err := load(s.path)
 	if err != nil {
 		return err
@@ -85,6 +100,11 @@ func (s *Store) Delete(projectID string) error {
 
 	if err := backupProjectFile(s.path); err != nil {
 		return fmt.Errorf("back up projects before deletion: %w", err)
+	}
+	if prepare != nil {
+		if err := prepare(); err != nil {
+			return err
+		}
 	}
 
 	tmp, err := os.CreateTemp(filepath.Dir(s.path), "projects-tmp-*.csv")
@@ -137,6 +157,9 @@ func backupProjectFile(path string) error {
 }
 
 func (s *Store) List() []Project {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	return slices.Clone(s.projects)
 }
 
