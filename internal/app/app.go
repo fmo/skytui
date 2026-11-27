@@ -119,6 +119,25 @@ func (m model) Init() tea.Cmd {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if result, ok := msg.(projectDeletionResult); ok {
+		picker := &m.projectPicker
+		if !picker.deletionPending || picker.deleteProject == nil || picker.deleteProject.ID != result.projectID {
+			return m, nil
+		}
+		picker.deletionPending = false
+		if result.err != nil {
+			picker.err = fmt.Errorf("Project deletion failed: %w", result.err)
+			if result.historyReassigned {
+				picker.err = fmt.Errorf("Sessions are now Unassigned, but project deletion failed: %w", result.err)
+			}
+			return m, nil
+		}
+		name := picker.deleteProject.Name
+		m.projectPicker = newProjectPicker(picker.store, m.activeProject.ID)
+		m.projectPicker.deletionMessage = fmt.Sprintf("Deleted %s. Saved sessions are Unassigned.", name)
+		return m, nil
+	}
+
 	if result, ok := msg.(historyBackupResult); ok {
 		if result.err != nil {
 			m.backupStatus = backupFailed
@@ -188,9 +207,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	if m.screen == projectScreen {
+	_, isKeyPress := msg.(tea.KeyPressMsg)
+	if m.screen == projectScreen && (isKeyPress || m.projectPicker.screen == creating) {
 		if key, ok := msg.(tea.KeyPressMsg); ok {
+			if m.projectPicker.deletionPending {
+				return m, nil
+			}
 			switch key.String() {
+			case "enter":
+				picker := &m.projectPicker
+				if picker.screen == deleteConfirm && picker.selectedButton == deleteButton && picker.deleteProject != nil {
+					if m.session != nil && m.session.Status() != timer.Completed && m.sessionProjectID == picker.deleteProject.ID {
+						picker.err = fmt.Errorf("Cannot delete the project of a running or paused session")
+						return m, nil
+					}
+					picker.deletionPending = true
+					picker.err = nil
+					return m, deleteProject(m.historyStore, picker.store, picker.deleteProject.ID)
+				}
 			case "esc":
 				if m.session != nil && m.session.Status() == timer.Completed && m.projectPicker.screen == projectPickerHome {
 					m.screen = dashboardScreen
@@ -200,12 +234,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
+		previousScreen := m.projectPicker.screen
 		picker, selected, cmd := m.projectPicker.Update(msg)
 		m.projectPicker = picker
-		if m.projectPicker.deleteProject != nil {
+		if previousScreen != deleteConfirm && m.projectPicker.screen == deleteConfirm && m.projectPicker.deleteProject != nil {
 			records, err := m.historyStore.Load()
 			if err != nil {
-				slog.Error("cant load sessions", "err", err)
+				m.projectPicker.screen = projectPickerHome
+				m.projectPicker.deleteProject = nil
+				m.projectPicker.err = fmt.Errorf("Load sessions before project deletion: %w", err)
+				return m, nil
 			}
 			filteredRecords := history.FilterRecords(records, history.Filter{Mode: history.OneProject, ProjectID: m.projectPicker.deleteProject.ID})
 			m.projectPicker.sessionNumber = len(filteredRecords)

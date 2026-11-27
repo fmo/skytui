@@ -22,15 +22,17 @@ const (
 )
 
 type projectPicker struct {
-	store          *project.Store
-	projects       []project.Project
-	input          textinput.Model
-	cursor         int
-	err            error
-	screen         projectPickerScreen
-	deleteProject  *project.Project
-	sessionNumber  int
-	selectedButton buttons
+	store           *project.Store
+	projects        []project.Project
+	input           textinput.Model
+	cursor          int
+	err             error
+	screen          projectPickerScreen
+	deleteProject   *project.Project
+	sessionNumber   int
+	selectedButton  buttons
+	deletionPending bool
+	deletionMessage string
 }
 
 func newProjectPicker(store *project.Store, selectedID string) projectPicker {
@@ -62,6 +64,9 @@ func newProjectPicker(store *project.Store, selectedID string) projectPicker {
 }
 
 func (p projectPicker) Update(msg tea.Msg) (projectPicker, *project.Project, tea.Cmd) {
+	if p.deletionPending {
+		return p, nil, nil
+	}
 	if p.screen == creating {
 		return p.updateCreation(msg)
 	}
@@ -100,6 +105,8 @@ func (p projectPicker) Update(msg tea.Msg) (projectPicker, *project.Project, tea
 		p.screen = deleteConfirm
 		p.deleteProject = &p.projects[p.cursor]
 		p.selectedButton = escButton
+		p.err = nil
+		p.deletionMessage = ""
 		return p, nil, nil
 	case "up", "k":
 		p.cursor = max(0, p.cursor-1)
@@ -175,6 +182,10 @@ func (p projectPicker) View(terminalWidth int, canCancel bool) string {
 }
 
 func (p projectPicker) deleteConfirm() string {
+	details := fmt.Sprintf("%s will be deleted\n%d sessions will be Unassigned", p.deleteProject.Name, p.sessionNumber)
+	if p.deletionPending {
+		return details + "\n\nDeleting project..."
+	}
 	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(focusColor)
 	cancelLabel := "  Cancel"
 	deleteLabel := "  Delete"
@@ -184,8 +195,11 @@ func (p projectPicker) deleteConfirm() string {
 		deleteLabel = selectedStyle.Render("> Delete")
 	}
 
-	return fmt.Sprintf("%s will be deleted\n%d sessions will be Unassigned\n\n%s   %s",
-		p.deleteProject.Name, p.sessionNumber, cancelLabel, deleteLabel)
+	content := fmt.Sprintf("%s\n\n%s   %s", details, cancelLabel, deleteLabel)
+	if p.err != nil {
+		content += "\n\n" + lipgloss.NewStyle().Foreground(errorColor).Render(p.err.Error())
+	}
+	return content
 }
 
 func (p projectPicker) selectionView(canCancel bool) string {
@@ -205,6 +219,9 @@ func (p projectPicker) selectionView(canCancel bool) string {
 	}
 
 	rows = append(rows, "")
+	if p.deletionMessage != "" {
+		rows = append(rows, p.deletionMessage, "")
+	}
 	if p.err != nil {
 		rows = append(rows, lipgloss.NewStyle().Foreground(errorColor).Render(p.err.Error()), "")
 	}
