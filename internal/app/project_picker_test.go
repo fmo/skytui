@@ -14,6 +14,52 @@ import (
 	"github.com/fmo/skytui/internal/timer"
 )
 
+func TestProjectDeleteConfirmationShowsSelectedProjectSessionCount(t *testing.T) {
+	dir := t.TempDir()
+	projects, err := project.NewStore(filepath.Join(dir, "projects.csv"))
+	if err != nil {
+		t.Fatalf("create project store: %v", err)
+	}
+	other, err := projects.Create("Other project")
+	if err != nil {
+		t.Fatalf("create other project: %v", err)
+	}
+	selected, err := projects.Create("SkyTUI")
+	if err != nil {
+		t.Fatalf("create selected project: %v", err)
+	}
+
+	sessions := history.NewStore(filepath.Join(dir, "sessions.csv"))
+	now := time.Date(2026, time.November, 27, 12, 0, 0, 0, time.UTC)
+	for index, projectID := range []string{other.ID, selected.ID, selected.ID} {
+		if err := sessions.Append(now.Add(time.Duration(index)*time.Hour), 25*time.Minute, projectID); err != nil {
+			t.Fatalf("append session: %v", err)
+		}
+	}
+
+	m := model{
+		screen:        projectScreen,
+		width:         80,
+		session:       completedSession(timer.Focus, time.Minute),
+		historyStore:  sessions,
+		projectPicker: newProjectPicker(projects, selected.ID),
+		projectFilter: history.Filter{Mode: history.OneProject, ProjectID: other.ID},
+	}
+
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'd', Text: "d"})
+	got := updated.(model)
+	if got.screen != projectScreen || got.projectPicker.screen != deleteConfirm {
+		t.Fatal("pressing d should open project deletion confirmation")
+	}
+	content := got.View().Content
+	if !strings.Contains(content, selected.Name) {
+		t.Fatalf("confirmation should show selected project %q, got %q", selected.Name, content)
+	}
+	if !strings.Contains(content, "2 sessions will be Unassigned") {
+		t.Fatalf("confirmation should count only the selected project's saved sessions, got %q", content)
+	}
+}
+
 func TestProjectPickerCreatesProject(t *testing.T) {
 	store, err := project.NewStore(filepath.Join(t.TempDir(), "projects.csv"))
 	if err != nil {
@@ -28,7 +74,7 @@ func TestProjectPickerCreatesProject(t *testing.T) {
 	if selected == nil || selected.Name != "SkyTUI" {
 		t.Fatalf("got selected project %#v, want SkyTUI", selected)
 	}
-	if picker.creating {
+	if picker.screen == creating {
 		t.Fatal("picker should leave creation mode after creating a project")
 	}
 	if got := store.List(); len(got) != 1 || got[0] != *selected {
@@ -42,7 +88,7 @@ func TestProjectPickerShowsValidationError(t *testing.T) {
 		t.Fatalf("create project store: %v", err)
 	}
 	picker := newProjectPicker(store, "")
-	picker.creating = true
+	picker.screen = creating
 
 	picker, selected, _ := picker.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 
@@ -109,7 +155,7 @@ func TestProjectPickerShowsDuplicateNameError(t *testing.T) {
 	if selected != nil {
 		t.Fatalf("got selected project %#v, want none", selected)
 	}
-	if !picker.creating {
+	if picker.screen != creating {
 		t.Fatal("picker should remain in creation mode after a duplicate name")
 	}
 	if !errors.Is(picker.err, project.ErrNameExists) {
@@ -348,7 +394,7 @@ func TestCancelProjectSwitchReturnsToDashboard(t *testing.T) {
 	got = updated.(model)
 
 	if got.screen != dashboardScreen {
-		t.Fatalf("screen should be dashboard")
+		t.Fatalf("screen should be dashboard got: %v", got.screen)
 	}
 }
 

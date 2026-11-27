@@ -13,13 +13,23 @@ import (
 
 var errorColor = lipgloss.Color("#D96C75")
 
+type projectPickerScreen int
+
+const (
+	projectPickerHome = iota
+	deleteConfirm
+	creating
+)
+
 type projectPicker struct {
-	store    *project.Store
-	projects []project.Project
-	input    textinput.Model
-	cursor   int
-	creating bool
-	err      error
+	store         *project.Store
+	projects      []project.Project
+	input         textinput.Model
+	cursor        int
+	err           error
+	screen        projectPickerScreen
+	deleteProject *project.Project
+	sessionNumber int
 }
 
 func newProjectPicker(store *project.Store, selectedID string) projectPicker {
@@ -51,7 +61,7 @@ func newProjectPicker(store *project.Store, selectedID string) projectPicker {
 }
 
 func (p projectPicker) Update(msg tea.Msg) (projectPicker, *project.Project, tea.Cmd) {
-	if p.creating {
+	if p.screen == creating {
 		return p.updateCreation(msg)
 	}
 
@@ -63,12 +73,20 @@ func (p projectPicker) Update(msg tea.Msg) (projectPicker, *project.Project, tea
 	switch key.String() {
 	case "q":
 		return p, nil, tea.Quit
+	case "d":
+		if len(p.projects) == 0 {
+			return p, nil, nil
+		}
+
+		p.screen = deleteConfirm
+		p.deleteProject = &p.projects[p.cursor]
+		return p, nil, nil
 	case "up", "k":
 		p.cursor = max(0, p.cursor-1)
 	case "down", "j":
 		p.cursor = min(max(0, len(p.projects)-1), p.cursor+1)
 	case "n":
-		p.creating = true
+		p.screen = creating
 		p.err = nil
 		p.input.Reset()
 		return p, nil, p.input.Focus()
@@ -87,7 +105,7 @@ func (p projectPicker) updateCreation(msg tea.Msg) (projectPicker, *project.Proj
 	if key, ok := msg.(tea.KeyPressMsg); ok {
 		switch key.String() {
 		case "esc":
-			p.creating = false
+			p.screen = projectPickerHome
 			p.err = nil
 			p.input.Blur()
 			return p, nil, nil
@@ -105,7 +123,7 @@ func (p projectPicker) updateCreation(msg tea.Msg) (projectPicker, *project.Proj
 
 			p.projects = p.store.List()
 			p.cursor = len(p.projects) - 1
-			p.creating = false
+			p.screen = projectPickerHome
 			p.err = nil
 			p.input.Blur()
 			return p, &created, nil
@@ -121,7 +139,10 @@ func (p projectPicker) updateCreation(msg tea.Msg) (projectPicker, *project.Proj
 func (p projectPicker) View(terminalWidth int, canCancel bool) string {
 	width := dashboardWidth(terminalWidth)
 	content := p.selectionView(canCancel)
-	if p.creating {
+	switch p.screen {
+	case deleteConfirm:
+		content = p.deleteConfirm()
+	case creating:
 		content = p.creationView()
 	}
 
@@ -131,6 +152,10 @@ func (p projectPicker) View(terminalWidth int, canCancel bool) string {
 	}
 
 	return view
+}
+
+func (p projectPicker) deleteConfirm() string {
+	return fmt.Sprintf("%s will be deleted\n%d sessions will be Unassigned", p.deleteProject.Name, p.sessionNumber)
 }
 
 func (p projectPicker) selectionView(canCancel bool) string {
@@ -155,9 +180,9 @@ func (p projectPicker) selectionView(canCancel bool) string {
 	}
 
 	if canCancel {
-		rows = append(rows, lipgloss.NewStyle().Foreground(mutedColor).Render("[n] New   [Enter] Select   [q] Quit   [Esc] Cancel"))
+		rows = append(rows, lipgloss.NewStyle().Foreground(mutedColor).Render("[n] New   [Enter] Select   [d] Delete   [q] Quit   [Esc] Cancel"))
 	} else {
-		rows = append(rows, lipgloss.NewStyle().Foreground(mutedColor).Render("[n] New   [Enter] Select   [q] Quit"))
+		rows = append(rows, lipgloss.NewStyle().Foreground(mutedColor).Render("[n] New   [Enter] Select   [d] Delete   [q] Quit"))
 	}
 
 	return strings.Join(rows, "\n")

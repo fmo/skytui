@@ -192,7 +192,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if key, ok := msg.(tea.KeyPressMsg); ok {
 			switch key.String() {
 			case "esc":
-				if m.session != nil && m.session.Status() == timer.Completed && !m.projectPicker.creating {
+				if m.session != nil && m.session.Status() == timer.Completed && m.projectPicker.screen != creating {
 					m.screen = dashboardScreen
 
 					return m, nil
@@ -202,6 +202,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		picker, selected, cmd := m.projectPicker.Update(msg)
 		m.projectPicker = picker
+		if m.projectPicker.deleteProject != nil {
+			records, err := m.historyStore.Load()
+			if err != nil {
+				slog.Error("cant load sessions", "err", err)
+			}
+			filteredRecords := history.FilterRecords(records, history.Filter{Mode: history.OneProject, ProjectID: m.projectPicker.deleteProject.ID})
+			m.projectPicker.sessionNumber = len(filteredRecords)
+		}
+
 		if selected == nil {
 			return m, cmd
 		}
