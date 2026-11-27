@@ -179,6 +179,53 @@ func (s *Store) Backup() (string, error) {
 	return createBackup("sessions-manual", filepath.Dir(s.path), records)
 }
 
+// UnassignProject backs up history before removing a project's session associations.
+func (s *Store) UnassignProject(projectID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if strings.TrimSpace(projectID) == "" {
+		return errors.New("project ID is required")
+	}
+	rows, err := readAllCsv(s.path)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return err
+	}
+
+	updatedRows := slices.Clone(rows)
+	changed := false
+	for index, row := range rows {
+		if len(row) != 4 {
+			return fmt.Errorf("read session row %d: expected 4 fields, got %d", index+1, len(row))
+		}
+		if row[2] == projectID {
+			updatedRows[index] = slices.Clone(row)
+			updatedRows[index][2] = "Unassigned"
+			changed = true
+		}
+	}
+	if !changed {
+		return nil
+	}
+
+	dir := filepath.Dir(s.path)
+	if _, err := createBackup("sessions-project-delete", dir, rows); err != nil {
+		return fmt.Errorf("back up history before unassigning project: %w", err)
+	}
+	tmpFile, err := createTemp("sessions-tmp", dir, updatedRows)
+	if err != nil {
+		return err
+	}
+	if err := os.Rename(tmpFile.Name(), s.path); err != nil {
+		cleanupFile(tmpFile)
+		return fmt.Errorf("replace history after unassigning project: %w", err)
+	}
+	return nil
+}
+
 func (s *Store) Delete(record string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
