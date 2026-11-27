@@ -1,7 +1,9 @@
 package app
 
 import (
+	"bytes"
 	"errors"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -57,6 +59,159 @@ func TestProjectDeleteConfirmationShowsSelectedProjectSessionCount(t *testing.T)
 	}
 	if !strings.Contains(content, "2 sessions will be Unassigned") {
 		t.Fatalf("confirmation should count only the selected project's saved sessions, got %q", content)
+	}
+}
+
+func TestProjectDeleteConfirmationDefaultsToCancel(t *testing.T) {
+	picker := projectPicker{
+		projects:       []project.Project{{ID: "skytui", Name: "SkyTUI"}},
+		selectedButton: deleteButton,
+	}
+
+	picker, selected, _ := picker.Update(tea.KeyPressMsg{Code: 'd', Text: "d"})
+	if picker.screen != deleteConfirm {
+		t.Fatal("pressing d should open deletion confirmation")
+	}
+	if picker.selectedButton != escButton {
+		t.Fatal("opening deletion confirmation should select Cancel, even after Delete was previously selected")
+	}
+	if selected != nil {
+		t.Fatal("opening deletion confirmation should not select a project for a session")
+	}
+}
+
+func TestProjectDeleteConfirmationHighlightsSelectedButton(t *testing.T) {
+	for _, tt := range []struct {
+		name     string
+		button   buttons
+		selected string
+		other    string
+	}{
+		{name: "cancel", button: escButton, selected: "Cancel", other: "Delete"},
+		{name: "delete", button: deleteButton, selected: "Delete", other: "Cancel"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			picker := projectPicker{
+				screen:         deleteConfirm,
+				deleteProject:  &project.Project{ID: "skytui", Name: "SkyTUI"},
+				selectedButton: tt.button,
+			}
+			content := picker.View(80, true)
+			if !strings.Contains(content, "> "+tt.selected) {
+				t.Fatalf("confirmation should highlight %s, got %q", tt.selected, content)
+			}
+			if !strings.Contains(content, tt.other) || strings.Contains(content, "> "+tt.other) {
+				t.Fatalf("confirmation should show %s without highlighting it, got %q", tt.other, content)
+			}
+		})
+	}
+}
+
+func TestProjectDeleteConfirmationArrowKeysSelectButtons(t *testing.T) {
+	projects := []project.Project{
+		{ID: "other", Name: "Other project"},
+		{ID: "skytui", Name: "SkyTUI"},
+	}
+	picker := projectPicker{
+		projects:       projects,
+		cursor:         1,
+		screen:         deleteConfirm,
+		deleteProject:  &projects[1],
+		selectedButton: escButton,
+	}
+	for _, step := range []struct {
+		key  tea.KeyPressMsg
+		want buttons
+	}{
+		{key: tea.KeyPressMsg{Code: tea.KeyRight}, want: deleteButton},
+		{key: tea.KeyPressMsg{Code: tea.KeyRight}, want: deleteButton},
+		{key: tea.KeyPressMsg{Code: tea.KeyLeft}, want: escButton},
+		{key: tea.KeyPressMsg{Code: tea.KeyLeft}, want: escButton},
+	} {
+		updated, selected, cmd := picker.Update(step.key)
+		picker = updated
+		if picker.selectedButton != step.want {
+			t.Fatalf("after %s: got button %v, want %v", step.key.String(), picker.selectedButton, step.want)
+		}
+		if picker.screen != deleteConfirm || picker.cursor != 1 || picker.deleteProject != &projects[1] {
+			t.Fatal("arrow keys should preserve the confirmation and selected project")
+		}
+		if selected != nil || cmd != nil {
+			t.Fatal("arrow keys should not select a session project or issue a command")
+		}
+	}
+}
+
+func TestCancelProjectDeletionWithoutChangingFiles(t *testing.T) {
+	for _, tt := range []struct {
+		name      string
+		key       tea.KeyPressMsg
+		completed bool
+	}{
+		{name: "Esc at startup", key: tea.KeyPressMsg{Code: tea.KeyEsc}},
+		{name: "Esc after completion", key: tea.KeyPressMsg{Code: tea.KeyEsc}, completed: true},
+		{name: "Enter on Cancel at startup", key: tea.KeyPressMsg{Code: tea.KeyEnter}},
+		{name: "Enter on Cancel after completion", key: tea.KeyPressMsg{Code: tea.KeyEnter}, completed: true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			projectPath := filepath.Join(dir, "projects.csv")
+			historyPath := filepath.Join(dir, "sessions.csv")
+			projects, err := project.NewStore(projectPath)
+			if err != nil {
+				t.Fatalf("create project store: %v", err)
+			}
+			selected, err := projects.Create("SkyTUI")
+			if err != nil {
+				t.Fatalf("create project: %v", err)
+			}
+			sessions := history.NewStore(historyPath)
+			if err := sessions.Append(time.Now(), 25*time.Minute, selected.ID); err != nil {
+				t.Fatalf("append session: %v", err)
+			}
+			original := make(map[string][]byte)
+			for _, path := range []string{projectPath, historyPath} {
+				original[path], err = os.ReadFile(path)
+				if err != nil {
+					t.Fatalf("read original file: %v", err)
+				}
+			}
+			m := model{
+				screen:        projectScreen,
+				projectPicker: newProjectPicker(projects, selected.ID),
+				historyStore:  sessions,
+				activeProject: selected,
+			}
+			if tt.completed {
+				m.session = completedSession(timer.Focus, time.Minute)
+			}
+			updated, _ := m.Update(tea.KeyPressMsg{Code: 'd', Text: "d"})
+			got := updated.(model)
+			if got.projectPicker.screen != deleteConfirm {
+				t.Fatal("expected deletion confirmation before cancellation")
+			}
+
+			updated, cmd := got.Update(tt.key)
+			got = updated.(model)
+			if got.screen != projectScreen || got.projectPicker.screen != projectPickerHome {
+				t.Fatal("canceling should return to the project list, not the dashboard")
+			}
+			if got.projectPicker.deleteProject != nil || cmd != nil {
+				t.Fatal("canceling should clear the deletion request without issuing a command")
+			}
+			if got.session != m.session || got.activeProject != m.activeProject {
+				t.Fatal("canceling deletion should preserve the session and active project")
+			}
+			for path, before := range original {
+				after, err := os.ReadFile(path)
+				if err != nil {
+					t.Fatalf("read file after cancellation: %v", err)
+				}
+				if !bytes.Equal(before, after) {
+					t.Errorf("canceling deletion changed %s", path)
+				}
+			}
+		})
 	}
 }
 

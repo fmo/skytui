@@ -192,7 +192,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if key, ok := msg.(tea.KeyPressMsg); ok {
 			switch key.String() {
 			case "esc":
-				if m.session != nil && m.session.Status() == timer.Completed && m.projectPicker.screen != creating {
+				if m.session != nil && m.session.Status() == timer.Completed && m.projectPicker.screen == projectPickerHome {
 					m.screen = dashboardScreen
 
 					return m, nil

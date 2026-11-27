@@ -22,14 +22,15 @@ const (
 )
 
 type projectPicker struct {
-	store         *project.Store
-	projects      []project.Project
-	input         textinput.Model
-	cursor        int
-	err           error
-	screen        projectPickerScreen
-	deleteProject *project.Project
-	sessionNumber int
+	store          *project.Store
+	projects       []project.Project
+	input          textinput.Model
+	cursor         int
+	err            error
+	screen         projectPickerScreen
+	deleteProject  *project.Project
+	sessionNumber  int
+	selectedButton buttons
 }
 
 func newProjectPicker(store *project.Store, selectedID string) projectPicker {
@@ -70,6 +71,24 @@ func (p projectPicker) Update(msg tea.Msg) (projectPicker, *project.Project, tea
 		return p, nil, nil
 	}
 
+	if p.screen == deleteConfirm {
+		switch key.String() {
+		case "left":
+			p.selectedButton = escButton
+		case "right":
+			p.selectedButton = deleteButton
+		case "esc", "enter":
+			if key.String() == "enter" && p.selectedButton != escButton {
+				return p, nil, nil
+			}
+			p.screen = projectPickerHome
+			p.deleteProject = nil
+			p.sessionNumber = 0
+			p.selectedButton = escButton
+		}
+		return p, nil, nil
+	}
+
 	switch key.String() {
 	case "q":
 		return p, nil, tea.Quit
@@ -80,6 +99,7 @@ func (p projectPicker) Update(msg tea.Msg) (projectPicker, *project.Project, tea
 
 		p.screen = deleteConfirm
 		p.deleteProject = &p.projects[p.cursor]
+		p.selectedButton = escButton
 		return p, nil, nil
 	case "up", "k":
 		p.cursor = max(0, p.cursor-1)
@@ -155,7 +175,17 @@ func (p projectPicker) View(terminalWidth int, canCancel bool) string {
 }
 
 func (p projectPicker) deleteConfirm() string {
-	return fmt.Sprintf("%s will be deleted\n%d sessions will be Unassigned", p.deleteProject.Name, p.sessionNumber)
+	selectedStyle := lipgloss.NewStyle().Bold(true).Foreground(focusColor)
+	cancelLabel := "  Cancel"
+	deleteLabel := "  Delete"
+	if p.selectedButton == escButton {
+		cancelLabel = selectedStyle.Render("> Cancel")
+	} else if p.selectedButton == deleteButton {
+		deleteLabel = selectedStyle.Render("> Delete")
+	}
+
+	return fmt.Sprintf("%s will be deleted\n%d sessions will be Unassigned\n\n%s   %s",
+		p.deleteProject.Name, p.sessionNumber, cancelLabel, deleteLabel)
 }
 
 func (p projectPicker) selectionView(canCancel bool) string {
