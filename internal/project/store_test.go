@@ -4,8 +4,98 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
+	"testing/synctest"
+	"time"
 )
+
+func TestDeleteRemovesOnlySelectedProjectAndPreservesOrder(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "projects.csv")
+	original := "project-10,Keep first\nproject-1,Delete me\nproject-2,Keep last\n"
+	if err := os.WriteFile(path, []byte(original), 0o600); err != nil {
+		t.Fatalf("write original projects: %v", err)
+	}
+	store, err := NewStore(path)
+	if err != nil {
+		t.Fatalf("open project store: %v", err)
+	}
+
+	if err := store.Delete("project-1"); err != nil {
+		t.Fatalf("delete selected project: %v", err)
+	}
+
+	want := []Project{
+		{ID: "project-10", Name: "Keep first"},
+		{ID: "project-2", Name: "Keep last"},
+	}
+	if got := store.List(); !slices.Equal(got, want) {
+		t.Errorf("in-memory projects = %#v, want %#v", got, want)
+	}
+	reopened, err := NewStore(path)
+	if err != nil {
+		t.Fatalf("reopen project store: %v", err)
+	}
+	if got := reopened.List(); !slices.Equal(got, want) {
+		t.Errorf("saved projects = %#v, want %#v", got, want)
+	}
+	backups, err := filepath.Glob(filepath.Join(filepath.Dir(path), "projects-delete-*.csv"))
+	if err != nil || len(backups) != 1 {
+		t.Fatalf("expected one project backup, got %v (error: %v)", backups, err)
+	}
+	backup, err := os.ReadFile(backups[0])
+	if err != nil {
+		t.Fatalf("read project backup: %v", err)
+	}
+	if string(backup) != original {
+		t.Fatalf("backup = %q, want original project file %q", backup, original)
+	}
+}
+
+func TestDeleteBackupFailurePreservesProjects(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "projects.csv")
+		const original = "project-1,SkyTUI\nproject-2,Other project\n"
+		if err := os.WriteFile(path, []byte(original), 0o600); err != nil {
+			t.Fatalf("write original projects: %v", err)
+		}
+		store, err := NewStore(path)
+		if err != nil {
+			t.Fatalf("open project store: %v", err)
+		}
+		before := store.List()
+		// A fixed clock forces a collision on every platform, including Windows.
+		backupPath := filepath.Join(dir, "projects-delete-"+time.Now().Format("2006-01-02-15-04-05.000")+".csv")
+		const existingBackup = "existing recovery backup\n"
+		if err := os.WriteFile(backupPath, []byte(existingBackup), 0o600); err != nil {
+			t.Fatalf("create conflicting backup: %v", err)
+		}
+
+		if err := store.Delete("project-1"); !errors.Is(err, os.ErrExist) {
+			t.Fatalf("Delete error = %v, want backup collision", err)
+		}
+		if got := store.List(); !slices.Equal(got, before) {
+			t.Errorf("backup failure changed in-memory projects: got %#v, want %#v", got, before)
+		}
+		for filename, want := range map[string]string{path: original, backupPath: existingBackup} {
+			got, err := os.ReadFile(filename)
+			if err != nil {
+				t.Fatalf("read file after backup failure: %v", err)
+			}
+			if string(got) != want {
+				t.Errorf("backup failure changed %s: got %q, want %q", filename, got, want)
+			}
+		}
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			t.Fatalf("list project directory: %v", err)
+		}
+		if len(entries) != 2 {
+			t.Fatalf("backup failure should not leave temporary files, got %v", entries)
+		}
+	})
+}
 
 func TestNewStoreWithMissingFile(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "projects.csv")

@@ -6,14 +6,18 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 )
 
 var (
 	ErrNameRequired = errors.New("project name is required")
 	ErrNameExists   = errors.New("project name already exists")
+	ErrNotFound     = errors.New("project not found")
 )
 
 type Store struct {
@@ -62,6 +66,74 @@ func (s *Store) Create(name string) (Project, error) {
 
 	s.projects = append(s.projects, project)
 	return project, nil
+}
+
+func (s *Store) Delete(projectID string) error {
+	projects, err := load(s.path)
+	if err != nil {
+		return err
+	}
+	index := slices.IndexFunc(projects, func(p Project) bool { return p.ID == projectID })
+	if index < 0 {
+		return ErrNotFound
+	}
+	remaining := slices.Delete(projects, index, index+1)
+	rows := make([][]string, 0, len(remaining))
+	for _, p := range remaining {
+		rows = append(rows, []string{p.ID, p.Name})
+	}
+
+	if err := backupProjectFile(s.path); err != nil {
+		return fmt.Errorf("back up projects before deletion: %w", err)
+	}
+
+	tmp, err := os.CreateTemp(filepath.Dir(s.path), "projects-tmp-*.csv")
+	if err != nil {
+		return fmt.Errorf("create project replacement: %w", err)
+	}
+	defer os.Remove(tmp.Name())
+	defer tmp.Close()
+
+	if err := csv.NewWriter(tmp).WriteAll(rows); err != nil {
+		return fmt.Errorf("write project replacement: %w", err)
+	}
+	if err := tmp.Close(); err != nil {
+		return fmt.Errorf("close project replacement: %w", err)
+	}
+	if err := os.Rename(tmp.Name(), s.path); err != nil {
+		return fmt.Errorf("replace project store: %w", err)
+	}
+	s.projects = remaining
+	return nil
+}
+
+func backupProjectFile(path string) error {
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("read original project file: %w", err)
+	}
+	backupPath := filepath.Join(filepath.Dir(path), "projects-delete-"+time.Now().Format("2006-01-02-15-04-05.000")+".csv")
+	file, err := os.OpenFile(backupPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+	if err != nil {
+		return err
+	}
+	complete := false
+	defer func() {
+		file.Close()
+		if !complete {
+			if err := os.Remove(backupPath); err != nil {
+				slog.Error("remove incomplete project backup", "path", backupPath, "err", err)
+			}
+		}
+	}()
+	if _, err := file.Write(contents); err != nil {
+		return fmt.Errorf("write project backup: %w", err)
+	}
+	if err := file.Close(); err != nil {
+		return fmt.Errorf("close project backup: %w", err)
+	}
+	complete = true
+	return nil
 }
 
 func (s *Store) List() []Project {
