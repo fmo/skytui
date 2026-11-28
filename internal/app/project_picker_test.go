@@ -48,8 +48,9 @@ func TestProjectDeleteConfirmationShowsSelectedProjectSessionCount(t *testing.T)
 		projectFilter: history.Filter{Mode: history.OneProject, ProjectID: other.ID},
 	}
 
-	updated, _ := m.Update(tea.KeyPressMsg{Code: 'd', Text: "d"})
+	updated, request := m.Update(tea.KeyPressMsg{Code: 'd', Text: "d"})
 	got := updated.(model)
+	got = finishProjectSessionCount(t, got, request)
 	if got.screen != projectScreen || got.projectPicker.screen != deleteConfirm {
 		t.Fatal("pressing d should open project deletion confirmation")
 	}

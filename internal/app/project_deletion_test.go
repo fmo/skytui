@@ -44,12 +44,12 @@ func pendingProjectDeletion(t *testing.T) (model, tea.Cmd, map[string]string) {
 		activeProject: projects.List()[1],
 		session:       completedSession(timer.Focus, time.Minute),
 	}
-	for _, key := range []tea.KeyPressMsg{{Code: 'd', Text: "d"}, {Code: tea.KeyRight}} {
-		updated, cmd := m.Update(key)
-		m = updated.(model)
-		if cmd != nil {
-			t.Fatal("opening confirmation and selecting Delete should not issue a command")
-		}
+	updated, request := m.Update(tea.KeyPressMsg{Code: 'd', Text: "d"})
+	m = finishProjectSessionCount(t, updated.(model), request)
+	updated, selectionCmd := m.Update(tea.KeyPressMsg{Code: tea.KeyRight})
+	m = updated.(model)
+	if selectionCmd != nil {
+		t.Fatal("selecting Delete should not issue a command")
 	}
 	updated, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	m = updated.(model)

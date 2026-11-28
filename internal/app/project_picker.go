@@ -22,17 +22,19 @@ const (
 )
 
 type projectPicker struct {
-	store           *project.Store
-	projects        []project.Project
-	input           textinput.Model
-	cursor          int
-	err             error
-	screen          projectPickerScreen
-	deleteProject   *project.Project
-	sessionNumber   int
-	selectedButton  buttons
-	deletionPending bool
-	deletionMessage string
+	store                 *project.Store
+	projects              []project.Project
+	input                 textinput.Model
+	cursor                int
+	err                   error
+	screen                projectPickerScreen
+	deleteProject         *project.Project
+	sessionNumber         int
+	selectedButton        buttons
+	deletionPending       bool
+	deletionMessage       string
+	sessionCountPending   bool
+	sessionCountRequestID uint64
 }
 
 func newProjectPicker(store *project.Store, selectedID string) projectPicker {
@@ -89,6 +91,7 @@ func (p projectPicker) Update(msg tea.Msg) (projectPicker, *project.Project, tea
 			p.screen = projectPickerHome
 			p.deleteProject = nil
 			p.sessionNumber = 0
+			p.sessionCountPending = false
 			p.selectedButton = escButton
 		}
 		return p, nil, nil
@@ -107,7 +110,11 @@ func (p projectPicker) Update(msg tea.Msg) (projectPicker, *project.Project, tea
 		p.selectedButton = escButton
 		p.err = nil
 		p.deletionMessage = ""
-		return p, nil, nil
+		p.sessionNumber = 0
+		p.sessionCountPending = true
+		p.sessionCountRequestID++
+		request := projectSessionCountRequested{projectID: p.deleteProject.ID, requestID: p.sessionCountRequestID}
+		return p, nil, func() tea.Msg { return request }
 	case "up", "k":
 		p.cursor = max(0, p.cursor-1)
 	case "down", "j":
@@ -182,6 +189,9 @@ func (p projectPicker) View(terminalWidth int, canCancel bool) string {
 }
 
 func (p projectPicker) deleteConfirm() string {
+	if p.sessionCountPending {
+		return fmt.Sprintf("%s will be deleted\nLoading session count...\n\n[Esc] Cancel", p.deleteProject.Name)
+	}
 	details := fmt.Sprintf("%s will be deleted\n%d sessions will be Unassigned", p.deleteProject.Name, p.sessionNumber)
 	if p.deletionPending {
 		return details + "\n\nDeleting project..."
@@ -200,6 +210,11 @@ func (p projectPicker) deleteConfirm() string {
 		content += "\n\n" + lipgloss.NewStyle().Foreground(errorColor).Render(p.err.Error())
 	}
 	return content
+}
+
+func (p projectPicker) awaitingSessionCount(projectID string, requestID uint64) bool {
+	return p.screen == deleteConfirm && p.sessionCountPending && p.deleteProject != nil &&
+		p.deleteProject.ID == projectID && p.sessionCountRequestID == requestID
 }
 
 func (p projectPicker) selectionView(canCancel bool) string {

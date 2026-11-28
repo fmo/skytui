@@ -14,6 +14,30 @@ type projectDeletionResult struct {
 	err               error
 }
 
+type projectSessionCountRequested struct {
+	projectID string
+	requestID uint64
+}
+
+type projectSessionCountResult struct {
+	projectID string
+	requestID uint64
+	count     int
+	err       error
+}
+
+func loadProjectSessionCount(store *history.Store, request projectSessionCountRequested) tea.Cmd {
+	return func() tea.Msg {
+		records, err := store.LoadForProject(request.projectID)
+		return projectSessionCountResult{
+			projectID: request.projectID,
+			requestID: request.requestID,
+			count:     len(records),
+			err:       err,
+		}
+	}
+}
+
 func deleteProject(sessions *history.Store, projects *project.Store, projectID string) tea.Cmd {
 	return func() tea.Msg {
 		result := projectDeletionResult{projectID: projectID}
