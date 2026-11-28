@@ -12,6 +12,111 @@ import (
 	"time"
 )
 
+func TestUnassignProjectPreservesSessionDataAndOrder(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "sessions.csv")
+	original := strings.Join([]string{
+		"2026-11-27T12:00:00.123456789+03:00,25m0s,project-1,11111111-1111-4111-8111-111111111111",
+		"2026-11-26T09:00:00Z,50m0s,project-10,22222222-2222-4222-8222-222222222222",
+		"2026-11-25T08:00:00Z,10m0s,Unassigned,33333333-3333-4333-8333-333333333333",
+		"2026-11-27T13:00:00+03:00,15m30s,project-1,44444444-4444-4444-8444-444444444444",
+	}, "\n") + "\n"
+	if err := os.WriteFile(path, []byte(original), 0o600); err != nil {
+		t.Fatalf("write original history: %v", err)
+	}
+
+	store := NewStore(path)
+	if err := store.UnassignProject("project-1"); err != nil {
+		t.Fatalf("unassign project sessions: %v", err)
+	}
+
+	want := strings.Join([]string{
+		"2026-11-27T12:00:00.123456789+03:00,25m0s,Unassigned,11111111-1111-4111-8111-111111111111",
+		"2026-11-26T09:00:00Z,50m0s,project-10,22222222-2222-4222-8222-222222222222",
+		"2026-11-25T08:00:00Z,10m0s,Unassigned,33333333-3333-4333-8333-333333333333",
+		"2026-11-27T13:00:00+03:00,15m30s,Unassigned,44444444-4444-4444-8444-444444444444",
+	}, "\n") + "\n"
+	got, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read updated history: %v", err)
+	}
+	if string(got) != want {
+		t.Fatalf("reassignment should change only matching project IDs, preserving every other field and row order:\ngot:\n%swant:\n%s", got, want)
+	}
+	backups, err := filepath.Glob(filepath.Join(filepath.Dir(path), "sessions-project-delete-*.csv"))
+	if err != nil || len(backups) != 1 {
+		t.Fatalf("expected one history backup, got %v (error: %v)", backups, err)
+	}
+	backup, err := os.ReadFile(backups[0])
+	if err != nil {
+		t.Fatalf("read history backup: %v", err)
+	}
+	if string(backup) != original {
+		t.Fatalf("backup should preserve history before reassignment:\ngot:\n%swant:\n%s", backup, original)
+	}
+}
+
+func TestUnassignProjectMatchesLoadedProjectIDs(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "sessions.csv")
+	const original = "2026-11-27T12:00:00Z,25m0s, project-1 ,11111111-1111-4111-8111-111111111111\n"
+	if err := os.WriteFile(path, []byte(original), 0o600); err != nil {
+		t.Fatalf("write history: %v", err)
+	}
+	store := NewStore(path)
+	before, err := store.LoadForProject("project-1")
+	if err != nil || len(before) != 1 {
+		t.Fatalf("loader should recognize the padded project ID: %#v (error: %v)", before, err)
+	}
+	if err := store.UnassignProject("project-1"); err != nil {
+		t.Fatalf("unassign project: %v", err)
+	}
+	after, err := store.Load()
+	if err != nil || len(after) != 1 {
+		t.Fatalf("load reassigned history: %#v (error: %v)", after, err)
+	}
+	want := before[0]
+	want.ProjectID = "Unassigned"
+	if after[0] != want {
+		t.Fatalf("reassignment should match the loader's project IDs: got %#v, want %#v", after[0], want)
+	}
+}
+
+func TestUnassignProjectBackupFailurePreservesHistory(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "sessions.csv")
+		original := "2026-11-27T12:00:00Z,25m0s,project-1,11111111-1111-4111-8111-111111111111\n"
+		if err := os.WriteFile(path, []byte(original), 0o600); err != nil {
+			t.Fatalf("write original history: %v", err)
+		}
+		// The frozen clock makes the backup collide without relying on permissions.
+		backupPath := filepath.Join(dir, "sessions-project-delete-"+time.Now().Format("2006-01-02-15-04-05.000")+".csv")
+		const existingBackup = "existing recovery backup\n"
+		if err := os.WriteFile(backupPath, []byte(existingBackup), 0o600); err != nil {
+			t.Fatalf("create conflicting backup: %v", err)
+		}
+
+		if err := NewStore(path).UnassignProject("project-1"); !errors.Is(err, os.ErrExist) {
+			t.Fatalf("got error %v, want backup collision", err)
+		}
+		for filename, want := range map[string]string{path: original, backupPath: existingBackup} {
+			got, err := os.ReadFile(filename)
+			if err != nil {
+				t.Fatalf("read file after backup failure: %v", err)
+			}
+			if string(got) != want {
+				t.Errorf("backup failure changed %s: got %q, want %q", filename, got, want)
+			}
+		}
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			t.Fatalf("list history directory: %v", err)
+		}
+		if len(entries) != 2 {
+			t.Fatalf("backup failure should leave only the original history and backup, got %v", entries)
+		}
+	})
+}
+
 func TestAppend(t *testing.T) {
 	testFile := filepath.Join(t.TempDir(), "sessions.csv")
 

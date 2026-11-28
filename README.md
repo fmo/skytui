@@ -33,14 +33,14 @@ brew install fmo/tap/skytui
 ### Download a binary
 
 Download the appropriate archive from the
-[GitHub release](https://github.com/fmo/skytui/releases/tag/v1.5.0):
+[GitHub release](https://github.com/fmo/skytui/releases/tag/v1.6.0):
 
-- [macOS Apple Silicon (`arm64`)](https://github.com/fmo/skytui/releases/download/v1.5.0/skytui_1.5.0_darwin_arm64.tar.gz)
-- [macOS Intel (`amd64`)](https://github.com/fmo/skytui/releases/download/v1.5.0/skytui_1.5.0_darwin_amd64.tar.gz)
-- [Linux (`arm64`)](https://github.com/fmo/skytui/releases/download/v1.5.0/skytui_1.5.0_linux_arm64.tar.gz)
-- [Linux (`amd64`)](https://github.com/fmo/skytui/releases/download/v1.5.0/skytui_1.5.0_linux_amd64.tar.gz)
-- [Windows (`amd64`)](https://github.com/fmo/skytui/releases/download/v1.5.0/skytui_1.5.0_windows_amd64.zip)
-- [SHA-256 checksums](https://github.com/fmo/skytui/releases/download/v1.5.0/checksums.txt)
+- [macOS Apple Silicon (`arm64`)](https://github.com/fmo/skytui/releases/download/v1.6.0/skytui_1.6.0_darwin_arm64.tar.gz)
+- [macOS Intel (`amd64`)](https://github.com/fmo/skytui/releases/download/v1.6.0/skytui_1.6.0_darwin_amd64.tar.gz)
+- [Linux (`arm64`)](https://github.com/fmo/skytui/releases/download/v1.6.0/skytui_1.6.0_linux_arm64.tar.gz)
+- [Linux (`amd64`)](https://github.com/fmo/skytui/releases/download/v1.6.0/skytui_1.6.0_linux_amd64.tar.gz)
+- [Windows (`amd64`)](https://github.com/fmo/skytui/releases/download/v1.6.0/skytui_1.6.0_windows_amd64.zip)
+- [SHA-256 checksums](https://github.com/fmo/skytui/releases/download/v1.6.0/checksums.txt)
 
 On macOS or Linux, extract the archive and move `skytui` to a directory in your
 `PATH`, such as `/usr/local/bin`. On Windows, extract `skytui.exe` and add its
@@ -78,7 +78,7 @@ grep linux_amd64 checksums.txt | sha256sum -c -
 Windows PowerShell:
 
 ```powershell
-Get-FileHash .\skytui_1.5.0_windows_amd64.zip -Algorithm SHA256
+Get-FileHash .\skytui_1.6.0_windows_amd64.zip -Algorithm SHA256
 ```
 
 Compare the PowerShell result with the matching entry in `checksums.txt`.
@@ -90,7 +90,7 @@ A valid download reports OK.
 Requires Go 1.27.3 or later.
 
 ```sh
-go install github.com/fmo/skytui@v1.5.0
+go install github.com/fmo/skytui@v1.6.0
 ```
 
 ## Usage
@@ -115,6 +115,12 @@ project with the arrow keys or `j`/`k`, then press `Enter`. Press `n` to create
 a project when the list is empty or when you need another one. SkyTUI remembers
 the last selection and preselects it on the next launch.
 
+Press `d` in the project picker to request project deletion. Confirmation shows
+the number of saved sessions that will become Unassigned. Cancel is selected by
+default; press Right to select Delete and Enter to confirm, or Esc to cancel.
+The active project and the project remembered in config cannot be deleted;
+select another project first. See [Deleting projects](#deleting-projects).
+
 After a focus session completes, press `n` to start a short break. Press `n`
 again after the break completes to start the next focus session. The next
 session never starts automatically. Press `p` after any session completes to
@@ -128,7 +134,7 @@ duration, and is not saved to `config.yaml`.
 
 Press `f` from the dashboard or either statistics view to filter dashboard
 totals, recent sessions, and statistics by all projects, one project, or
-unassigned legacy sessions. Applying a filter does not affect the active
+unassigned sessions. Applying a filter does not affect the active
 timer.
 
 Press `s` from the dashboard to open statistics for the current project filter
@@ -146,8 +152,8 @@ Press `Esc` to cancel confirmation or return from History. The timer keeps
 running while History is open. Each deletion first creates a backup of the
 complete history CSV, including records outside the current filter.
 
-Development builds also support manual backups with `b` from the main History
-table; see [Manual backups](#manual-backups).
+Press `b` from the main History table to create a manual backup;
+see [Manual backups](#manual-backups).
 
 Show installed version:
 
@@ -175,7 +181,8 @@ skytui --help
 - `h` opens History for the current project filter from the dashboard.
 - `b` creates a manual backup from the main History table.
 - `d` edits the focus duration after completion on the dashboard; in History,
-  it opens deletion confirmation for the selected record.
+  it opens record deletion confirmation; in the project picker, it opens
+  project deletion confirmation.
 - `Left`/`Right` selects Delete or Cancel in deletion confirmation; `Enter`
   activates the selected action. Enter on the History table does not delete.
 - `Space` pauses or resumes the session.
@@ -258,6 +265,34 @@ it does not pause, reset, or reassign the current session. The filter defaults
 to `All Projects` whenever SkyTUI starts and remains selected while the
 application is open.
 
+### Deleting projects
+
+Project deletion keeps all saved focus sessions and changes only that project's
+session project IDs to `Unassigned`. Session UUIDs, timestamps, durations and
+CSV order are preserved. The operation uses complete history, regardless of the
+current filter. A filter for the deleted project resets to All Projects; other
+filters remain selected, and history, totals and statistics refresh.
+
+Session counting runs in the background. Delete stays disabled until the count
+loads successfully. While deletion runs, the picker displays progress and
+ignores conflicting input; timer updates continue. The active project, the
+project saved as `active-project-id`, and the project of a running or paused
+session are protected. Deletion does not change settings or the timer session.
+
+Before changing files, SkyTUI saves a project backup and, if matching sessions
+exist, a history backup. Missing or empty history does not prevent deletion.
+An unprotected last project can be deleted; the empty picker then allows creating
+a new project.
+
+The two CSV files are updated in order, not as one transaction: sessions are
+reassigned first, then the project is removed. If the second step fails, the
+project stays listed and the error explains that its sessions are already
+Unassigned. Retry can finish project removal without changing those records
+again or overwriting the original backups. If refreshing the views fails, an
+error is displayed and the previously loaded data stays visible. Stop other
+SkyTUI instances before modifying shared data; store locks apply within one
+running app.
+
 ## Session History
 
 SkyTUI saves completed sessions to `sessions.csv`.
@@ -318,6 +353,12 @@ Backups are stored beside `sessions.csv`:
 - `sessions-migration-<timestamp>.csv`: original history before format migration.
 - `sessions-delete-<timestamp>.csv`: complete history before a deletion.
 - `sessions-manual-<timestamp>.csv`: complete history requested with `b`.
+- `sessions-project-delete-<timestamp>.csv`: original history before moving a
+  deleted project's sessions to Unassigned.
+
+Project deletion also saves `projects-delete-<timestamp>.csv` beside
+`projects.csv`, containing the original project list. If no history records
+need reassignment, no history backup or rewrite is needed.
 
 Backup names include milliseconds, and an existing backup is never overwritten.
 If backup creation or replacement fails, the operation returns an error.
@@ -341,7 +382,7 @@ SkyTUI writes application logs to the platform-specific log file listed under
 
 Prepare and merge the app version, version test, dated changelog entry and README
 installation links manually. Then open **Actions → Release → Run workflow** on
-the default branch and enter the version without `v`, for example `1.5.0`.
+the default branch and enter the version without `v`, for example `1.6.0`.
 
 The workflow validates the version and unused tag, reads notes from that
 version's changelog entry, and runs `make release`. After verifying checksums,

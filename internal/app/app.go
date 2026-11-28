@@ -119,6 +119,52 @@ func (m model) Init() tea.Cmd {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if request, ok := msg.(projectSessionCountRequested); ok {
+		if !m.projectPicker.awaitingSessionCount(request.projectID) {
+			return m, nil
+		}
+		return m, loadProjectSessionCount(m.historyStore, request)
+	}
+	if result, ok := msg.(projectSessionCountResult); ok {
+		picker := &m.projectPicker
+		if !picker.awaitingSessionCount(result.projectID) {
+			return m, nil
+		}
+		picker.sessionCountPending = false
+		if result.err != nil {
+			picker.screen = projectPickerHome
+			picker.deleteProject = nil
+			picker.err = fmt.Errorf("Load sessions before project deletion: %w", result.err)
+		} else {
+			picker.sessionNumber = result.count
+		}
+		return m, nil
+	}
+
+	if result, ok := msg.(projectDeletionResult); ok {
+		picker := &m.projectPicker
+		if !picker.deletionPending || picker.deleteProject == nil || picker.deleteProject.ID != result.projectID {
+			return m, nil
+		}
+		picker.deletionPending = false
+		if result.err != nil {
+			picker.err = fmt.Errorf("Project deletion failed: %w", result.err)
+			if result.historyReassigned {
+				picker.err = fmt.Errorf("Sessions are now Unassigned, but project deletion failed: %w", result.err)
+				return m, func() tea.Msg { return loadType{refreshHistory: true} }
+			}
+			return m, nil
+		}
+		name := picker.deleteProject.Name
+		m.projectPicker = newProjectPicker(picker.store, m.activeProject.ID)
+		m.projectPicker.deletionMessage = fmt.Sprintf("Deleted %s. Saved sessions are Unassigned.", name)
+		if m.projectFilter.Mode == history.OneProject && m.projectFilter.ProjectID == result.projectID {
+			m.projectFilter = history.Filter{Mode: history.AllProjects}
+		}
+		m.projectFilterPicker = newProjectFilterPicker(m.projectPicker.projects, m.projectFilter, m.projectFilterPicker.returnScreen)
+		return m, func() tea.Msg { return loadType{refreshHistory: true} }
+	}
+
 	if result, ok := msg.(historyBackupResult); ok {
 		if result.err != nil {
 			m.backupStatus = backupFailed
@@ -188,11 +234,35 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	if m.screen == projectScreen {
+	_, isKeyPress := msg.(tea.KeyPressMsg)
+	_, isSessionLoad := msg.(loadType)
+	if m.screen == projectScreen && (isKeyPress || (m.projectPicker.screen == creating && !isSessionLoad)) {
 		if key, ok := msg.(tea.KeyPressMsg); ok {
+			if m.projectPicker.deletionPending {
+				return m, nil
+			}
 			switch key.String() {
+			case "enter":
+				picker := &m.projectPicker
+				if picker.screen == deleteConfirm && picker.selectedButton == deleteButton && picker.deleteProject != nil {
+					if picker.sessionCountPending {
+						return m, nil
+					}
+					if m.session != nil && m.session.Status() != timer.Completed && m.sessionProjectID == picker.deleteProject.ID {
+						picker.err = fmt.Errorf("Cannot delete the project of a running or paused session")
+						return m, nil
+					}
+					configuredProject := m.settings != nil && m.settings.LoadActiveProjectID() == picker.deleteProject.ID
+					if m.activeProject.ID == picker.deleteProject.ID || configuredProject {
+						picker.err = fmt.Errorf("Select another project before deleting this one.")
+						return m, nil
+					}
+					picker.deletionPending = true
+					picker.err = nil
+					return m, deleteProject(m.historyStore, picker.store, picker.deleteProject.ID)
+				}
 			case "esc":
-				if m.session != nil && m.session.Status() == timer.Completed && !m.projectPicker.creating {
+				if m.session != nil && m.session.Status() == timer.Completed && m.projectPicker.screen == projectPickerHome {
 					m.screen = dashboardScreen
 
 					return m, nil
@@ -202,6 +272,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		picker, selected, cmd := m.projectPicker.Update(msg)
 		m.projectPicker = picker
+
 		if selected == nil {
 			return m, cmd
 		}
@@ -361,6 +432,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		records, err := m.historyStore.Load()
 		if err != nil {
 			slog.Error("cant load sessions", "err", err)
+			if msg.refreshHistory {
+				if m.projectPicker.err != nil {
+					m.projectPicker.err = fmt.Errorf("%w; reload sessions: %w", m.projectPicker.err, err)
+				} else {
+					m.projectPicker.err = fmt.Errorf("Reload sessions after project deletion: %w", err)
+				}
+				return m, nil
+			}
 		}
 		filteredRecords := history.FilterRecords(records, m.projectFilter)
 		filterLabel := projectFilterLabel(m.projectFilter, m.projectPicker.projects)
@@ -371,6 +450,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.thisWeek = m.historyStore.ThisWeek(m.sessions)
 		m.thisMonth = m.historyStore.ThisMonth(m.sessions)
 		m.allTime = m.historyStore.AllTime(m.sessions)
+		if msg.refreshHistory {
+			m.historyPage = NewHistoryPage(m.sessions, m.width)
+		}
 	case notificationResult:
 		if msg.err != nil {
 			slog.Error("cant notify", "err", msg.err)
@@ -444,7 +526,9 @@ type clearMsgType struct{}
 
 type tickType struct{}
 
-type loadType struct{}
+type loadType struct {
+	refreshHistory bool
+}
 
 func clearMsg() tea.Msg {
 	return clearMsgType(struct{}{})
@@ -458,6 +542,6 @@ func tickTime() tea.Cmd {
 
 func loadSessions() tea.Cmd {
 	return func() tea.Msg {
-		return loadType(struct{}{})
+		return loadType{}
 	}
 }

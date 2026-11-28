@@ -65,6 +65,10 @@ func (s *Store) Load() ([]Record, error) {
 		return []Record{}, err
 	}
 
+	return parseRecords(rows)
+}
+
+func parseRecords(rows [][]string) ([]Record, error) {
 	records := make([]Record, 0, len(rows))
 	for index, row := range rows {
 		if len(row) != 4 {
@@ -96,6 +100,15 @@ func (s *Store) Load() ([]Record, error) {
 	}
 
 	return records, nil
+}
+
+// LoadForProject returns saved sessions belonging to the given project ID.
+func (s *Store) LoadForProject(projectID string) ([]Record, error) {
+	records, err := s.Load()
+	if err != nil {
+		return nil, err
+	}
+	return FilterRecords(records, Filter{Mode: OneProject, ProjectID: projectID}), nil
 }
 
 func migrate(path string, rows [][]string) error {
@@ -177,6 +190,53 @@ func (s *Store) Backup() (string, error) {
 	}
 
 	return createBackup("sessions-manual", filepath.Dir(s.path), records)
+}
+
+// UnassignProject backs up history before removing a project's session associations.
+func (s *Store) UnassignProject(projectID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if strings.TrimSpace(projectID) == "" {
+		return errors.New("project ID is required")
+	}
+	rows, err := readAllCsv(s.path)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return err
+	}
+
+	if _, err := parseRecords(rows); err != nil {
+		return err
+	}
+	updatedRows := slices.Clone(rows)
+	changed := false
+	for index, row := range rows {
+		if strings.TrimSpace(row[2]) == projectID {
+			updatedRows[index] = slices.Clone(row)
+			updatedRows[index][2] = "Unassigned"
+			changed = true
+		}
+	}
+	if !changed {
+		return nil
+	}
+
+	dir := filepath.Dir(s.path)
+	if _, err := createBackup("sessions-project-delete", dir, rows); err != nil {
+		return fmt.Errorf("back up history before unassigning project: %w", err)
+	}
+	tmpFile, err := createTemp("sessions-tmp", dir, updatedRows)
+	if err != nil {
+		return err
+	}
+	if err := os.Rename(tmpFile.Name(), s.path); err != nil {
+		cleanupFile(tmpFile)
+		return fmt.Errorf("replace history after unassigning project: %w", err)
+	}
+	return nil
 }
 
 func (s *Store) Delete(record string) error {
