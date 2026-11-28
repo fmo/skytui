@@ -24,9 +24,9 @@ session. Sessions belonging to the deleted project become Unassigned.
   or history rewrite failure leaves the project in place.
 - [ ] Block deletion of the project attached to a running or paused session.
   Deletion never changes or starts a timer session.
-- [ ] Deleting the active project after completion clears its selection and
-  persisted setting, and keeps the user in project selection until another
-  project is selected.
+- [x] Block deletion of either the active project or the project saved as
+  active in config, even after completion or at startup. Show "Select another
+  project before deleting this one." Do not change settings during deletion.
 - [ ] Refresh picker options, history and statistics. Reset a filter for the
   deleted project to All Projects; preserve other filters.
 - [ ] Show failures and partial outcomes accurately, retain recovery backups,
@@ -61,7 +61,7 @@ sessions from complete stored history, regardless of the current filter.
 | Missing/empty history or no matching sessions | Confirm zero sessions; remove the project without creating fake history. |
 | Last project deleted | Show the empty picker and allow creation; never start a session without a project. |
 | Another project is active | Preserve its active selection, setting and session. |
-| A completed session belongs to the deleted project | Preserve the completed timer object; reassign its saved history record. |
+| Selected project matches the active or configured project | Block deletion and ask the user to select another project first. |
 | Project disappears before the command runs | Report it and refresh; never delete another project. |
 | Timer ticks or other storage work arrives while pending | Keep handling messages; serialize conflicting writes within this app. |
 | Malformed history or backup failure | Stop before changing either store and show the error. |
@@ -73,9 +73,9 @@ report that its sessions were moved. Retry must safely finish removal without
 losing records. Retain the original recovery backups across retries; a later
 snapshot must not overwrite them.
 
-If settings persistence fails after removal, report it separately and keep
-in-memory state consistent with storage. Verify restart safely handles a stale
-saved project ID. Do not silently report full success for a partial outcome.
+Deletion does not write settings: active and configured projects are protected.
+Selecting a replacement uses the existing selection and persistence flow.
+Do not silently report full success for a partial outcome.
 
 ### Ownership and boundaries
 
@@ -97,8 +97,8 @@ saved project ID. Do not silently report full success for a partial outcome.
    operation, including backup errors and retry after partial failure.
 3. [ ] **Connect the picker:** confirmation, guards, command/result handling
    and pending/error/success feedback without starting a session.
-4. [ ] **Refresh app state:** active selection, persisted settings, last-project
-   deletion and filter/history/statistics refreshes.
+4. [ ] **Refresh app state:** protect active/configured selection, handle an
+   empty picker and refresh filters/history/statistics.
 5. [ ] **Finish:** verify narrow layouts and navigation; update README controls
    and add finished behavior under Unreleased in the changelog.
 
@@ -107,7 +107,7 @@ saved project ID. Do not silently report full success for a partial outcome.
 Use temporary stores, never everyday data. Check disk contents and UI state.
 Execute returned commands and deliver their result messages in app tests.
 Cover cancellation, preservation, zero sessions, active-session protection,
-partial failure/retry, settings failure and restart behavior.
+partial failure/retry, configured-project protection and restart behavior.
 
 Before merging, run relevant tests, `go test ./...`, `go test -race ./...`,
 `go vet ./...`, build and formatting/diff checks. Require green CI on macOS,

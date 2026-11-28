@@ -13,6 +13,7 @@ import (
 	"charm.land/bubbles/v2/progress"
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
+	"github.com/fmo/skytui/internal/config"
 	"github.com/fmo/skytui/internal/history"
 	"github.com/fmo/skytui/internal/project"
 	"github.com/fmo/skytui/internal/timer"
@@ -169,6 +170,92 @@ func TestProjectDeletionBlocksRunningOrPausedSessionProject(t *testing.T) {
 			}
 			if got.session != session || got.session.Status() != originalStatus {
 				t.Fatal("blocked deletion must preserve the existing session")
+			}
+		})
+	}
+}
+
+func TestProjectDeletionProtectsActiveAndConfiguredProjects(t *testing.T) {
+	for _, tt := range []struct {
+		name         string
+		activeID     string
+		configuredID string
+		settings     bool
+		startup      bool
+		blocked      bool
+	}{
+		{name: "active without settings", activeID: "project-1", blocked: true},
+		{name: "configured at startup", configuredID: "project-1", settings: true, startup: true, blocked: true},
+		{name: "configured differs from active", activeID: "project-2", configuredID: "project-1", settings: true, blocked: true},
+		{name: "active differs from configured", activeID: "project-1", configuredID: "project-2", settings: true, blocked: true},
+		{name: "unrelated project", activeID: "project-2", configuredID: "project-2", settings: true},
+		{name: "startup without selection", startup: true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			projectPath := filepath.Join(dir, "projects.csv")
+			historyPath := filepath.Join(dir, "sessions.csv")
+			originals := map[string]string{
+				projectPath: "project-1,SkyTUI\nproject-2,Other project\n",
+				historyPath: "2026-11-27T12:00:00Z,25m0s,project-1,11111111-1111-4111-8111-111111111111\n",
+			}
+			for path, contents := range originals {
+				if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {
+					t.Fatalf("write original store: %v", err)
+				}
+			}
+			projects, err := project.NewStore(projectPath)
+			if err != nil {
+				t.Fatalf("open project store: %v", err)
+			}
+			m := model{
+				screen:        projectScreen,
+				width:         80,
+				historyStore:  history.NewStore(historyPath),
+				activeProject: project.Project{ID: tt.activeID},
+				projectPicker: newProjectPicker(projects, "project-1"),
+			}
+			if !tt.startup {
+				m.session = completedSession(timer.Focus, time.Minute)
+			}
+			if tt.settings {
+				m.settings, err = config.New(dir)
+				if err != nil {
+					t.Fatalf("create settings: %v", err)
+				}
+				if err := m.settings.SaveActiveProjectID(tt.configuredID); err != nil {
+					t.Fatalf("save configured project: %v", err)
+				}
+				contents, err := os.ReadFile(filepath.Join(dir, "config.yaml"))
+				if err != nil {
+					t.Fatalf("read saved config: %v", err)
+				}
+				originals[filepath.Join(dir, "config.yaml")] = string(contents)
+			}
+			updated, request := m.Update(tea.KeyPressMsg{Code: 'd', Text: "d"})
+			got := finishProjectSessionCount(t, updated.(model), request)
+			updated, _ = got.Update(tea.KeyPressMsg{Code: tea.KeyRight})
+			got = updated.(model)
+			updated, cmd := got.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+			got = updated.(model)
+			if tt.blocked {
+				if cmd != nil || got.projectPicker.deletionPending || got.projectPicker.err == nil {
+					t.Fatal("active or configured project deletion should be blocked with a message")
+				}
+				if !strings.Contains(got.View().Content, "Select another project before deleting this one.") {
+					t.Fatal("confirmation should explain how to unblock deletion")
+				}
+			} else if cmd == nil || !got.projectPicker.deletionPending || got.projectPicker.err != nil {
+				t.Fatal("an unrelated project should still be deletable")
+			}
+			if got.activeProject != m.activeProject || got.session != m.session {
+				t.Fatal("confirmation must preserve the active project and session")
+			}
+			for path, want := range originals {
+				contents, err := os.ReadFile(path)
+				if err != nil || string(contents) != want {
+					t.Errorf("confirmation changed %s: %q (error: %v)", path, contents, err)
+				}
 			}
 		})
 	}

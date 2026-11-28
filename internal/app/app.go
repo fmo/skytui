@@ -246,6 +246,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						picker.err = fmt.Errorf("Cannot delete the project of a running or paused session")
 						return m, nil
 					}
+					configuredProject := m.settings != nil && m.settings.LoadActiveProjectID() == picker.deleteProject.ID
+					if m.activeProject.ID == picker.deleteProject.ID || configuredProject {
+						picker.err = fmt.Errorf("Select another project before deleting this one.")
+						return m, nil
+					}
 					picker.deletionPending = true
 					picker.err = nil
 					return m, deleteProject(m.historyStore, picker.store, picker.deleteProject.ID)
