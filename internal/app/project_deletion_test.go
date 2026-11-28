@@ -396,6 +396,126 @@ func TestProjectDeletionResultHandledAfterLeavingPicker(t *testing.T) {
 	}
 }
 
+func TestProjectDeletionRetriesAfterProjectReplacementFailure(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		m, _, originals := pendingProjectDeletion(t)
+		projects := m.projectPicker.store
+		var projectPath, historyPath string
+		for path := range originals {
+			switch filepath.Base(path) {
+			case "projects.csv":
+				projectPath = path
+			case "sessions.csv":
+				historyPath = path
+			}
+		}
+		if err := m.historyStore.Append(time.Now(), 50*time.Minute, "project-2"); err != nil {
+			t.Fatalf("append another project's session: %v", err)
+		}
+		originalHistory, err := os.ReadFile(historyPath)
+		if err != nil {
+			t.Fatalf("read original history: %v", err)
+		}
+		originals[historyPath] = string(originalHistory)
+		beforeProjects := projects.List()
+
+		// Inject a real replacement failure through the store's callback seam.
+		// Move the original aside, then put a directory at the destination path.
+		// Renaming a CSV over that directory fails on Unix and Windows.
+		heldProjectPath := projectPath + ".held"
+		err = projects.DeleteAfterBackup("project-1", func() error {
+			if err := m.historyStore.UnassignProject("project-1"); err != nil {
+				return err
+			}
+			if err := os.Rename(projectPath, heldProjectPath); err != nil {
+				return err
+			}
+			return os.Mkdir(projectPath, 0o700)
+		})
+		if err == nil || !strings.Contains(err.Error(), "replace project store") {
+			t.Fatalf("expected project replacement failure after reassignment, got %v", err)
+		}
+		if !slices.Equal(projects.List(), beforeProjects) {
+			t.Fatal("failed replacement must retain the project in memory")
+		}
+		afterReassignment, readErr := os.ReadFile(historyPath)
+		if readErr != nil {
+			t.Fatalf("read reassigned history: %v", readErr)
+		}
+		wantHistory := strings.ReplaceAll(originals[historyPath], ",project-1,", ",Unassigned,")
+		if string(afterReassignment) != wantHistory {
+			t.Fatalf("partial operation should preserve records and reassign only project-1: got %q, want %q", afterReassignment, wantHistory)
+		}
+		originalBackups := make(map[string]string)
+		for prefix, source := range map[string]string{"projects-delete": projectPath, "sessions-project-delete": historyPath} {
+			backups, globErr := filepath.Glob(filepath.Join(filepath.Dir(source), prefix+"-*.csv"))
+			if globErr != nil || len(backups) != 1 {
+				t.Fatalf("expected one original %s backup, got %v (error: %v)", prefix, backups, globErr)
+			}
+			contents, readErr := os.ReadFile(backups[0])
+			if readErr != nil || string(contents) != originals[source] {
+				t.Fatalf("backup must contain the original %s: got %q (error: %v)", source, contents, readErr)
+			}
+			originalBackups[backups[0]] = string(contents)
+		}
+
+		// Remove only the test's obstacle and restore the unchanged project file.
+		if removeErr := os.Remove(projectPath); removeErr != nil {
+			t.Fatalf("remove replacement obstacle: %v", removeErr)
+		}
+		if restoreErr := os.Rename(heldProjectPath, projectPath); restoreErr != nil {
+			t.Fatalf("restore original project file: %v", restoreErr)
+		}
+		updated, refresh := m.Update(projectDeletionResult{projectID: "project-1", historyReassigned: true, err: err})
+		m = updated.(model)
+		if refresh == nil || m.projectPicker.deletionPending || m.projectPicker.err == nil || !strings.Contains(m.projectPicker.err.Error(), "Sessions are now Unassigned") {
+			t.Fatal("partial failure should allow retry and explain that sessions were moved")
+		}
+		updated, _ = m.Update(refresh())
+		m = updated.(model)
+
+		// Advance the fake clock so the manual retry gets a new backup filename.
+		time.Sleep(time.Second)
+		updated, retry := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+		m = updated.(model)
+		if retry == nil || !m.projectPicker.deletionPending {
+			t.Fatal("Enter on Delete should retry the operation")
+		}
+		result := retry().(projectDeletionResult)
+		if result.err != nil {
+			t.Fatalf("retry should finish project removal: %v", result.err)
+		}
+		updated, refresh = m.Update(result)
+		m = updated.(model)
+		if refresh == nil || m.projectPicker.deletionPending || m.projectPicker.deletionMessage == "" {
+			t.Fatal("successful retry should clear pending and report success")
+		}
+		updated, _ = m.Update(refresh())
+		m = updated.(model)
+		if want := []project.Project{{ID: "project-2", Name: "Other project"}}; !slices.Equal(projects.List(), want) {
+			t.Fatalf("projects after retry = %#v, want %#v", projects.List(), want)
+		}
+		savedProjects, readErr := os.ReadFile(projectPath)
+		if readErr != nil || string(savedProjects) != "project-2,Other project\n" {
+			t.Fatalf("retry did not persist project removal: %q (error: %v)", savedProjects, readErr)
+		}
+		contents, readErr := os.ReadFile(historyPath)
+		if readErr != nil || string(contents) != string(afterReassignment) {
+			t.Fatalf("retry should leave reassigned history unchanged: %q (error: %v)", contents, readErr)
+		}
+		for path, want := range originalBackups {
+			contents, readErr := os.ReadFile(path)
+			if readErr != nil || string(contents) != want {
+				t.Errorf("retry changed original recovery backup %s: %q (error: %v)", path, contents, readErr)
+			}
+		}
+		backups, globErr := filepath.Glob(filepath.Join(filepath.Dir(historyPath), "sessions-project-delete-*.csv"))
+		if globErr != nil || len(backups) != 1 {
+			t.Fatalf("retry should not back up already reassigned history again: %v (error: %v)", backups, globErr)
+		}
+	})
+}
+
 func TestDeleteProjectCommandPreservesSessionsAndBacksUpBothStores(t *testing.T) {
 	for _, tt := range []struct {
 		name          string
