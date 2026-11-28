@@ -238,15 +238,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		picker, selected, cmd := m.projectPicker.Update(msg)
 		m.projectPicker = picker
 		if previousScreen != deleteConfirm && m.projectPicker.screen == deleteConfirm && m.projectPicker.deleteProject != nil {
-			records, err := m.historyStore.Load()
+			records, err := m.historyStore.LoadForProject(m.projectPicker.deleteProject.ID)
 			if err != nil {
 				m.projectPicker.screen = projectPickerHome
 				m.projectPicker.deleteProject = nil
 				m.projectPicker.err = fmt.Errorf("Load sessions before project deletion: %w", err)
 				return m, nil
 			}
-			filteredRecords := history.FilterRecords(records, history.Filter{Mode: history.OneProject, ProjectID: m.projectPicker.deleteProject.ID})
-			m.projectPicker.sessionNumber = len(filteredRecords)
+			m.projectPicker.sessionNumber = len(records)
 		}
 
 		if selected == nil {

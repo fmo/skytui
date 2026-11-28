@@ -98,6 +98,15 @@ func (s *Store) Load() ([]Record, error) {
 	return records, nil
 }
 
+// LoadForProject returns saved sessions belonging to the given project ID.
+func (s *Store) LoadForProject(projectID string) ([]Record, error) {
+	records, err := s.Load()
+	if err != nil {
+		return nil, err
+	}
+	return FilterRecords(records, Filter{Mode: OneProject, ProjectID: projectID}), nil
+}
+
 func migrate(path string, rows [][]string) error {
 	clonedRows := slices.Clone(rows)
 
