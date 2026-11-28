@@ -22,19 +22,18 @@ const (
 )
 
 type projectPicker struct {
-	store                 *project.Store
-	projects              []project.Project
-	input                 textinput.Model
-	cursor                int
-	err                   error
-	screen                projectPickerScreen
-	deleteProject         *project.Project
-	sessionNumber         int
-	selectedButton        buttons
-	deletionPending       bool
-	deletionMessage       string
-	sessionCountPending   bool
-	sessionCountRequestID uint64
+	store               *project.Store
+	projects            []project.Project
+	input               textinput.Model
+	cursor              int
+	err                 error
+	screen              projectPickerScreen
+	deleteProject       *project.Project
+	sessionNumber       int
+	selectedButton      buttons
+	deletionPending     bool
+	deletionMessage     string
+	sessionCountPending bool
 }
 
 func newProjectPicker(store *project.Store, selectedID string) projectPicker {
@@ -112,8 +111,7 @@ func (p projectPicker) Update(msg tea.Msg) (projectPicker, *project.Project, tea
 		p.deletionMessage = ""
 		p.sessionNumber = 0
 		p.sessionCountPending = true
-		p.sessionCountRequestID++
-		request := projectSessionCountRequested{projectID: p.deleteProject.ID, requestID: p.sessionCountRequestID}
+		request := projectSessionCountRequested{projectID: p.deleteProject.ID}
 		return p, nil, func() tea.Msg { return request }
 	case "up", "k":
 		p.cursor = max(0, p.cursor-1)
@@ -212,9 +210,9 @@ func (p projectPicker) deleteConfirm() string {
 	return content
 }
 
-func (p projectPicker) awaitingSessionCount(projectID string, requestID uint64) bool {
+func (p projectPicker) awaitingSessionCount(projectID string) bool {
 	return p.screen == deleteConfirm && p.sessionCountPending && p.deleteProject != nil &&
-		p.deleteProject.ID == projectID && p.sessionCountRequestID == requestID
+		p.deleteProject.ID == projectID
 }
 
 func (p projectPicker) selectionView(canCancel bool) string {

@@ -80,7 +80,7 @@ func TestProjectSessionCountLoadsThroughMessagesAndReportsFailure(t *testing.T) 
 	}
 }
 
-func TestProjectSessionCountIgnoresCanceledAndOlderRequests(t *testing.T) {
+func TestProjectSessionCountIgnoresCanceledRequests(t *testing.T) {
 	m := model{
 		screen: projectScreen,
 		projectPicker: projectPicker{
@@ -97,26 +97,9 @@ func TestProjectSessionCountIgnoresCanceledAndOlderRequests(t *testing.T) {
 	if canceledCmd != nil {
 		t.Fatal("a canceled request should not start disk work")
 	}
-	updated, _ = m.Update(projectSessionCountResult{projectID: first.projectID, requestID: first.requestID, count: 99})
+	updated, _ = m.Update(projectSessionCountResult{projectID: first.projectID, count: 99})
 	m = updated.(model)
 	if m.projectPicker.screen != projectPickerHome || m.projectPicker.sessionNumber != 0 {
 		t.Fatal("a canceled result should not reopen confirmation or change the count")
-	}
-
-	updated, secondCmd := m.Update(tea.KeyPressMsg{Code: 'd', Text: "d"})
-	m = updated.(model)
-	second := secondCmd().(projectSessionCountRequested)
-	if second.requestID == first.requestID {
-		t.Fatal("reopening confirmation should issue a new request ID")
-	}
-	updated, _ = m.Update(projectSessionCountResult{projectID: first.projectID, requestID: first.requestID, count: 99})
-	m = updated.(model)
-	if !m.projectPicker.sessionCountPending || m.projectPicker.sessionNumber != 0 {
-		t.Fatal("an older result for the same project must not complete the newer request")
-	}
-	updated, _ = m.Update(projectSessionCountResult{projectID: second.projectID, requestID: second.requestID, count: 2})
-	m = updated.(model)
-	if m.projectPicker.sessionCountPending || m.projectPicker.sessionNumber != 2 {
-		t.Fatal("the matching result should update the current confirmation")
 	}
 }

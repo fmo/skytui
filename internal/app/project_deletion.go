@@ -16,12 +16,10 @@ type projectDeletionResult struct {
 
 type projectSessionCountRequested struct {
 	projectID string
-	requestID uint64
 }
 
 type projectSessionCountResult struct {
 	projectID string
-	requestID uint64
 	count     int
 	err       error
 }
@@ -31,7 +29,6 @@ func loadProjectSessionCount(store *history.Store, request projectSessionCountRe
 		records, err := store.LoadForProject(request.projectID)
 		return projectSessionCountResult{
 			projectID: request.projectID,
-			requestID: request.requestID,
 			count:     len(records),
 			err:       err,
 		}

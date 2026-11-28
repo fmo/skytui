@@ -120,14 +120,14 @@ func (m model) Init() tea.Cmd {
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if request, ok := msg.(projectSessionCountRequested); ok {
-		if !m.projectPicker.awaitingSessionCount(request.projectID, request.requestID) {
+		if !m.projectPicker.awaitingSessionCount(request.projectID) {
 			return m, nil
 		}
 		return m, loadProjectSessionCount(m.historyStore, request)
 	}
 	if result, ok := msg.(projectSessionCountResult); ok {
 		picker := &m.projectPicker
-		if !picker.awaitingSessionCount(result.projectID, result.requestID) {
+		if !picker.awaitingSessionCount(result.projectID) {
 			return m, nil
 		}
 		picker.sessionCountPending = false
@@ -155,9 +155,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		name := picker.deleteProject.Name
-		requestID := picker.sessionCountRequestID
 		m.projectPicker = newProjectPicker(picker.store, m.activeProject.ID)
-		m.projectPicker.sessionCountRequestID = requestID
 		m.projectPicker.deletionMessage = fmt.Sprintf("Deleted %s. Saved sessions are Unassigned.", name)
 		return m, nil
 	}
