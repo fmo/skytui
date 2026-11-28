@@ -214,7 +214,7 @@ func (s *Store) UnassignProject(projectID string) error {
 	updatedRows := slices.Clone(rows)
 	changed := false
 	for index, row := range rows {
-		if row[2] == projectID {
+		if strings.TrimSpace(row[2]) == projectID {
 			updatedRows[index] = slices.Clone(row)
 			updatedRows[index][2] = "Unassigned"
 			changed = true

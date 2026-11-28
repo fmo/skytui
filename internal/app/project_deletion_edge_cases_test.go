@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"slices"
@@ -99,6 +100,33 @@ func TestDeleteLastUnprotectedProjectWithoutHistory(t *testing.T) {
 				t.Fatal("the empty picker should still allow creating and selecting a new project")
 			}
 		})
+	}
+}
+
+func TestDeleteProjectMissingBeforeCommandDoesNotReassignHistory(t *testing.T) {
+	m, deletion, originals := pendingProjectDeletion(t)
+	for path := range originals {
+		if filepath.Base(path) == "projects.csv" {
+			originals[path] = "project-2,Other project\n"
+			if err := os.WriteFile(path, []byte(originals[path]), 0o600); err != nil {
+				t.Fatalf("remove selected project before the command: %v", err)
+			}
+		}
+	}
+	result := deletion().(projectDeletionResult)
+	if !errors.Is(result.err, project.ErrNotFound) || result.historyReassigned {
+		t.Fatalf("a missing project should stop before history reassignment: %#v", result)
+	}
+	for path, want := range originals {
+		contents, err := os.ReadFile(path)
+		if err != nil || string(contents) != want {
+			t.Errorf("missing-project deletion changed %s: %q (error: %v)", path, contents, err)
+		}
+	}
+	updated, cmd := m.Update(result)
+	got := updated.(model)
+	if cmd != nil || got.projectPicker.deletionPending || !errors.Is(got.projectPicker.err, project.ErrNotFound) {
+		t.Fatal("the app should report the missing project without claiming success")
 	}
 }
 

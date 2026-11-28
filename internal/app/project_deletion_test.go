@@ -300,6 +300,38 @@ func TestPartialProjectDeletionRefreshesSessionsWithoutResettingFilter(t *testin
 	}
 }
 
+func TestProjectDeletionRefreshFailurePreservesViewsAndReportsError(t *testing.T) {
+	m, deletion, originals := pendingProjectDeletion(t)
+	updated, _ := m.Update(loadType{})
+	m = updated.(model)
+	m.historyPage = NewHistoryPage(m.sessions, m.width)
+	beforeSessions := slices.Clone(m.sessions)
+	beforeTotal := m.allTime
+	beforeWeeks := slices.Clone(m.statsPage.weeks)
+	beforeHistory := slices.Clone(m.historyPage.records)
+	updated, refresh := m.Update(deletion())
+	m = updated.(model)
+	if refresh == nil {
+		t.Fatal("deletion should request refreshing views")
+	}
+	for path := range originals {
+		if filepath.Base(path) == "sessions.csv" {
+			if err := os.WriteFile(path, []byte("\"unterminated\n"), 0o600); err != nil {
+				t.Fatalf("simulate a read failure before refresh: %v", err)
+			}
+		}
+	}
+	updated, _ = m.Update(refresh())
+	got := updated.(model)
+	if got.projectPicker.err == nil {
+		t.Fatal("refresh failure must be visible instead of silently clearing session views")
+	}
+	if !slices.Equal(got.sessions, beforeSessions) || got.allTime != beforeTotal ||
+		!slices.Equal(got.statsPage.weeks, beforeWeeks) || !slices.Equal(got.historyPage.records, beforeHistory) {
+		t.Fatal("failed refresh should preserve the previously loaded views")
+	}
+}
+
 func TestProjectDeletionProtectsActiveAndConfiguredProjects(t *testing.T) {
 	for _, tt := range []struct {
 		name         string

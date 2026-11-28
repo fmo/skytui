@@ -432,6 +432,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		records, err := m.historyStore.Load()
 		if err != nil {
 			slog.Error("cant load sessions", "err", err)
+			if msg.refreshHistory {
+				if m.projectPicker.err != nil {
+					m.projectPicker.err = fmt.Errorf("%w; reload sessions: %w", m.projectPicker.err, err)
+				} else {
+					m.projectPicker.err = fmt.Errorf("Reload sessions after project deletion: %w", err)
+				}
+				return m, nil
+			}
 		}
 		filteredRecords := history.FilterRecords(records, m.projectFilter)
 		filterLabel := projectFilterLabel(m.projectFilter, m.projectPicker.projects)

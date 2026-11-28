@@ -4,6 +4,34 @@ All notable changes to SkyTUI are documented in this file.
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-11-28
+
+### Added
+
+- Delete a project from the project picker with `d`, without deleting its saved
+  focus sessions. Confirmation shows the affected session count and defaults
+  to Cancel; choose Delete with Right, then confirm with Enter.
+- Move the deleted project's saved sessions to Unassigned while preserving
+  timestamps, durations, record UUIDs and CSV order. Back up project storage
+  and any history that will change before replacing either file.
+- Show session-count loading, deletion progress, success and failure feedback.
+  Keep timer updates working and ignore conflicting input while deletion runs.
+- Protect the active project, the project remembered in config, and the
+  project assigned to a running or paused session from deletion. Select another
+  project before deleting a protected one.
+
+### Fixed
+
+- Refresh project/filter options, history, totals and weekly/monthly statistics
+  after project deletion. Reset a filter for the deleted project to All Projects
+  and preserve other filters.
+- Report partial completion if sessions are reassigned but project removal
+  fails; allow retry while retaining the original recovery backups.
+- Reject malformed history before reassignment, match project IDs consistently
+  with history loading, and report post-deletion reload failures without
+  silently clearing the previously displayed data.
+- Keep project-picker shortcuts together at narrow terminal widths.
+
 ## [1.5.0] - 2026-11-25
 
 ### Added
@@ -253,7 +281,8 @@ SkyTUI's first public release for macOS.
 - Provide built-in `--help` and `--version` output.
 - Publish archives for Apple Silicon and Intel Macs.
 
-[Unreleased]: https://github.com/fmo/skytui/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/fmo/skytui/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/fmo/skytui/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/fmo/skytui/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/fmo/skytui/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/fmo/skytui/compare/v1.2.0...v1.3.0

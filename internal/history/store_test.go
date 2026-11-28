@@ -55,6 +55,31 @@ func TestUnassignProjectPreservesSessionDataAndOrder(t *testing.T) {
 	}
 }
 
+func TestUnassignProjectMatchesLoadedProjectIDs(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "sessions.csv")
+	const original = "2026-11-27T12:00:00Z,25m0s, project-1 ,11111111-1111-4111-8111-111111111111\n"
+	if err := os.WriteFile(path, []byte(original), 0o600); err != nil {
+		t.Fatalf("write history: %v", err)
+	}
+	store := NewStore(path)
+	before, err := store.LoadForProject("project-1")
+	if err != nil || len(before) != 1 {
+		t.Fatalf("loader should recognize the padded project ID: %#v (error: %v)", before, err)
+	}
+	if err := store.UnassignProject("project-1"); err != nil {
+		t.Fatalf("unassign project: %v", err)
+	}
+	after, err := store.Load()
+	if err != nil || len(after) != 1 {
+		t.Fatalf("load reassigned history: %#v (error: %v)", after, err)
+	}
+	want := before[0]
+	want.ProjectID = "Unassigned"
+	if after[0] != want {
+		t.Fatalf("reassignment should match the loader's project IDs: got %#v, want %#v", after[0], want)
+	}
+}
+
 func TestUnassignProjectBackupFailurePreservesHistory(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		dir := t.TempDir()

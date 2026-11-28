@@ -4,7 +4,7 @@ Keep one active task here. Reuse the sections below for future tasks.
 Completed work belongs in [CHANGELOG.md](CHANGELOG.md); earlier plans remain
 available in Git history. `[x]` means the behavior has been verified.
 
-## Active Task: Delete a Project and Preserve Its Sessions
+## Release Preparation: v1.6.0 — Delete a Project and Preserve Its Sessions
 
 ### Goal
 
@@ -13,23 +13,24 @@ session. Sessions belonging to the deleted project become Unassigned.
 
 ### Success criteria
 
-- [ ] Pressing `d` on a selected project opens confirmation showing its name,
+- [x] Pressing `d` on a selected project opens confirmation showing its name,
   affected saved-session count and that sessions will become Unassigned.
-- [ ] Cancel is selected by default. Esc cancels without changing files;
+- [x] Cancel is selected by default. Esc cancels without changing files;
   deletion requires explicitly selecting Delete and confirming with Enter.
-- [ ] Success removes only the selected project and changes only its sessions'
+- [x] Success removes only the selected project and changes only its sessions'
   project IDs to the existing `Unassigned` value. UUIDs, timestamps, durations,
   record count and CSV order remain unchanged.
-- [ ] Back up history and project storage before changing either file. Backup
-  or history rewrite failure leaves the project in place.
-- [ ] Block deletion of the project attached to a running or paused session.
+- [x] Back up project storage and any history that will change before replacing
+  either file. Missing, empty or unaffected history needs no rewrite or history
+  backup. Backup or history rewrite failure leaves the project in place.
+- [x] Block deletion of the project attached to a running or paused session.
   Deletion never changes or starts a timer session.
 - [x] Block deletion of either the active project or the project saved as
   active in config, even after completion or at startup. Show "Select another
   project before deleting this one." Do not change settings during deletion.
 - [x] Refresh picker options, history and statistics. Reset a filter for the
   deleted project to All Projects; preserve other filters.
-- [ ] Show failures and partial outcomes accurately, retain recovery backups,
+- [x] Show failures and partial outcomes accurately, retain recovery backups,
   allow safe retry and block duplicate submissions while pending.
 
 ### Scope
@@ -40,7 +41,7 @@ project name or when the picker is empty. Unassigned is a history category,
 not a project entry to delete.
 
 Keep current CSV formats. No session deletion, renaming, undo/restore UI,
-bulk operations or unrelated refactoring. No release number is assigned yet.
+bulk operations or unrelated refactoring. Target release: v1.6.0.
 
 ### Flow and edge cases
 
@@ -62,7 +63,7 @@ sessions from complete stored history, regardless of the current filter.
 | Last project deleted | Show the empty picker and allow creation; never start a session without a project. |
 | Another project is active | Preserve its active selection, setting and session. |
 | Selected project matches the active or configured project | Block deletion and ask the user to select another project first. |
-| Project disappears before the command runs | Report it and refresh; never delete another project. |
+| Project disappears before the command runs | Report it; never delete another project or reassign its history. |
 | Timer ticks or other storage work arrives while pending | Keep handling messages; serialize conflicting writes within this app. |
 | Malformed history or backup failure | Stop before changing either store and show the error. |
 
@@ -91,16 +92,16 @@ Do not silently report full success for a partial outcome.
 
 ### Plan and actions
 
-1. [ ] **Preserve history:** test and implement reassignment to Unassigned,
+1. [x] **Preserve history:** test and implement reassignment to Unassigned,
    backups and unchanged record identity.
-2. [ ] **Remove safely:** test project removal and coordinate the ordered
+2. [x] **Remove safely:** test project removal and coordinate the ordered
    operation, including backup errors and retry after partial failure.
-3. [ ] **Connect the picker:** confirmation, guards, command/result handling
+3. [x] **Connect the picker:** confirmation, guards, command/result handling
    and pending/error/success feedback without starting a session.
-4. [ ] **Refresh app state:** protect active/configured selection, handle an
+4. [x] **Refresh app state:** protect active/configured selection, handle an
    empty picker and refresh filters/history/statistics.
-5. [ ] **Finish:** verify narrow layouts and navigation; update README controls
-   and add finished behavior under Unreleased in the changelog.
+5. [x] **Finish:** verify narrow layouts and navigation; update README controls
+   and document the finished behavior in the v1.6.0 changelog entry.
 
 ### Verification and completion
 
@@ -113,7 +114,30 @@ Before merging, run relevant tests, `go test ./...`, `go test -race ./...`,
 `go vet ./...`, build and formatting/diff checks. Require green CI on macOS,
 Linux and Windows, including Windows replacement-file handling.
 
+Release verification:
+
+- [x] Full tests and race-enabled tests.
+- [x] Vet, formatting and diff checks.
+- [ ] After merging, let the Release workflow build five archives and verify
+  their SHA-256 checksums before creating the draft.
+- [ ] Confirm latest pushed branch CI passes macOS/Linux/Windows before merging.
+
+Evidence: tests cover record/CSV-order preservation, original backups, backup
+collisions, real project replacement failure followed by retry, missing/empty
+history, last-project deletion and creation afterward, malformed history,
+active/configured project protection, count request/result handling, pending
+input, timer ticks, filter/view refresh and 20/30/80-column layouts. The original
+backups survive retry. Whitespace in stored project IDs follows the loader's
+matching rules, and a failed post-deletion reload reports an error while
+preserving previously loaded views.
+
+The two files are not a crash-atomic transaction; partial completion is reported
+and recoverable from backups. Cross-process file locking and disk-full/close
+failure injection are outside this task. Run only one app against the data.
+
 ### Next action
 
-Write the first history-store test: reassign one project's sessions to Unassigned
-while preserving every other field and other projects' records.
+Review and commit the v1.6.0 preparation, push this branch and wait for CI, then
+merge the feature PR. On main, run Actions → Release with version `1.6.0`;
+review the draft's notes and six assets before publishing. Homebrew remains
+a separate, deferred update. Do not publish from this feature branch.
