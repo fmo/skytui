@@ -86,9 +86,11 @@ func TestConfirmProjectDeletionRunsAsCommandAndShowsSuccess(t *testing.T) {
 
 	updated, followup := m.Update(cmd())
 	got := updated.(model)
-	if followup != nil || got.projectPicker.deletionPending || got.projectPicker.screen != projectPickerHome {
+	if followup == nil || got.projectPicker.deletionPending || got.projectPicker.screen != projectPickerHome {
 		t.Fatal("successful deletion should leave pending state and return to the project list")
 	}
+	updated, _ = got.Update(followup())
+	got = updated.(model)
 	if !strings.Contains(got.View().Content, "Deleted SkyTUI.") {
 		t.Fatal("project list should display deletion success")
 	}
@@ -107,8 +109,11 @@ func TestProjectDeletionFailureStaysInConfirmationAndShowsError(t *testing.T) {
 			failure := errors.New("disk unavailable")
 			updated, cmd := m.Update(projectDeletionResult{projectID: "project-1", historyReassigned: partial, err: failure})
 			got := updated.(model)
-			if got.projectPicker.deletionPending || got.projectPicker.screen != deleteConfirm || cmd != nil {
-				t.Fatal("failure should clear pending and preserve confirmation without issuing a command")
+			if got.projectPicker.deletionPending || got.projectPicker.screen != deleteConfirm {
+				t.Fatal("failure should clear pending and preserve confirmation")
+			}
+			if (cmd != nil) != partial {
+				t.Fatal("only partial failure should request a refresh of reassigned sessions")
 			}
 			content := strings.Join(strings.Fields(ansi.Strip(got.View().Content)), " ")
 			if !errors.Is(got.projectPicker.err, failure) || !strings.Contains(content, failure.Error()) {
@@ -172,6 +177,126 @@ func TestProjectDeletionBlocksRunningOrPausedSessionProject(t *testing.T) {
 				t.Fatal("blocked deletion must preserve the existing session")
 			}
 		})
+	}
+}
+
+func TestProjectDeletionRefreshesFilteredSessionViews(t *testing.T) {
+	for _, tt := range []struct {
+		name       string
+		filter     history.Filter
+		wantFilter history.Filter
+		wantLabel  string
+		wantIDs    []string
+		wantTotal  time.Duration
+	}{
+		{name: "deleted project resets", filter: history.Filter{Mode: history.OneProject, ProjectID: "project-1"}, wantFilter: history.Filter{Mode: history.AllProjects}, wantLabel: "All Projects", wantIDs: []string{"Unassigned", "project-2", "Unassigned"}, wantTotal: 85 * time.Minute},
+		{name: "all projects", filter: history.Filter{Mode: history.AllProjects}, wantFilter: history.Filter{Mode: history.AllProjects}, wantLabel: "All Projects", wantIDs: []string{"Unassigned", "project-2", "Unassigned"}, wantTotal: 85 * time.Minute},
+		{name: "other project preserved", filter: history.Filter{Mode: history.OneProject, ProjectID: "project-2"}, wantFilter: history.Filter{Mode: history.OneProject, ProjectID: "project-2"}, wantLabel: "Other project", wantIDs: []string{"project-2"}, wantTotal: 50 * time.Minute},
+		{name: "unassigned includes moved sessions", filter: history.Filter{Mode: history.Unassigned}, wantFilter: history.Filter{Mode: history.Unassigned}, wantLabel: "Unassigned", wantIDs: []string{"Unassigned", "Unassigned"}, wantTotal: 35 * time.Minute},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			m, deletion, originals := pendingProjectDeletion(t)
+			// Use recent timestamps so both statistics windows include the fixture.
+			now := time.Now()
+			for path := range originals {
+				if filepath.Base(path) == "sessions.csv" {
+					row := now.Add(-3*time.Hour).Format(time.RFC3339Nano) + ",25m0s,project-1,11111111-1111-4111-8111-111111111111\n"
+					if err := os.WriteFile(path, []byte(row), 0o600); err != nil {
+						t.Fatalf("update fixture timestamp: %v", err)
+					}
+				}
+			}
+			for index, record := range []struct {
+				id       string
+				duration time.Duration
+			}{{"project-2", 50 * time.Minute}, {"Unassigned", 10 * time.Minute}} {
+				if err := m.historyStore.Append(now.Add(time.Duration(index-2)*time.Hour), record.duration, record.id); err != nil {
+					t.Fatalf("append fixture session: %v", err)
+				}
+			}
+			m.projectFilter = tt.filter
+			m.projectFilterPicker = newProjectFilterPicker(m.projectPicker.projects, tt.filter, statsScreenMonthly)
+			updated, _ := m.Update(loadType{})
+			m = updated.(model)
+			m.historyPage = NewHistoryPage(m.sessions, m.width)
+
+			updated, refresh := m.Update(deletion())
+			got := updated.(model)
+			if refresh == nil {
+				t.Fatal("deletion success should request reloading session views")
+			}
+			updated, _ = got.Update(refresh())
+			got = updated.(model)
+			if got.projectFilter != tt.wantFilter {
+				t.Fatalf("filter = %#v, want %#v", got.projectFilter, tt.wantFilter)
+			}
+			ids := make([]string, 0, len(got.sessions))
+			for _, record := range got.sessions {
+				ids = append(ids, record.ProjectID)
+			}
+			if !slices.Equal(ids, tt.wantIDs) || got.allTime != tt.wantTotal {
+				t.Fatalf("sessions = %v, total = %v; want %v, %v", ids, got.allTime, tt.wantIDs, tt.wantTotal)
+			}
+			if len(got.historyPage.records) != len(got.sessions) || len(got.historyPage.table.Rows()) != len(got.sessions) {
+				t.Fatal("History table should reflect refreshed filtered sessions")
+			}
+			for index, record := range got.historyPage.records {
+				if record != got.sessions[len(got.sessions)-1-index] || got.historyPage.table.Rows()[index][projectIDIndex] != record.ProjectID {
+					t.Fatal("History rows should show refreshed project IDs in newest-first order")
+				}
+			}
+			if got.statsPage.filterLabel != tt.wantLabel {
+				t.Fatalf("statistics label = %q, want %q", got.statsPage.filterLabel, tt.wantLabel)
+			}
+			var weekCount, monthCount int
+			var weekTime, monthTime time.Duration
+			for _, week := range got.statsPage.weeks {
+				weekCount += week.sessions
+				weekTime += week.focusTime
+			}
+			for _, month := range got.statsPage.months {
+				monthCount += month.sessions
+				monthTime += month.focusTime
+			}
+			if weekCount != len(tt.wantIDs) || monthCount != len(tt.wantIDs) || weekTime != tt.wantTotal || monthTime != tt.wantTotal {
+				t.Fatal("weekly and monthly statistics should reflect the refreshed filter")
+			}
+			for _, option := range got.projectFilterPicker.options {
+				if option.filter.Mode == history.OneProject && option.filter.ProjectID == "project-1" {
+					t.Fatal("filter options should no longer offer the deleted project")
+				}
+			}
+			if got.projectFilterPicker.returnScreen != statsScreenMonthly {
+				t.Fatal("refresh should preserve filter navigation origin")
+			}
+		})
+	}
+}
+
+func TestPartialProjectDeletionRefreshesSessionsWithoutResettingFilter(t *testing.T) {
+	m, _, _ := pendingProjectDeletion(t)
+	m.projectFilter = history.Filter{Mode: history.OneProject, ProjectID: "project-1"}
+	updated, _ := m.Update(loadType{})
+	m = updated.(model)
+	m.historyPage = NewHistoryPage(m.sessions, m.width)
+	if err := m.historyStore.UnassignProject("project-1"); err != nil {
+		t.Fatalf("reassign sessions before simulating project removal failure: %v", err)
+	}
+	updated, refresh := m.Update(projectDeletionResult{projectID: "project-1", historyReassigned: true, err: errors.New("project replacement failed")})
+	got := updated.(model)
+	if refresh == nil {
+		t.Fatal("partial completion should request a data refresh")
+	}
+	updated, _ = got.Update(refresh())
+	got = updated.(model)
+	if got.projectFilter != m.projectFilter || len(got.projectPicker.projects) != 2 {
+		t.Fatal("partial completion should preserve the filter and project list")
+	}
+	if len(got.sessions) != 0 || got.allTime != 0 || len(got.historyPage.records) != 0 || len(got.historyPage.table.Rows()) != 0 {
+		t.Fatal("the project's old sessions should disappear from refreshed views after reassignment")
+	}
+	if got.projectPicker.err == nil || got.projectPicker.deletionMessage != "" {
+		t.Fatal("refresh must preserve partial failure feedback")
 	}
 }
 

@@ -151,13 +151,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			picker.err = fmt.Errorf("Project deletion failed: %w", result.err)
 			if result.historyReassigned {
 				picker.err = fmt.Errorf("Sessions are now Unassigned, but project deletion failed: %w", result.err)
+				return m, func() tea.Msg { return loadType{refreshHistory: true} }
 			}
 			return m, nil
 		}
 		name := picker.deleteProject.Name
 		m.projectPicker = newProjectPicker(picker.store, m.activeProject.ID)
 		m.projectPicker.deletionMessage = fmt.Sprintf("Deleted %s. Saved sessions are Unassigned.", name)
-		return m, nil
+		if m.projectFilter.Mode == history.OneProject && m.projectFilter.ProjectID == result.projectID {
+			m.projectFilter = history.Filter{Mode: history.AllProjects}
+		}
+		m.projectFilterPicker = newProjectFilterPicker(m.projectPicker.projects, m.projectFilter, m.projectFilterPicker.returnScreen)
+		return m, func() tea.Msg { return loadType{refreshHistory: true} }
 	}
 
 	if result, ok := msg.(historyBackupResult); ok {
@@ -230,7 +235,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	_, isKeyPress := msg.(tea.KeyPressMsg)
-	if m.screen == projectScreen && (isKeyPress || m.projectPicker.screen == creating) {
+	_, isSessionLoad := msg.(loadType)
+	if m.screen == projectScreen && (isKeyPress || (m.projectPicker.screen == creating && !isSessionLoad)) {
 		if key, ok := msg.(tea.KeyPressMsg); ok {
 			if m.projectPicker.deletionPending {
 				return m, nil
@@ -436,6 +442,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.thisWeek = m.historyStore.ThisWeek(m.sessions)
 		m.thisMonth = m.historyStore.ThisMonth(m.sessions)
 		m.allTime = m.historyStore.AllTime(m.sessions)
+		if msg.refreshHistory {
+			m.historyPage = NewHistoryPage(m.sessions, m.width)
+		}
 	case notificationResult:
 		if msg.err != nil {
 			slog.Error("cant notify", "err", msg.err)
@@ -509,7 +518,9 @@ type clearMsgType struct{}
 
 type tickType struct{}
 
-type loadType struct{}
+type loadType struct {
+	refreshHistory bool
+}
 
 func clearMsg() tea.Msg {
 	return clearMsgType(struct{}{})
@@ -523,6 +534,6 @@ func tickTime() tea.Cmd {
 
 func loadSessions() tea.Cmd {
 	return func() tea.Msg {
-		return loadType(struct{}{})
+		return loadType{}
 	}
 }

@@ -27,7 +27,7 @@ session. Sessions belonging to the deleted project become Unassigned.
 - [x] Block deletion of either the active project or the project saved as
   active in config, even after completion or at startup. Show "Select another
   project before deleting this one." Do not change settings during deletion.
-- [ ] Refresh picker options, history and statistics. Reset a filter for the
+- [x] Refresh picker options, history and statistics. Reset a filter for the
   deleted project to All Projects; preserve other filters.
 - [ ] Show failures and partial outcomes accurately, retain recovery backups,
   allow safe retry and block duplicate submissions while pending.
