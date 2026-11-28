@@ -65,6 +65,10 @@ func (s *Store) Load() ([]Record, error) {
 		return []Record{}, err
 	}
 
+	return parseRecords(rows)
+}
+
+func parseRecords(rows [][]string) ([]Record, error) {
 	records := make([]Record, 0, len(rows))
 	for index, row := range rows {
 		if len(row) != 4 {
@@ -204,12 +208,12 @@ func (s *Store) UnassignProject(projectID string) error {
 		return err
 	}
 
+	if _, err := parseRecords(rows); err != nil {
+		return err
+	}
 	updatedRows := slices.Clone(rows)
 	changed := false
 	for index, row := range rows {
-		if len(row) != 4 {
-			return fmt.Errorf("read session row %d: expected 4 fields, got %d", index+1, len(row))
-		}
 		if row[2] == projectID {
 			updatedRows[index] = slices.Clone(row)
 			updatedRows[index][2] = "Unassigned"
